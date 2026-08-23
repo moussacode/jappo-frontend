@@ -1,3 +1,52 @@
 /* You can add global styles to this file, and also import other style files */
 
 @import 'tailwindcss';
+
+@theme {
+  /* Brand — terracotta */
+  --color-brand-50: #FDF4F0;
+  --color-brand-100: #FCE4D9;
+  --color-brand-300: #F0A57E;
+  --color-brand-500: #D9622E;
+  --color-brand-600: #BF4F1F;
+  --color-brand-700: #993E18;
+
+  /* Neutrals — warm gray */
+  --color-neutral-0: #FFFFFF;
+  --color-neutral-25: #FAFAF9;
+  --color-neutral-50: #F5F4F2;
+  --color-neutral-100: #EBE9E6;
+  --color-neutral-200: #D8D5D0;
+  --color-neutral-300: #B8B4AD;
+  --color-neutral-400: #8F8A81;
+  --color-neutral-500: #6B6660;
+  --color-neutral-600: #514D48;
+  --color-neutral-700: #3A3733;
+  --color-neutral-800: #26241F;
+  --color-neutral-900: #161513;
+
+  /* Semantic status */
+  --color-success-100: #E1F5E9;
+  --color-success-500: #2F9E5C;
+  --color-warning-100: #FBF0DC;
+  --color-warning-500: #D99B2B;
+  --color-danger-100: #FBE2DE;
+  --color-danger-500: #D6432F;
+  --color-info-100: #E3EEFA;
+  --color-info-500: #3E7FBF;
+
+  /* Typography */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* Radius */
+  --radius-token-sm: 8px;
+  --radius-token-md: 12px;
+  --radius-token-lg: 16px;
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font-sans);
+  background-color: var(--color-neutral-25);
+  color: var(--color-neutral-900);
+}

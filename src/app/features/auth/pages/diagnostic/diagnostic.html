@@ -1,0 +1,48 @@
+<div class="flex min-h-screen items-center justify-center bg-neutral-25 p-6">
+      <div class="flex w-full max-w-[560px] flex-col gap-7">
+        <div class="flex flex-col gap-2">
+          <p class="text-xs font-medium text-neutral-500">ÉTAPE 2 SUR 3 - DIAGNOSTIC</p>
+          <div class="h-1.5 w-full rounded-full bg-neutral-100">
+            <div class="h-1.5 w-2/3 rounded-full bg-brand-500"></div>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <h1 class="text-2xl font-semibold text-neutral-900">Où en es-tu dans ton projet ?</h1>
+          <p class="text-sm text-neutral-500">Ça nous aide à personnaliser ton parcours dès le départ</p>
+        </div>
+
+        <div class="flex flex-col gap-3">
+          @for (profil of profils; track profil.titre) {
+            <button
+              type="button"
+              (click)="select(profil)"
+              class="flex items-start gap-3.5 rounded-[var(--radius-token-md)] border p-4 text-left transition-colors"
+              [class]="
+                selected() === profil
+                  ? 'border-2 border-brand-500 bg-brand-50'
+                  : 'border-neutral-200 bg-white hover:bg-neutral-25'
+              "
+            >
+              <span
+                class="mt-0.5 h-5 w-5 shrink-0 rounded-full border-2"
+                [class]="selected() === profil ? 'border-brand-500 border-[6px]' : 'border-neutral-200'"
+              ></span>
+              <span class="flex flex-col gap-0.5">
+                <span
+                  class="text-sm font-medium"
+                  [class]="selected() === profil ? 'text-brand-500' : 'text-neutral-900'"
+                >
+                  {{ profil.titre }}
+                </span>
+                <span class="text-xs text-neutral-500">{{ profil.description }}</span>
+              </span>
+            </button>
+          }
+        </div>
+
+        <app-button [disabled]="!selected() || submitting()" (click)="onContinue()">
+          {{ submitting() ? 'Enregistrement…' : 'Continuer' }}
+        </app-button>
+      </div>
+    </div>
