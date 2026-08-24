@@ -1,0 +1,24 @@
+ <div class="flex flex-col gap-6 p-8">
+      <div>
+        <h1 class="text-2xl font-semibold text-neutral-900">Mes documents</h1>
+        <p class="mt-1 text-sm text-neutral-500">Générés automatiquement à partir de ton parcours et de tes réponses</p>
+      </div>
+
+      <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+        @for (doc of documentsAffiches(); track doc.info.type) {
+          <div class="flex flex-col gap-4 rounded-[var(--radius-token-md)] border border-neutral-200 bg-white p-6">
+            <div class="flex items-center justify-between">
+              <h2 class="text-base font-semibold text-neutral-900">{{ doc.info.label }}</h2>
+              <app-badge [status]="doc.badgeStatus">{{ doc.badgeLabel }}</app-badge>
+            </div>
+            <p class="text-sm text-neutral-500">{{ doc.info.description }}</p>
+            <a
+              [routerLink]="doc.info.route"
+              class="rounded-[var(--radius-token-sm)] border border-neutral-200 px-4 py-2.5 text-center text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+            >
+              {{ doc.ctaLabel }}
+            </a>
+          </div>
+        }
+      </div>
+    </div>

@@ -51,10 +51,10 @@
         <div class="flex flex-col gap-5">
           <div class="rounded-[var(--radius-token-md)] border border-brand-500 bg-brand-50 p-5">
             <h2 class="text-base font-semibold text-brand-500">Assistant IA</h2>
-            <p class="mt-2 text-sm text-neutral-700">
-              Bloquée sur ton pitch deck ? Discute avec ton coach IA, disponible 24h/24.
+            <p class="mt-2 mb-3 text-sm text-neutral-700">
+              Bloquée sur une etape ? Discute avec ton coach IA, disponible 24h/24.
             </p>
-            <app-button [fullWidth]="true" class="mt-3" [routerLink]="['/entrepreneur/assistant-ia']">
+            <app-button [fullWidth]="true" class="" [routerLink]="['/entrepreneur/assistant-ia']">
               Démarrer une discussion
             </app-button>
           </div>
@@ -82,13 +82,15 @@
             <h2 class="text-base font-semibold text-neutral-900">Mes documents</h2>
             <div class="mt-3 flex flex-col gap-2.5">
               @for (doc of documents(); track doc.id) {
-                <div class="flex items-center justify-between text-sm">
+                <div class="flex flex-col gap-1.5 border-b border-neutral-100 px-5 py-3.5 last:border-0">
                   <span class="text-neutral-700">{{ doc.type }}</span>
                   <span [class]="doc.statut === 'genere' ? 'text-success-500' : 'text-warning-500'">
                     {{ doc.statut === 'genere' ? 'Généré' : 'En cours' }}
                   </span>
                 </div>
-              }
+              } @empty {
+              <p class="px-5 py-4 text-sm text-neutral-500">Aucun document pour le moment.</p>
+            }
             </div>
           </div>
         </div>

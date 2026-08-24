@@ -1,40 +1,76 @@
 import { Routes } from '@angular/router';
-import { Diagnostic } from './features/auth/pages/diagnostic/diagnostic';
-import { Dashboard } from './features/entrepreneur/dashboard/dashboard/dashboard';
-import { Bienvenue } from './features/auth/pages/bienvenue/bienvenue';
 
 export const routes: Routes = [
-    {
+  {
     path: '',
     redirectTo: 'connexion',
     pathMatch: 'full',
   },
+
+  // --- Auth / Onboarding (sans sidebar) ---
   {
     path: 'connexion',
-    loadComponent: () =>
-      import('./features/auth/pages/connexion/connexion')
-        .then(m => m.Connexion),
+    loadComponent: () => import('./features/auth/pages/connexion/connexion').then((m) => m.Connexion),
   },
   {
     path: 'inscription',
+    loadComponent: () => import('./features/auth/pages/inscription/inscription').then((m) => m.Inscription),
+  },
+  {
+    path: 'diagnostic',
+    loadComponent: () => import('./features/auth/pages/diagnostic/diagnostic').then((m) => m.Diagnostic),
+  },
+  {
+    path: 'bienvenue',
+    loadComponent: () => import('./features/auth/pages/bienvenue/bienvenue').then((m) => m.Bienvenue),
+  },
+
+  // --- Espace Entrepreneur (avec sidebar) ---
+  {
+    path: 'entrepreneur',
     loadComponent: () =>
-      import('./features/auth/pages/inscription/inscription')
-        .then(m => m.Inscription),
+      import('./layout/entrepreneur-layout/entrepreneur-layout').then((m) => m.EntrepreneurLayout),
+    children: [
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+      {
+        path: 'dashboard',
+        loadComponent: () =>
+          import('./features/entrepreneur/dashboard/dashboard/dashboard').then((m) => m.Dashboard),
+      },
+      {
+        path: 'parcours',
+        loadComponent: () =>
+          import('./features/entrepreneur/parcours/parcours/parcours').then((m) => m.Parcours),
+      },
+      {
+        path: 'missions',
+        loadComponent: () =>
+          import('./features/entrepreneur/missions/missions-list/missions-list').then((m) => m.MissionsList),
+      },
+      {
+        path: 'missions/:id',
+        loadComponent: () =>
+          import('./features/entrepreneur/missions/mission-detail/mission-detail').then((m) => m.MissionDetail),
+      },
+      {
+        path: 'documents',
+        loadComponent: () =>
+          import('./features/entrepreneur/documents/documents-hub/documents-hub').then((m) => m.DocumentsHub),
+      },
+      {
+        path: 'documents/bmc',
+        loadComponent: () => import('./features/entrepreneur/documents/bmc/bmc').then((m) => m.Bmc),
+      },
+      {
+        path: 'documents/pitch-deck',
+        loadComponent: () =>
+          import('./features/entrepreneur/documents/pitch-deck/pitch-deck').then((m) => m.PitchDeck),
+      },
+      // documents/pitch-deck, documents/business-plan, documents/etude-marche,
+      // assistant-ia, profil : à ajouter au fur et à mesure qu'on les construit
+    ],
   },
-  {
-    path:'diagnostic',
-    component:Diagnostic
-  }
-  ,
-  {
-    path:'entrepreneur/dashboard',
-    component:Dashboard
-  },
-  {
-    path:'bienvenue',
-    component:Bienvenue
-  },
-  
+
   {
     path: '**',
     redirectTo: 'connexion',

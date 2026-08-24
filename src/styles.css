@@ -1,6 +1,15 @@
 /* You can add global styles to this file, and also import other style files */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
 
 @import 'tailwindcss';
+
+/* @font-face {
+  font-family: 'Clash Display';
+  src: url('/assets/fonts/clash-display/ClashDisplay-Variable.woff2') format('woff2');
+  font-weight: 200 700;
+  font-style: normal;
+  font-display: swap;
+} */
 
 @theme {
   /* Brand — terracotta */
@@ -36,8 +45,7 @@
   --color-info-500: #3E7FBF;
 
   /* Typography */
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   /* Radius */
   --radius-token-sm: 8px;
   --radius-token-md: 12px;

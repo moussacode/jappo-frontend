@@ -16,11 +16,35 @@ import { Sidebar, NavItem } from '../../shared/components/sidebar/sidebar';
 })
 export class IncubateurLayout {
   protected readonly navItems: NavItem[] = [
-    { label: "Vue d'ensemble", path: '/incubateur/dashboard' },
-    { label: 'Cohortes', path: '/incubateur/cohortes' },
-    { label: 'Entrepreneurs', path: '/incubateur/entrepreneurs' },
-    { label: 'Missions', path: '/incubateur/missions' },
-    { label: 'Rapports', path: '/incubateur/rapports' },
-    { label: 'Paramètres', path: '/incubateur/parametres' },
-  ];
+  {
+    label: "Vue d'ensemble",
+    path: '/incubateur/dashboard',
+    icon: 'dashboard',
+  },
+  {
+    label: 'Cohortes',
+    path: '/incubateur/cohortes',
+    icon: 'cohortes',
+  },
+  {
+    label: 'Entrepreneurs',
+    path: '/incubateur/entrepreneurs',
+    icon: 'entrepreneurs',
+  },
+  {
+    label: 'Missions',
+    path: '/incubateur/missions',
+    icon: 'missions',
+  },
+  {
+    label: 'Rapports',
+    path: '/incubateur/rapports',
+    icon: 'documents',
+  },
+  {
+    label: 'Paramètres',
+    path: '/incubateur/parametres',
+    icon: 'settings',
+  },
+];
 }

@@ -5,6 +5,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { PARCOURS } from '../../../../core/constants/parcours.constant';
 import { EtapeParcours } from '../../../../core/models';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
+import { getIndexEtape } from '../../../../core/utils/parcours.util';
 
 
 
@@ -25,12 +26,7 @@ export class Bienvenue {
     return user?.nom?.split(' ')[0] ?? '';
   });
 
-  protected readonly indexEtapeActuelle = computed(() => {
-    const user = this.authService.currentUser();
-    if (!user) return 0;
-    const index = this.parcours.findIndex((e) => e.cle === user.etapeActuelle);
-    return index === -1 ? 0 : index;
-  });
+ protected readonly indexEtapeActuelle = computed(() => getIndexEtape(this.authService.currentUser()?.etapeActuelle));
 
   protected goToDashboard(): void {
     this.router.navigate(['/entrepreneur/dashboard']);

@@ -16,11 +16,35 @@ import { Sidebar, NavItem } from '../../shared/components/sidebar/sidebar';
 })
 export class EntrepreneurLayout {
   protected readonly navItems: NavItem[] = [
-    { label: 'Tableau de bord', path: '/entrepreneur/dashboard' },
-    { label: 'Mon parcours', path: '/entrepreneur/parcours' },
-    { label: 'Mes missions', path: '/entrepreneur/missions' },
-    { label: 'Mes documents', path: '/entrepreneur/documents' },
-    { label: 'Assistant IA', path: '/entrepreneur/assistant-ia' },
-    { label: 'Mon profil', path: '/entrepreneur/profil' },
-  ];
+  {
+    label: 'Tableau de bord',
+    path: '/entrepreneur/dashboard',
+    icon: 'dashboard',
+  },
+  {
+    label: 'Mon parcours',
+    path: '/entrepreneur/parcours',
+    icon: 'route',
+  },
+  {
+    label: 'Mes missions',
+    path: '/entrepreneur/missions',
+    icon: 'missions',
+  },
+  {
+    label: 'Mes documents',
+    path: '/entrepreneur/documents',
+    icon: 'documents',
+  },
+  {
+    label: 'Assistant IA',
+    path: '/entrepreneur/assistant-ia',
+    icon: 'ai',
+  },
+  {
+    label: 'Mon profil',
+    path: '/entrepreneur/profil',
+    icon: 'profile',
+  },
+];
 }
