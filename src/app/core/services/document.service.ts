@@ -15,4 +15,12 @@ export class DocumentService {
   getByType(entrepreneurId: string, type: TypeDocument): Observable<DocumentGenere | undefined> {
     return of(this.documents.find((d) => d.entrepreneurId === entrepreneurId && d.type === type)).pipe(delay(300));
   }
+
+   updateContenu(documentId: string, contenu: unknown): Observable<DocumentGenere> {
+    // TODO backend réel : this.http.patch<DocumentGenere>(`/api/documents/${documentId}`, { contenu })
+    const doc = this.documents.find((d) => d.id === documentId)!;
+    doc.contenu = contenu;
+    doc.dateDerniereModif = new Date().toISOString();
+    return of(doc).pipe(delay(300));
+  }
 }

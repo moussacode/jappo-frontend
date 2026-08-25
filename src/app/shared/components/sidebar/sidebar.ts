@@ -31,8 +31,9 @@ export interface NavItem {
           top-6
           z-10
           flex
-          h-6
-          w-6
+          h-8
+          w-8
+          
           items-center
           justify-center
           rounded-full
@@ -45,6 +46,7 @@ export interface NavItem {
           hover:bg-neutral-50
           hover:text-neutral-900
         "
+        
         [attr.aria-label]="
           collapsed()
             ? 'Ouvrir la sidebar'
@@ -52,8 +54,8 @@ export interface NavItem {
         "
       >
         <app-icon
-          [name]="collapsed() ? 'chevron-right' : 'chevron-left'"
-          class="size-4"
+          [name]="collapsed() ? 'sidebar-left' : 'sidebar-left'"
+          class="size-4 cursor-ew-resize"
         />
       </button>
 
@@ -62,23 +64,28 @@ export interface NavItem {
         class="flex h-18 items-center"
         [class.justify-center]="collapsed()"
       >
-        @if (!collapsed()) {
-          <img
-            src="/logo.png"
-            alt="JAPPO"
-            class="h-full w-auto object-contain"
-          />
-        } @else {
-          <img
-            src="/logo.png"
-            alt="JAPPO"
-            class="h-8 w-8 object-cover object-left"
-          />
-        }
+      @if (!collapsed()) {
+  <img
+    src="/logo.png"
+    alt="JAPPO"
+    class="h-full w-auto object-contain"
+  />
+} @else {
+  <img
+    src="/logomono.png"
+    alt="JAPPO"
+    class="h-8 w-8 object-contain"
+  />
+}
       </div>
 
       <!-- Navigation -->
-      <nav class="mt-4 flex flex-1 flex-col gap-1 px-3">
+      <nav 
+      
+       class="mt-4 flex flex-1 flex-col gap-1"
+  [class.px-3]="!collapsed()"
+  [class.px-0]="collapsed()"
+  >
         @for (item of navItems(); track item.path) {
           <a
             [routerLink]="item.path"
@@ -99,8 +106,15 @@ export interface NavItem {
               text-sm
               font-medium
               transition-colors
+              
             "
             [class.justify-center]="collapsed()"
+            [class.w-11]="collapsed()"
+      [class.w-full]="!collapsed()"
+      [class.justify-center]="collapsed()"
+      [class.gap-3]="!collapsed()"
+      [class.px-3]="!collapsed()"
+      [class.mx-auto]="collapsed()"
             [title]="collapsed() ? item.label : ''"
           >
             <app-icon

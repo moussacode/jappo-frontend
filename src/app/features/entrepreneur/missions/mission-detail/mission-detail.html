@@ -39,12 +39,16 @@
 
               @if (submitted()) {
                 <div class="mt-4 rounded-[var(--radius-token-sm)] bg-success-100 px-4 py-3 text-sm font-medium text-success-500">
-                  ✓ Livrable soumis - ton coach va le revoir bientôt.
+                  Livrable soumis - ton coach va le revoir bientôt.
                 </div>
               } @else {
                 <div
-                  class="mt-4 flex flex-col items-center gap-1.5 rounded-[var(--radius-token-sm)] border border-dashed border-neutral-200 py-8 text-center"
+                  class="mt-4 mb-4 flex flex-col items-center gap-1.5 rounded-[var(--radius-token-sm)] border border-dashed border-neutral-200 py-8 text-center"
                 >
+                  <app-icon
+                    name="File-Text"
+                    class="size-6 text-neutral-400"
+                  />
                   <p class="text-sm font-medium text-neutral-700">Glisse ton fichier ici ou clique pour parcourir</p>
                   <p class="text-xs text-neutral-500">PDF, PPTX - 20 Mo maximum</p>
                 </div>

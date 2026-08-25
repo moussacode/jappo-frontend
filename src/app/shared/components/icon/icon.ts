@@ -21,7 +21,6 @@ export type IconName =
   | 'edit'
   | 'trash'
   | 'check'
-  | 'arrow-right'
   | 'arrow-left'
   | 'calendar'
   | 'clock'
@@ -29,7 +28,12 @@ export type IconName =
   | 'chart'
   | 'users'
   | 'briefcase'
-  | 'sparkles';
+  | 'sparkles'
+  |'sidebar-left'
+  |'arrow-right'
+  |'File-Text-Add'
+  |'File-Text'
+  ;
 
 @Component({
   selector: 'app-icon',

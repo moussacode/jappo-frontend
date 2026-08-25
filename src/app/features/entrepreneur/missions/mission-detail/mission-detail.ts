@@ -10,10 +10,11 @@ import {  BadgeComponent } from '../../../../shared/components/badge/badge';
 import { STATUT_MISSION_BADGE } from '../../../../core/constants/statut-mission.constant';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 import { LivrableService } from '../../../../core/services/livrable.service';
+import { Icon } from "../../../../shared/components/icon/icon";
 
 @Component({
   selector: 'app-mission-detail',
-  imports: [RouterLink, BadgeComponent, ButtonComponent],
+  imports: [RouterLink, BadgeComponent, ButtonComponent, Icon],
    templateUrl: './mission-detail.html',
   styleUrl: './mission-detail.css',
 })

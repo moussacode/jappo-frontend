@@ -102,7 +102,28 @@ export const MOCK_DOCUMENTS: DocumentGenere[] = [
     id: 'doc-004',
     entrepreneurId: 'ent-001',
     type: 'business_plan',
-    contenu: {},
+    contenu: {
+      sections: [
+        {
+          titre: 'Résumé exécutif',
+          contenu: "JAPPO Pay est une solution de transfert d'argent mobile destinée aux commerçants informels de Dakar, combinant rapidité, transparence tarifaire et accompagnement de proximité.",
+        },
+        {
+          titre: 'Présentation du projet',
+          contenu: "Le projet répond à un besoin identifié auprès de plus de 70% des commerçants informels : l'absence de solution de transfert rapide et abordable adaptée à leur activité quotidienne.",
+        },
+        {
+          titre: 'Analyse de marché',
+          contenu: "Le marché du transfert d'argent mobile au Sénégal est estimé à 48 milliards FCFA, en croissance de 12% par an, avec une forte concentration de la demande à Dakar.",
+        },
+        {
+          titre: 'Stratégie commerciale',
+          contenu: "Acquisition via un réseau d'agents de proximité et le bouche-à-oreille, avec un modèle freemium pour les commerçants et un abonnement Premium pour les fonctionnalités avancées.",
+        },
+        { titre: 'Plan financier', contenu: null },
+        { titre: 'Annexes', contenu: null },
+      ],
+    },
     statut: 'en_cours',
     dateGeneration: '2026-08-10',
   },

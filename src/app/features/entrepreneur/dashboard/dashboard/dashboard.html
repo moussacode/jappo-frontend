@@ -40,11 +40,18 @@
                 }
               </div>
             }
-            <div class="px-5 py-3">
-              <a routerLink="/entrepreneur/parcours" class="text-xs font-medium text-brand-500">
-                Voir tout mon parcours →
-              </a>
-            </div>
+           <div class="px-5 py-3">
+  <a
+    routerLink="/entrepreneur/parcours"
+    class="group inline-flex items-center gap-1.5 text-xs font-medium text-brand-500 transition-colors hover:text-brand-600"
+  >
+    Voir mon parcours
+    <app-icon
+      name="arrow-right"
+      class="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5"
+    />
+  </a>
+</div>
           </div>
         </div>
 

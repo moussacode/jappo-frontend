@@ -66,6 +66,13 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/entrepreneur/documents/pitch-deck/pitch-deck').then((m) => m.PitchDeck),
       },
+      {
+        path: 'documents/business-plan',
+        loadComponent: () =>
+          import('./features/entrepreneur/documents/business-plan/business-plan').then((m) => m.BusinessPlan),
+      },
+      
+
       // documents/pitch-deck, documents/business-plan, documents/etude-marche,
       // assistant-ia, profil : à ajouter au fur et à mesure qu'on les construit
     ],

@@ -13,11 +13,12 @@ import { ButtonComponent } from '../../../../shared/components/button/button.com
 import { PARCOURS } from '../../../../core/constants/parcours.constant';
 import { getIndexEtape } from '../../../../core/utils/parcours.util';
 import { STATUT_MISSION_BADGE } from '../../../../core/constants/statut-mission.constant';
+import { Icon } from "../../../../shared/components/icon/icon";
 
 
 @Component({
   selector: 'app-dashboard',
-  imports: [RouterLink, KpiCardComponent, BadgeComponent, ButtonComponent],
+  imports: [RouterLink, KpiCardComponent, BadgeComponent, ButtonComponent, Icon],
    templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
