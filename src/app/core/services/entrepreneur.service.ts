@@ -22,9 +22,15 @@ export class EntrepreneurService {
   }
 
   updateDiagnostic(id: string, etape: EtapeParcours): Observable<Entrepreneur> {
-    // TODO backend réel : this.http.patch<Entrepreneur>(`/api/entrepreneurs/${id}/diagnostic`, { etape })
     const entrepreneur = this.entrepreneurs.find((e) => e.id === id)!;
     entrepreneur.etapeActuelle = etape;
+    return of(entrepreneur).pipe(delay(300));
+  }
+
+  updateProfil(id: string, changements: Partial<Pick<Entrepreneur, 'nom'>>): Observable<Entrepreneur> {
+    // TODO backend réel : this.http.patch<Entrepreneur>(`/api/entrepreneurs/${id}`, changements)
+    const entrepreneur = this.entrepreneurs.find((e) => e.id === id)!;
+    Object.assign(entrepreneur, changements);
     return of(entrepreneur).pipe(delay(300));
   }
 }

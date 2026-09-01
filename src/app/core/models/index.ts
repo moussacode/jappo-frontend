@@ -10,3 +10,4 @@ export * from './abonnement.model';
 export * from './note-coach.model';
 export * from './notification.model';
 export * from './conversation-ia.model';
+export * from './projet.model';

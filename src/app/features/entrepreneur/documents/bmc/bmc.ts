@@ -4,6 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
 import { DocumentService } from '../../../../core/services/document.service';
+import { Icon } from "../../../../shared/components/icon/icon";
 
 interface BmcContenu {
   partenairesCles: string;
@@ -19,7 +20,7 @@ interface BmcContenu {
 
 @Component({
   selector: 'app-bmc',
-  imports: [RouterLink],
+  imports: [RouterLink, Icon],
     templateUrl: './bmc.html',
   styleUrl: './bmc.css',
 })

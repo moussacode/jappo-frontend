@@ -1,0 +1,526 @@
+@if (isFullscreen()) {
+
+  <div class="presentation">
+
+    <header class="presentation-header">
+
+      <div class="presentation-counter">
+        {{ slideActive() + 1 }}
+        /
+        {{ slides().length }}
+      </div>
+
+      <button
+        type="button"
+        class="presentation-close"
+        (click)="toggleFullscreen()"
+        aria-label="Quitter la présentation"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="1.5"
+          stroke="currentColor"
+          class="size-5"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M9 9V4.5M9 9H4.5M15 9h4.5M15 9V4.5M9 15H4.5M9 15v4.5M15 15h4.5M15 15v4.5"
+          />
+        </svg>
+      </button>
+
+    </header>
+
+    <main class="presentation-stage">
+
+      <div class="presentation-slide">
+
+        @for (
+          element of currentElements();
+          track element.id
+        ) {
+
+          @if (element.type === 'text') {
+
+            <div
+              class="presentation-element"
+              [style.left.px]="element.x"
+              [style.top.px]="element.y"
+              [style.width.px]="element.width"
+              [style.font-size.px]="element.fontSize"
+              [style.font-family]="element.fontFamily"
+              [style.font-weight]="
+                element.fontStyle === 'bold'
+                  ? 700
+                  : 400
+              "
+              [style.color]="element.fill"
+            >
+              {{ element.content }}
+            </div>
+
+          }
+
+        }
+
+      </div>
+
+    </main>
+
+    <footer class="presentation-footer">
+
+      <button
+        type="button"
+        class="presentation-nav"
+        (click)="previousSlide()"
+        [disabled]="slideActive() === 0"
+        aria-label="Slide précédente"
+      >
+          <app-icon
+    name="arrow-left"
+    class="size-4 flex items-center justify-center text-neutral-700"
+  />
+      </button>
+
+      <span>
+        {{ slideActive() + 1 }}
+        /
+        {{ slides().length }}
+      </span>
+
+      <button
+        type="button"
+        class="presentation-nav"
+        (click)="nextSlide()"
+        [disabled]="
+          slideActive() === slides().length - 1
+        "
+        aria-label="Slide suivante"
+      >
+        →
+      </button>
+
+    </footer>
+
+  </div>
+
+} @else {
+
+  <div class="editor">
+
+    <!-- HEADER -->
+
+    <header class="editor-header">
+
+      <div class="editor-header-left">
+
+        <a
+          routerLink="/entrepreneur/documents"
+          class="back-link"
+        >
+            <app-icon
+    name="arrow-left"
+    class="size-4 flex items-center justify-center text-neutral-700"
+  />
+        </a>
+
+        <div>
+          <h1 class="editor-title">
+            Pitch Deck
+          </h1>
+
+          <p class="editor-subtitle">
+            {{ slides().length }} slides
+          </p>
+        </div>
+
+      </div>
+
+      <div class="editor-actions">
+
+        <button
+          type="button"
+          class="button button-secondary"
+          (click)="toggleFullscreen()"
+        >
+          Présenter
+        </button>
+
+        <button
+          type="button"
+          class="button button-secondary"
+        >
+          Régénérer une slide
+        </button>
+
+        <button
+          type="button"
+          class="button button-primary"
+        >
+          Exporter
+        </button>
+
+      </div>
+
+    </header>
+
+
+    @if (slides().length) {
+
+      <!-- TOOLBAR -->
+
+      <div class="editor-toolbar">
+
+        <div class="toolbar-group">
+
+          <button
+            type="button"
+            class="toolbar-button"
+          >
+            ↶
+          </button>
+
+          <button
+            type="button"
+            class="toolbar-button"
+          >
+            ↷
+          </button>
+
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <button
+          type="button"
+          class="toolbar-button"
+        >
+          Texte
+        </button>
+
+        <button
+          type="button"
+          class="toolbar-button"
+        >
+          Image
+        </button>
+
+        <button
+          type="button"
+          class="toolbar-button"
+        >
+          Forme
+        </button>
+
+      </div>
+
+
+      <!-- WORKSPACE -->
+
+      <main class="editor-workspace">
+
+        <!-- SIDEBAR -->
+
+        <aside class="slides-sidebar">
+
+          <div class="sidebar-header">
+
+            <span>
+              Pages
+            </span>
+
+            <button
+              type="button"
+              class="add-slide-button"
+            >
+              +
+            </button>
+
+          </div>
+
+          <div class="slides-list">
+
+            @for (
+              slide of slides();
+              track trackSlide($index);
+              let i = $index
+            ) {
+
+              <button
+                type="button"
+                class="slide-thumbnail"
+                [class.slide-thumbnail-active]="
+                  slideActive() === i
+                "
+                (click)="selectSlide(i)"
+              >
+
+                <div class="thumbnail-number">
+                  {{ i + 1 }}
+                </div>
+
+                <div class="thumbnail-preview">
+
+                  <span>
+                    {{ slide.titre }}
+                  </span>
+
+                  <strong>
+                    {{ slide.titrePrincipal }}
+                  </strong>
+
+                </div>
+
+              </button>
+
+            }
+
+          </div>
+
+        </aside>
+
+
+        <!-- CANVAS AREA -->
+
+        <section
+          class="canvas-area"
+          (click)="clearSelection()"
+        >
+
+          <div
+            class="canvas-wrapper"
+            (click)="$event.stopPropagation()"
+          >
+
+            <ko-stage
+              [config]="stageConfig"
+              (click)="clearSelection()"
+            >
+
+              <ko-layer>
+
+                <ko-rect
+                  [config]="backgroundConfig"
+                />
+
+                @for (
+                  element of currentElements();
+                  track element.id
+                ) {
+
+                  @if (element.type === 'text') {
+
+                    <ko-text
+                      [config]="{
+                        x: element.x,
+                        y: element.y,
+                        width: element.width,
+                        text: element.content,
+                        fontSize: element.fontSize,
+                        fontFamily: element.fontFamily,
+                        fontStyle: element.fontStyle ?? 'normal',
+                        fill: element.fill,
+                        draggable: element.draggable,
+                        name: element.id
+                      }"
+                      (click)="
+                        handleElementClick(
+                          $event,
+                          element.id
+                        )
+                      "
+                      (dragend)="
+                        handleDragEnd(
+                          $event,
+                          element
+                        )
+                      "
+                    />
+
+                  }
+
+                }
+
+              </ko-layer>
+
+            </ko-stage>
+
+          </div>
+
+        </section>
+
+
+        <!-- PROPERTIES -->
+
+        <aside class="properties-panel">
+
+          @if (selectedElement(); as element) {
+
+            <div class="properties-header">
+              <span>
+                Propriétés
+              </span>
+            </div>
+
+            <div class="properties-content">
+
+              <div class="property-section">
+
+                <label>
+                  Type
+                </label>
+
+                <span class="property-value">
+                  {{ element.type }}
+                </span>
+
+              </div>
+
+              <div class="property-section">
+
+                <label>
+                  Texte
+                </label>
+
+                <textarea
+                  class="property-input"
+                  [value]="element.content"
+                  readonly
+                ></textarea>
+
+              </div>
+
+              <div class="property-grid">
+
+                <div class="property-section">
+
+                  <label>
+                    X
+                  </label>
+
+                  <span class="property-value">
+                    {{ element.x }}
+                  </span>
+
+                </div>
+
+                <div class="property-section">
+
+                  <label>
+                    Y
+                  </label>
+
+                  <span class="property-value">
+                    {{ element.y }}
+                  </span>
+
+                </div>
+
+              </div>
+
+              <div class="property-section">
+
+                <label>
+                  Taille
+                </label>
+
+                <span class="property-value">
+                  {{ element.fontSize }} px
+                </span>
+
+              </div>
+
+              <div class="property-section">
+
+                <label>
+                  Police
+                </label>
+
+                <span class="property-value">
+                  {{ element.fontFamily }}
+                </span>
+
+              </div>
+
+            </div>
+
+          } @else {
+
+            <div class="properties-empty">
+
+              <span>
+                Aucun élément sélectionné
+              </span>
+
+              <p>
+                Sélectionne un élément sur la slide
+                pour voir ses propriétés.
+              </p>
+
+            </div>
+
+          }
+
+        </aside>
+
+      </main>
+
+
+      <!-- BOTTOM BAR -->
+
+      <footer class="editor-footer">
+
+        <div class="footer-left">
+
+          <span>
+            Slide {{ slideActive() + 1 }}
+            sur
+            {{ slides().length }}
+          </span>
+
+        </div>
+
+        <div class="footer-navigation">
+
+          <button
+            type="button"
+            class="navigation-button"
+            (click)="previousSlide()"
+            [disabled]="slideActive() === 0"
+          >
+            ←
+          </button>
+
+          <button
+            type="button"
+            class="navigation-button"
+            (click)="nextSlide()"
+            [disabled]="
+              slideActive() === slides().length - 1
+            "
+          >
+            →
+          </button>
+
+        </div>
+
+      </footer>
+
+    } @else {
+
+      <div class="empty-state">
+
+        <p>
+          Ce document n'a pas encore été généré.
+        </p>
+
+      </div>
+
+    }
+
+  </div>
+
+}

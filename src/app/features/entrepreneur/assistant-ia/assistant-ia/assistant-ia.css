@@ -1,0 +1,62 @@
+.messages-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.messages-scroll:hover {
+  scrollbar-color: #d4d4d8 transparent;
+}
+
+.messages-scroll::-webkit-scrollbar {
+  width: 1px;
+}
+
+.messages-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.messages-scroll::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 9999px;
+}
+
+.messages-scroll:hover::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+}
+
+.messages-scroll:hover::-webkit-scrollbar-thumb:hover {
+  background: #a1a1aa;
+}
+
+.chat-textarea {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.chat-textarea:hover,
+.chat-textarea:focus {
+  scrollbar-color: #d4d4d8 transparent;
+}
+
+.chat-textarea::-webkit-scrollbar {
+  width: 1ch;
+}
+
+.chat-textarea::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-textarea::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 9999px;
+}
+
+.chat-textarea:hover::-webkit-scrollbar-thumb,
+.chat-textarea:focus::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+}
+
+:host ::ng-deep .model-popover::before,
+:host ::ng-deep .model-popover::after {
+  display: none !important;
+}

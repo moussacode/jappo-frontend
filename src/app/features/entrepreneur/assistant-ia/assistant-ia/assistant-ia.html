@@ -1,0 +1,262 @@
+<div class="flex h-full flex-col">
+  <!-- Header -->
+  <div
+    class="flex items-center justify-between border-b border-neutral-100 px-8 py-5"
+  >
+    <div>
+      <h1 class="text-xl font-semibold text-neutral-900">
+        Assistant IA
+      </h1>
+
+      @if (conversation()?.contexte) {
+        <p class="mt-0.5 text-sm text-neutral-500">
+          Contexte actuel : {{ conversation()?.contexte }}
+        </p>
+      }
+    </div>
+  </div>
+
+  <!-- Messages -->
+  <div
+    #messagesContainer
+    class="messages-scroll flex-1 overflow-y-auto px-8 py-7"
+  >
+    <div class="flex flex-col gap-5">
+
+      @for (message of messages(); track message.id) {
+
+        @if (message.auteur === 'assistant') {
+
+          <!-- Assistant -->
+          <div class="flex min-w-0 items-start gap-3">
+            <span
+              class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-500 text-xs font-semibold text-white"
+            >
+              J
+            </span>
+
+            <div
+              class="min-w-0 max-w-[560px] break-words [overflow-wrap:anywhere] rounded-[var(--radius-token-md)] bg-neutral-100 px-4 py-3 text-sm leading-5 text-neutral-900"
+            >
+              {{ message.contenu }}
+            </div>
+          </div>
+
+        } @else {
+
+          <!-- Entrepreneur -->
+          <div class="flex min-w-0 justify-end">
+            <div
+              class="min-w-0 max-w-[560px] break-words [overflow-wrap:anywhere] rounded-[var(--radius-token-md)] bg-brand-50 px-4 py-3 text-sm leading-5 text-neutral-900"
+            >
+              {{ message.contenu }}
+            </div>
+          </div>
+
+        }
+
+      }
+
+      @if (envoiEnCours()) {
+        <div class="flex items-start gap-3">
+          <span
+            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-500 text-xs font-semibold text-white"
+          >
+            J
+          </span>
+
+          <div
+            class="rounded-[var(--radius-token-md)] bg-neutral-100 px-4 py-3 text-sm text-neutral-500"
+          >
+            …
+          </div>
+        </div>
+      }
+
+    </div>
+  </div>
+
+  <!-- Suggestions -->
+@if (messages().length === 0) {
+  <div class="flex flex-wrap gap-2 px-8 pb-3">
+    @for (suggestion of suggestions; track suggestion) {
+      <button
+        type="button"
+        (click)="envoyer(suggestion)"
+        class="group flex items-center gap-2 rounded-full border border-neutral-200 bg-transparent px-3.5 py-2 text-xs font-medium text-neutral-600 transition-all duration-150 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700"
+      >
+        <span
+          class="text-neutral-400 transition-colors group-hover:text-brand-500"
+        >
+          ✦
+        </span>
+
+        {{ suggestion }}
+      </button>
+    }
+  </div>
+}
+
+  <!-- Input -->
+  <div class="border-t border-neutral-100 px-8 py-4">
+  <div
+    class="relative rounded-2xl border border-neutral-200 bg-white shadow-sm transition-all duration-200 focus-within:border-brand-300 focus-within:shadow-md"
+  >
+    <!-- Zone de saisie -->
+    <textarea
+      rows="1"
+      [value]="saisie()"
+      (input)="onSaisieInput($event)"
+      (keydown)="onSaisieKeyDown($event)"
+      placeholder="Écris ton message à l'assistant…"
+      aria-label="Message"
+      class="chat-textarea  min-h-[120px]  w-full resize-none overflow-y-auto bg-transparent px-5 pt-4 pb-16 text-sm leading-6 text-neutral-900 outline-none placeholder:text-neutral-400"
+    ></textarea>
+
+
+    <!-- Actions -->
+    <div
+      class="absolute inset-x-0 bottom-0 flex items-center justify-between px-3 pb-3"
+    >
+      <!-- Gauche -->
+      <div class="flex items-center gap-1">
+        <!-- Ajouter -->
+        <button
+          type="button"
+          aria-label="Ajouter"
+          class="flex size-9 items-center justify-center rounded-lg text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-900"
+        >
+          <span class="text-2xl font-light leading-none">+</span>
+        </button>
+      </div>
+
+      <!-- Droite -->
+      <div class="flex items-center gap-1.5">
+        <!-- Modèle -->
+     <div class="model-selector relative">
+  <button
+    type="button"
+    (click)="modelMenuOpen.update(value => !value)"
+    class="flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100"
+  >
+    <span>{{ selectedModelInfo()?.name }}</span>
+
+    <svg
+      class="size-4 text-neutral-400 transition-transform"
+      [class.rotate-180]="modelMenuOpen()"
+      viewBox="0 0 20 20"
+      fill="none"
+    >
+      <path
+        d="M5 7.5L10 12.5L15 7.5"
+        stroke="currentColor"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+  </button>
+
+  @if (modelMenuOpen()) {
+    <div
+      class="absolute bottom-full right-0 z-20 mb-2 w-64 overflow-hidden rounded-xl border border-neutral-200 bg-white p-1.5 shadow-lg"
+    >
+      @for (model of models; track model.id) {
+        <button
+          type="button"
+          (click)="selectModel(model.id)"
+          class="flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition hover:bg-neutral-50"
+          [class.bg-brand-50]="selectedModel() === model.id"
+        >
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-medium text-neutral-900">
+                {{ model.name }}
+              </span>
+
+              @if (selectedModel() === model.id) {
+                <span class="text-xs text-brand-500">✓</span>
+              }
+            </div>
+
+            <p class="mt-0.5 text-xs leading-4 text-neutral-500">
+              {{ model.description }}
+            </p>
+          </div>
+        </button>
+      }
+    </div>
+  }
+</div>
+
+        <!-- Micro -->
+        <button
+          type="button"
+          aria-label="Utiliser le microphone"
+          class="flex size-9 items-center justify-center rounded-lg text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-900"
+        >
+          <svg
+            class="size-5"
+            viewBox="0 0 24 24"
+            fill="none"
+          >
+            <path
+              d="M12 15.5C13.93 15.5 15.5 13.93 15.5 12V7C15.5 5.07 13.93 3.5 12 3.5C10.07 3.5 8.5 5.07 8.5 7V12C8.5 13.93 10.07 15.5 12 15.5Z"
+              stroke="currentColor"
+              stroke-width="1.8"
+            />
+
+            <path
+              d="M5.5 11.5C5.5 15.09 8.41 18 12 18C15.59 18 18.5 15.09 18.5 11.5"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+            />
+
+            <path
+              d="M12 18V21"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+            />
+          </svg>
+        </button>
+
+        <!-- Envoyer -->
+        <button
+          type="button"
+          [disabled]="!saisie().trim() || envoiEnCours()"
+          (click)="envoyer()"
+          aria-label="Envoyer"
+          class="flex size-10 items-center justify-center rounded-xl bg-brand-500 text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <svg
+            class="size-5"
+            viewBox="0 0 24 24"
+            fill="none"
+          >
+            <path
+              d="M12 19V5"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+
+            <path
+              d="M6 11L12 5L18 11"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <p class="mt-2 text-center text-[11px] text-neutral-400">
+    Entrée pour envoyer · Shift + Entrée pour aller à la ligne
+  </p>
+</div>
+</div>

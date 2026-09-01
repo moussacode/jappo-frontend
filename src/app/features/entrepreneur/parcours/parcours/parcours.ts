@@ -7,10 +7,11 @@ import { PARCOURS } from '../../../../core/constants/parcours.constant';
 
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 import { getIndexEtape } from '../../../../core/utils/parcours.util';
+import { Icon } from "../../../../shared/components/icon/icon";
 
 @Component({
   selector: 'app-parcours',
-  imports: [RouterLink, ButtonComponent],
+  imports: [RouterLink, ButtonComponent, Icon],
    templateUrl: './parcours.html',
   styleUrl: './parcours.css',
 })
@@ -19,6 +20,7 @@ export class Parcours {
   protected readonly parcours = PARCOURS;
 
   protected readonly indexEtapeActuelle = computed(() => getIndexEtape(this.authService.currentUser()?.etapeActuelle));
+
 
   protected readonly pourcentage = computed(() => Math.round((this.indexEtapeActuelle() / this.parcours.length) * 100));
 }

@@ -11,4 +11,5 @@ export interface MessageIA {
   auteur: 'entrepreneur' | 'assistant';
   contenu: string;
   dateEnvoi: string;
+  model: string;
 }

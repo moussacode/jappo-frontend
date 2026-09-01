@@ -11,6 +11,7 @@ import { RouterLink } from '@angular/router';
 
 import { AuthService } from '../../../../core/services/auth.service';
 import { DocumentService } from '../../../../core/services/document.service';
+import { Icon } from "../../../../shared/components/icon/icon";
 
 interface SlidePitch {
   titre: string;
@@ -24,7 +25,7 @@ interface PitchDeckContenu {
 
 @Component({
   selector: 'app-pitch-deck',
-  imports: [RouterLink],
+  imports: [RouterLink, Icon],
   templateUrl: './pitch-deck.html',
   styleUrl: './pitch-deck.css',
 })

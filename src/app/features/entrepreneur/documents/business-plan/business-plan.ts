@@ -6,6 +6,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { DocumentService } from '../../../../core/services/document.service';
 import { EmptyState } from '../../../../shared/components/empty-state/empty-state';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
+import { Icon } from "../../../../shared/components/icon/icon";
 
 interface SectionPlan {
   titre: string;
@@ -18,7 +19,7 @@ interface BusinessPlanContenu {
 
 @Component({
   selector: 'app-business-plan',
-  imports: [RouterLink, EmptyState, ButtonComponent],
+  imports: [RouterLink, EmptyState, ButtonComponent, Icon],
   templateUrl: './business-plan.html',
   styleUrl: './business-plan.css',
   

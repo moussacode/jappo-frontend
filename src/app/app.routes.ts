@@ -71,6 +71,26 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/entrepreneur/documents/business-plan/business-plan').then((m) => m.BusinessPlan),
       },
+      {
+        path: 'assistant-ia',
+        loadComponent: () =>
+          import('./features/entrepreneur/assistant-ia/assistant-ia/assistant-ia').then((m) => m.AssistantIa),
+      },
+      {
+        path: 'profil',
+        loadComponent: () =>
+          import('./features/entrepreneur/profil/profil/profil').then((m) => m.Profil),
+      },{
+      path: 'profil/changer-forfait',
+        loadComponent: () =>
+          import('./features/entrepreneur/profil/changer-forfait/changer-forfait').then((m) => m.ChangerForfait),
+      },
+//       {
+//   path: 'pitch-deck-editor',
+//   loadComponent: () =>
+//     import('./features/entrepreneur/documents/pitch-deck-editor/pitch-deck-editor')
+//       .then(m => m.PitchDeckEditor),
+// }
       
 
       // documents/pitch-deck, documents/business-plan, documents/etude-marche,
