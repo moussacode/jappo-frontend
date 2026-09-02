@@ -1,63 +1,89 @@
+import {
+  Component,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 
-import { Component, inject, computed, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
+import { ProjetService } from '../../../../core/services/projet.service';
 import { DocumentService } from '../../../../core/services/document.service';
+
+import { DocumentGenere } from '../../../../core/models';
 import { Icon } from "../../../../shared/components/icon/icon";
-
 interface BmcContenu {
-  partenairesCles: string;
-  activitesCles: string;
-  ressourcesCles: string;
-  propositionValeur: string;
-  relationClient: string;
-  canaux: string;
-  segmentsClients: string;
-  structureCouts: string;
-  sourcesRevenus: string;
+partenairesCles: string;
+activitesCles: string;
+ressourcesCles: string;
+propositionValeur: string;
+relationClient: string;
+canaux: string;
+segmentsClients: string;
+structureCouts: string;
+sourcesRevenus: string;
 }
-
 @Component({
   selector: 'app-bmc',
-  imports: [RouterLink, Icon],
-    templateUrl: './bmc.html',
+  templateUrl: './bmc.html',
   styleUrl: './bmc.css',
+  imports: [Icon],
 })
 export class Bmc {
   private readonly authService = inject(AuthService);
+  private readonly projetService = inject(ProjetService);
   private readonly documentService = inject(DocumentService);
 
-  private readonly userId = this.authService.currentUser()?.id ?? '';
-  protected readonly document = toSignal(this.documentService.getByType(this.userId, 'bmc'), { initialValue: undefined });
+  protected readonly document =
+    signal<DocumentGenere | undefined>(undefined);
 
-
-
-  protected readonly contenu = computed(() => this.document()?.contenu as BmcContenu | undefined);
-
+  protected readonly contenu = computed(
+    () =>
+      this.document()?.contenu as
+        | BmcContenu
+        | undefined
+  );
 
   protected readonly editingField =
-  signal<keyof BmcContenu | null>(null);
+    signal<keyof BmcContenu | null>(null);
 
-protected readonly editingText =
-  signal('');
+  protected readonly editingText =
+    signal('');
 
-protected startEditing(
-  field: keyof BmcContenu,
-  value: string
-): void {
-  this.editingField.set(field);
-  this.editingText.set(value);
-}
+  constructor() {
+    const userId = this.authService.currentUser()?.id;
 
-protected updateEditingText(event: Event): void {
-  const element = event.target as HTMLElement;
+    if (!userId) return;
 
-  this.editingText.set(element.innerText);
-}
+    this.projetService
+      .getPrincipalByEntrepreneur(userId)
+      .subscribe((projet) => {
+        if (!projet) return;
 
-protected stopEditing(): void {
-  this.editingField.set(null);
-  this.editingText.set('');
-}
+        this.documentService
+          .getByType(projet.id, 'bmc')
+          .subscribe((doc) => {
+            this.document.set(doc);
+          });
+      });
+  }
+
+  protected startEditing(
+    field: keyof BmcContenu,
+    value: string
+  ): void {
+    this.editingField.set(field);
+    this.editingText.set(value);
+  }
+
+  protected updateEditingText(event: Event): void {
+    const element =
+      event.target as HTMLElement;
+
+    this.editingText.set(element.innerText);
+  }
+
+  protected stopEditing(): void {
+    this.editingField.set(null);
+    this.editingText.set('');
+  }
 }

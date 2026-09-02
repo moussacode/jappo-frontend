@@ -11,8 +11,5 @@ export type EtapeParcours =
   | 'recherche_financement';
 
 export interface Entrepreneur extends Utilisateur {
-  scoreMaturite: number; // 0-100
-  etapeActuelle: EtapeParcours;
-  cohorteId: string | null;
   abonnementId: string | null;
 }

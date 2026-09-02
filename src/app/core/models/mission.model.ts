@@ -8,7 +8,7 @@ export interface Mission {
   dateEcheance?: string;
   statut: StatutMission;
   dateCreation: string;
-  assigneePar: string; // MembreEquipe.id
-  cibleEntrepreneurId?: string | null;
+  assigneePar: string;
+  cibleProjetId?: string | null;
   cibleCohorteId?: string | null;
 }

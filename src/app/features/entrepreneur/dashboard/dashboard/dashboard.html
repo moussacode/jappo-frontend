@@ -9,7 +9,7 @@
           <div class="grid grid-cols-2 gap-5">
             <app-kpi-card
               label="Score de maturité"
-              [value]="(user()?.scoreMaturite ?? 0) + '%'"
+              [value]="(projet()?.scoreMaturite ?? 0) + '%'"
               note="Progression continue"
               noteVariant="success"
             />

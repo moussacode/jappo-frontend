@@ -3,7 +3,7 @@ import { ConversationIA, MessageIA } from '../models/conversation-ia.model';
 export const MOCK_CONVERSATIONS: ConversationIA[] = [
   {
     id: 'conv-001',
-    entrepreneurId: 'ent-001',
+    projetId: 'projet-001',
     contexte: 'Pitch Deck - Cohorte 3 Fintech',
     dateCreation: '2026-08-05',
   },

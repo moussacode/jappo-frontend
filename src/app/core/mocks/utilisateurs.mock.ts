@@ -1,3 +1,4 @@
+
 import { Entrepreneur } from '../models/entrepreneur.model';
 import { MembreEquipe } from '../models/membre-equipe.model';
 
@@ -8,9 +9,6 @@ export const MOCK_ENTREPRENEURS: Entrepreneur[] = [
     email: 'awa.ndiaye@email.com',
     typeUtilisateur: 'entrepreneur',
     dateCreation: '2026-03-03',
-    scoreMaturite: 78,
-    etapeActuelle: 'pitch_deck',
-    cohorteId: 'coh-003',
     abonnementId: 'abo-001',
   },
   {
@@ -19,9 +17,6 @@ export const MOCK_ENTREPRENEURS: Entrepreneur[] = [
     email: 'moussa.diop@email.com',
     typeUtilisateur: 'entrepreneur',
     dateCreation: '2026-03-10',
-    scoreMaturite: 52,
-    etapeActuelle: 'business_model_canvas',
-    cohorteId: 'coh-003',
     abonnementId: 'abo-002',
   },
   {
@@ -30,9 +25,6 @@ export const MOCK_ENTREPRENEURS: Entrepreneur[] = [
     email: 'fatou.sarr@email.com',
     typeUtilisateur: 'entrepreneur',
     dateCreation: '2026-02-15',
-    scoreMaturite: 85,
-    etapeActuelle: 'business_plan',
-    cohorteId: 'coh-002',
     abonnementId: 'abo-003',
   },
 ];

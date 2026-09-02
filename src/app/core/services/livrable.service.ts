@@ -11,12 +11,12 @@ export class LivrableService {
     return of(this.livrables.find((l) => l.missionId === missionId)).pipe(delay(200));
   }
 
-  submit(missionId: string, entrepreneurId: string, fichierUrl: string): Observable<Livrable> {
+  submit(missionId: string, projetId: string, fichierUrl: string): Observable<Livrable> {
     // TODO backend réel : this.http.post<Livrable>(`/api/missions/${missionId}/livrables`, { fichierUrl })
     const livrable: Livrable = {
       id: crypto.randomUUID(),
       missionId,
-      entrepreneurId,
+      projetId,
       fichierUrl,
       dateSoumission: new Date().toISOString(),
       statutValidation: 'en_attente',

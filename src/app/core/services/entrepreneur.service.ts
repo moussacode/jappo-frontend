@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable, of, delay } from 'rxjs';
-import { Entrepreneur, EtapeParcours } from '../models/entrepreneur.model';
+import { Entrepreneur } from '../models/entrepreneur.model';
 import { MOCK_ENTREPRENEURS } from '../mocks/utilisateurs.mock';
 
 @Injectable({ providedIn: 'root' })
@@ -15,16 +15,6 @@ export class EntrepreneurService {
   getById(id: string): Observable<Entrepreneur | undefined> {
     // TODO backend réel : this.http.get<Entrepreneur>(`/api/entrepreneurs/${id}`)
     return of(this.entrepreneurs.find((e) => e.id === id)).pipe(delay(300));
-  }
-
-  getByCohorte(cohorteId: string): Observable<Entrepreneur[]> {
-    return of(this.entrepreneurs.filter((e) => e.cohorteId === cohorteId)).pipe(delay(300));
-  }
-
-  updateDiagnostic(id: string, etape: EtapeParcours): Observable<Entrepreneur> {
-    const entrepreneur = this.entrepreneurs.find((e) => e.id === id)!;
-    entrepreneur.etapeActuelle = etape;
-    return of(entrepreneur).pipe(delay(300));
   }
 
   updateProfil(id: string, changements: Partial<Pick<Entrepreneur, 'nom'>>): Observable<Entrepreneur> {

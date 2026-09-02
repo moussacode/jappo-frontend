@@ -7,9 +7,9 @@ import { MOCK_MISSIONS } from '../mocks/missions.mock';
 export class MissionService {
   private missions = [...MOCK_MISSIONS];
 
-  getByEntrepreneur(entrepreneurId: string): Observable<Mission[]> {
-    // TODO backend réel : this.http.get<Mission[]>(`/api/missions?entrepreneurId=${entrepreneurId}`)
-    return of(this.missions.filter((m) => m.cibleEntrepreneurId === entrepreneurId)).pipe(delay(300));
+  getByProjet(projetId: string): Observable<Mission[]> {
+    // TODO backend réel : this.http.get<Mission[]>(`/api/missions?projetId=${projetId}`)
+    return of(this.missions.filter((m) => m.cibleProjetId === projetId)).pipe(delay(300));
   }
 
   getById(id: string): Observable<Mission | undefined> {
@@ -17,7 +17,6 @@ export class MissionService {
   }
 
   updateStatut(id: string, statut: StatutMission): Observable<Mission> {
-    // TODO backend réel : this.http.patch<Mission>(`/api/missions/${id}`, { statut })
     const mission = this.missions.find((m) => m.id === id)!;
     mission.statut = statut;
     return of(mission).pipe(delay(300));

@@ -11,6 +11,8 @@ import { STATUT_MISSION_BADGE } from '../../../../core/constants/statut-mission.
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 import { LivrableService } from '../../../../core/services/livrable.service';
 import { Icon } from "../../../../shared/components/icon/icon";
+import { Projet } from '../../../../core/models';
+import { ProjetService } from '../../../../core/services/projet.service';
 
 @Component({
   selector: 'app-mission-detail',
@@ -21,6 +23,7 @@ import { Icon } from "../../../../shared/components/icon/icon";
 export class MissionDetail {
   private readonly route = inject(ActivatedRoute);
   private readonly authService = inject(AuthService);
+  private readonly projetService = inject(ProjetService);
   private readonly missionService = inject(MissionService);
   private readonly livrableService = inject(LivrableService);
 
@@ -28,16 +31,24 @@ export class MissionDetail {
 
   protected readonly mission = toSignal(this.missionService.getById(this.missionId), { initialValue: undefined });
   protected readonly statutBadge = STATUT_MISSION_BADGE;
+  protected readonly projet = signal<Projet | undefined>(undefined);
 
   protected readonly submitting = signal(false);
   protected readonly submitted = signal(false);
 
+  constructor() {
+    const userId = this.authService.currentUser()?.id;
+    if (userId) {
+      this.projetService.getPrincipalByEntrepreneur(userId).subscribe((p) => this.projet.set(p));
+    }
+  }
+
   protected soumettre(): void {
-    const user = this.authService.currentUser();
-    if (!user) return;
+    const projetId = this.projet()?.id;
+    if (!projetId) return;
 
     this.submitting.set(true);
-    this.livrableService.submit(this.missionId, user.id, 'document-simule.pdf').subscribe(() => {
+    this.livrableService.submit(this.missionId, projetId, 'document-simule.pdf').subscribe(() => {
       this.submitting.set(false);
       this.submitted.set(true);
     });

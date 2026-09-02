@@ -1,10 +1,16 @@
+import {
+  Component,
+  inject,
+  signal,
+} from '@angular/core';
 
-import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
+
 import { AuthService } from '../../../../core/services/auth.service';
-import { EntrepreneurService } from '../../../../core/services/entrepreneur.service';
+import { ProjetService } from '../../../../core/services/projet.service';
 
 import { EtapeParcours } from '../../../../core/models';
+
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 
 interface ProfilDiagnostic {
@@ -16,13 +22,12 @@ interface ProfilDiagnostic {
 @Component({
   selector: 'app-diagnostic',
   imports: [ButtonComponent],
-    templateUrl: './diagnostic.html',
+  templateUrl: './diagnostic.html',
   styleUrl: './diagnostic.css',
-
 })
 export class Diagnostic {
   private readonly authService = inject(AuthService);
-  private readonly entrepreneurService = inject(EntrepreneurService);
+  private readonly projetService = inject(ProjetService);
   private readonly router = inject(Router);
 
   protected readonly submitting = signal(false);
@@ -50,7 +55,8 @@ export class Diagnostic {
     },
   ];
 
-  protected readonly selected = signal<ProfilDiagnostic | null>(this.profils[1]);
+  protected readonly selected =
+    signal<ProfilDiagnostic | null>(this.profils[1]);
 
   protected select(profil: ProfilDiagnostic): void {
     this.selected.set(profil);
@@ -58,12 +64,30 @@ export class Diagnostic {
 
   protected onContinue(): void {
     const profil = this.selected();
-    const user = this.authService.currentUser();
-    if (!profil || !user) return;
+    const userId = this.authService.currentUser()?.id;
+
+    if (!profil || !userId) return;
 
     this.submitting.set(true);
-    this.entrepreneurService.updateDiagnostic(user.id, profil.etape).subscribe(() => {
-      this.router.navigate(['/bienvenue']);
-    });
+
+    this.projetService
+      .getPrincipalByEntrepreneur(userId)
+      .subscribe((projet) => {
+        if (!projet) {
+          this.submitting.set(false);
+          return;
+        }
+
+        this.projetService
+          .updateDiagnostic(projet.id, profil.etape)
+          .subscribe({
+            next: () => {
+              this.router.navigate(['/bienvenue']);
+            },
+            error: () => {
+              this.submitting.set(false);
+            },
+          });
+      });
   }
 }

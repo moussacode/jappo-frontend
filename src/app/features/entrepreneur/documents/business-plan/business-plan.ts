@@ -7,6 +7,7 @@ import { DocumentService } from '../../../../core/services/document.service';
 import { EmptyState } from '../../../../shared/components/empty-state/empty-state';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 import { Icon } from "../../../../shared/components/icon/icon";
+import { ProjetService } from '../../../../core/services/projet.service';
 
 interface SectionPlan {
   titre: string;
@@ -26,10 +27,9 @@ interface BusinessPlanContenu {
 })
 export class BusinessPlan {
   private readonly authService = inject(AuthService);
+  private readonly projetService = inject(ProjetService);
   private readonly documentService = inject(DocumentService);
   private readonly router = inject(Router);
-
-  private readonly userId = this.authService.currentUser()?.id ?? '';
 
   protected readonly documentId = signal<string | undefined>(undefined);
   protected readonly sections = signal<SectionPlan[]>([]);
@@ -40,10 +40,15 @@ export class BusinessPlan {
   protected readonly enregistrement = signal(false);
 
   constructor() {
-    this.documentService.getByType(this.userId, 'business_plan').subscribe((doc) => {
-      if (!doc) return;
-      this.documentId.set(doc.id);
-      this.sections.set((doc.contenu as BusinessPlanContenu).sections);
+    const userId = this.authService.currentUser()?.id;
+    if (!userId) return;
+    this.projetService.getPrincipalByEntrepreneur(userId).subscribe((p) => {
+      if (!p) return;
+      this.documentService.getByType(p.id, 'business_plan').subscribe((doc) => {
+        if (!doc) return;
+        this.documentId.set(doc.id);
+        this.sections.set((doc.contenu as BusinessPlanContenu).sections);
+      });
     });
   }
 

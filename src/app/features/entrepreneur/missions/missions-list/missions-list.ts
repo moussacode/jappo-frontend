@@ -6,8 +6,9 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { MissionService } from '../../../../core/services/mission.service';
 import {  BadgeComponent } from '../../../../shared/components/badge/badge';
 
-import { StatutMission } from '../../../../core/models';
+import { Mission, StatutMission } from '../../../../core/models';
 import { STATUT_MISSION_BADGE } from '../../../../core/constants/statut-mission.constant';
+import { ProjetService } from '../../../../core/services/projet.service';
 
 type FiltreStatut = 'toutes' | StatutMission;
 
@@ -19,11 +20,10 @@ type FiltreStatut = 'toutes' | StatutMission;
 })
 export class MissionsList {
   private readonly authService = inject(AuthService);
+  private readonly projetService = inject(ProjetService);
   private readonly missionService = inject(MissionService);
 
-  private readonly userId = this.authService.currentUser()?.id ?? '';
-  private readonly allMissions = toSignal(this.missionService.getByEntrepreneur(this.userId), { initialValue: [] });
-
+  private readonly allMissions = signal<Mission[]>([]);
   protected readonly filtreActif = signal<FiltreStatut>('toutes');
 
   protected readonly filtres: { cle: FiltreStatut; label: string }[] = [
@@ -38,6 +38,15 @@ export class MissionsList {
     const missions = this.allMissions();
     return filtre === 'toutes' ? missions : missions.filter((m) => m.statut === filtre);
   });
+
+  constructor() {
+    const userId = this.authService.currentUser()?.id;
+    if (!userId) return;
+    this.projetService.getPrincipalByEntrepreneur(userId).subscribe((p) => {
+      if (!p) return;
+      this.missionService.getByProjet(p.id).subscribe((m) => this.allMissions.set(m));
+    });
+  }
 
   protected statutBadge(statut: StatutMission) {
     return STATUT_MISSION_BADGE[statut];

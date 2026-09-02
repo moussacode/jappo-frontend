@@ -1,6 +1,6 @@
 export interface ConversationIA {
   id: string;
-  entrepreneurId: string;
+  projetId: string;
   contexte?: string;
   dateCreation: string;
 }
@@ -11,5 +11,5 @@ export interface MessageIA {
   auteur: 'entrepreneur' | 'assistant';
   contenu: string;
   dateEnvoi: string;
-  model: string;
+  model?: string;
 }

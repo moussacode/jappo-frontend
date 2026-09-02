@@ -3,7 +3,7 @@ import { DocumentGenere } from '../models/document-genere.model';
 export const MOCK_DOCUMENTS: DocumentGenere[] = [
   {
   id: 'doc-001',
-    entrepreneurId: 'ent-001',
+    projetId: 'projet-001',
     type: 'bmc',
     contenu: {
       partenairesCles: "Simplon Sénégal · Fournisseurs de paiement mobile · Banques partenaires micro-crédit",
@@ -21,7 +21,7 @@ export const MOCK_DOCUMENTS: DocumentGenere[] = [
   },
   {
     id: 'doc-002',
-    entrepreneurId: 'ent-001',
+    projetId: 'projet-001',
     type: 'etude_marche',
     contenu: {},
     statut: 'genere',
@@ -29,7 +29,7 @@ export const MOCK_DOCUMENTS: DocumentGenere[] = [
   },
  {
   id: 'doc-003',
-  entrepreneurId: 'ent-001',
+  projetId: 'projet-001',
   type: 'pitch_deck',
   contenu: {
     slides: [
@@ -100,7 +100,7 @@ export const MOCK_DOCUMENTS: DocumentGenere[] = [
 },
   {
     id: 'doc-004',
-    entrepreneurId: 'ent-001',
+    projetId: 'projet-001',
     type: 'business_plan',
     contenu: {
       sections: [

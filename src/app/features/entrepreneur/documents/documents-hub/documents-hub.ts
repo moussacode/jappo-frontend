@@ -1,11 +1,12 @@
 
-import { Component, inject, computed } from '@angular/core';
+import { Component, inject, computed, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
 import { DocumentService } from '../../../../core/services/document.service';
 import {  BadgeComponent, BadgeStatus } from '../../../../shared/components/badge/badge';
-import { TypeDocument } from '../../../../core/models';
+import { DocumentGenere, TypeDocument } from '../../../../core/models';
+import { ProjetService } from '../../../../core/services/projet.service';
 
 interface DocInfo {
   type: TypeDocument;
@@ -50,10 +51,19 @@ const DOCUMENTS: DocInfo[] = [
 })
 export class DocumentsHub {
   private readonly authService = inject(AuthService);
+  private readonly projetService = inject(ProjetService);
   private readonly documentService = inject(DocumentService);
 
-  private readonly userId = this.authService.currentUser()?.id ?? '';
-  private readonly documents = toSignal(this.documentService.getByEntrepreneur(this.userId), { initialValue: [] });
+  protected readonly documents = signal<DocumentGenere[]>([]);
+
+  constructor() {
+    const userId = this.authService.currentUser()?.id;
+    if (!userId) return;
+    this.projetService.getPrincipalByEntrepreneur(userId).subscribe((p) => {
+      if (!p) return;
+      this.documentService.getByProjet(p.id).subscribe((docs) => this.documents.set(docs));
+    });
+  }
 
   protected readonly documentsAffiches = computed(() =>
     DOCUMENTS.map((info) => {

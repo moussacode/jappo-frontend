@@ -3,9 +3,9 @@ export type StatutDocument = 'en_cours' | 'genere';
 
 export interface DocumentGenere {
   id: string;
-  entrepreneurId: string;
+  projetId: string;
   type: TypeDocument;
-  contenu: unknown; // structure JSON, propre à chaque type de document
+  contenu: unknown;
   statut: StatutDocument;
   dateGeneration: string;
   dateDerniereModif?: string;
