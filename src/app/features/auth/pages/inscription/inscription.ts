@@ -4,10 +4,11 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
+import { Icon } from "../../../../shared/components/icon/icon";
 
 @Component({
   selector: 'app-inscription',
-  imports: [ReactiveFormsModule, RouterLink, ButtonComponent],
+  imports: [ReactiveFormsModule, RouterLink, ButtonComponent, Icon],
    templateUrl: './inscription.html',
   styleUrl: './inscription.css',
  
@@ -40,4 +41,10 @@ export class Inscription {
       },
     });
   }
+
+    showPassword = signal(false);
+
+togglePasswordVisibility(): void {
+  this.showPassword.update((v) => !v);
+}
 }

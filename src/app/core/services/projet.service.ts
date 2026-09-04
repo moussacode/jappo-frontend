@@ -36,4 +36,9 @@ export class ProjetService {
     projet.etapeActuelle = etape;
     return of(projet).pipe(delay(300));
   }
+
+    getByCohorte(cohorteId: string): Observable<Projet[]> {
+    // TODO backend réel : this.http.get<Projet[]>(`/api/cohortes/${cohorteId}/projets`)
+    return of(this.projets.filter((p) => p.cohorteId === cohorteId)).pipe(delay(300));
+  }
 }

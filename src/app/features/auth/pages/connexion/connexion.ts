@@ -5,10 +5,11 @@ import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
 
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
+import { Icon } from "../../../../shared/components/icon/icon";
 
 @Component({
   selector: 'app-connexion',
-  imports: [ReactiveFormsModule, RouterLink, ButtonComponent],
+  imports: [ReactiveFormsModule, RouterLink, ButtonComponent, Icon],
    templateUrl: './connexion.html',
   styleUrl: './connexion.css',
 })
@@ -39,4 +40,12 @@ export class Connexion {
       },
     });
   }
+
+  showPassword = signal(false);
+
+togglePasswordVisibility(): void {
+  this.showPassword.update((v) => !v);
+}
+
+
 }

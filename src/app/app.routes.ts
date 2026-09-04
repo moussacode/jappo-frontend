@@ -98,6 +98,36 @@ export const routes: Routes = [
     ],
   },
 
+    {
+    path: 'incubateur',
+    loadComponent: () =>
+      import('./layout/incubateur-layout/incubateur-layout').then((m) => m.IncubateurLayout),
+    children: [
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+      
+      {
+        path: 'dashboard',
+        loadComponent: () =>
+          import('./features/incubateur/dashboard/dashboard/dashboard').then((m) => m.Dashboard),
+      },
+            {
+        path: 'cohortes',
+        loadComponent: () =>
+          import('./features/incubateur/cohortes/cohortes-list/cohortes-list').then((m) => m.CohortesList),
+      },
+            {
+        path: 'cohortes/nouvelle',
+        loadComponent: () =>
+          import('./features/incubateur/cohortes/nouvelle-cohorte/nouvelle-cohorte').then((m) => m.NouvelleCohorte),
+      },
+            {
+        path: 'cohortes/:id',
+        loadComponent: () =>
+          import('./features/incubateur/cohortes/cohorte-detail/cohorte-detail').then((m) => m.CohorteDetail),
+      },
+    ],
+  },
+
   {
     path: '**',
     redirectTo: 'connexion',

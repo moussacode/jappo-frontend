@@ -1,64 +1,113 @@
- <div class="flex min-h-screen items-center justify-center bg-neutral-25 p-6">
-      <div class="w-full max-w-[440px] rounded-[var(--radius-token-lg)] border border-neutral-200 bg-white p-10">
-            <div class="flex h-18 justify-center items-center">
-    <img
-      src="/logo.png"
-      alt="JAPPO"
-      class="h-full w-auto object-contain"
-    />
-  </div>
+<div class="flex h-screen w-full overflow-hidden bg-surface-muted ">
+  <div class="mx-auto flex h-full w-full ">
+    
+    <!-- BANNIÈRE GAUCHE -->
+    <div class="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-surface-dark p-8 text-white lg:flex">
+      <!-- Image de fond avec overlay sombre -->
+      <img
+        src="/connexion.jpg"
+        alt="Background Illustration"
+        class="absolute inset-0 h-full w-full object-cover opacity-95"
+      />
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/40"></div>
 
-        <div class="mt-6 mb-6">
-          <h1 class="text-xl font-semibold text-neutral-900">Crée ton compte</h1>
-          <p class="mt-1 text-sm text-neutral-500">Commence ton parcours entrepreneurial dès aujourd'hui</p>
+      <!-- Header Logo -->
+      <div class="relative z-10 flex items-center gap-2">
+        <img src="/logo.png" alt="JAPPO" class="h-7 w-auto" />
+      </div>
+
+     
+      <!-- Footer Gauche -->
+      <div class="relative z-10 text-xs text-white/50">
+        © 2026 JAPPO Inc. | Tous droits réservés
+      </div>
+    </div>
+
+    <!-- DROITE : Formulaire Inscription Incubateur -->
+    <div class="flex h-full w-full items-center justify-center overflow-y-auto bg-surface-muted/30 p-4 sm:p-8 lg:w-1/2">
+      <div class="w-full max-w-[400px] rounded-2xl border border-line bg-surface p-6 shadow-sm sm:p-8">
+        
+        <!-- Logo Mobile (Visible uniquement si la bannière gauche est cachée) -->
+        <div class="mb-4 flex items-center gap-2 ">
+          <img src="/logo.png" alt="JAPPO" class="h-7 w-auto object-contain" />
         </div>
 
-        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex flex-col gap-4">
-          <div class="flex flex-col gap-2">
-            <label for="nom" class="text-xs font-medium text-neutral-500">NOM COMPLET</label>
+        <!-- Header Formulaire -->
+        <div class="mt-2 mb-6">
+          <h1 class="text-xl font-semibold text-ink">Créer un espace Incubateur</h1>
+          <p class="mt-1 text-xs text-ink-muted">Centralisez la gestion de vos cohortes et porteurs de projets.</p>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex flex-col gap-3.5">
+          
+          <!-- Nom de la structure -->
+    
+
+          <!-- Nom du Manager -->
+          <div class="flex flex-col gap-1.5">
+            <label for="nom" class="text-[11px] font-semibold tracking-wider text-ink-muted">NOM DU MANAGER</label>
             <input
               id="nom"
               type="text"
               formControlName="nom"
               placeholder="Ex. Awa Ndiaye"
-              class="rounded-[var(--radius-token-sm)] border border-neutral-200 px-3.5 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
+              class="rounded-input border border-line px-3.5 py-2 text-xs text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none transition-colors"
             />
           </div>
 
-          <div class="flex flex-col gap-2">
-            <label for="email" class="text-xs font-medium text-neutral-500">ADRESSE EMAIL</label>
+          <!-- Email pro -->
+          <div class="flex flex-col gap-1.5">
+            <label for="email" class="text-[11px] font-semibold tracking-wider text-ink-muted">EMAIL PROFESSIONNEL</label>
             <input
               id="email"
               type="email"
               formControlName="email"
-              placeholder="awa.ndiaye@email.com"
-              class="rounded-[var(--radius-token-sm)] border border-neutral-200 px-3.5 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
+              placeholder="contact@incubateur.com"
+              class="rounded-input border border-line px-3.5 py-2 text-xs text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none transition-colors"
             />
           </div>
 
-          <div class="flex flex-col gap-2">
-            <label for="motDePasse" class="text-xs font-medium text-neutral-500">MOT DE PASSE</label>
-            <input
-              id="motDePasse"
-              type="password"
-              formControlName="motDePasse"
-              placeholder="••••••••"
-              class="rounded-[var(--radius-token-sm)] border border-neutral-200 px-3.5 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
-            />
+          <!-- Mot de passe -->
+          <div class="flex flex-col gap-1.5">
+            <label for="motDePasse" class="text-[11px] font-semibold tracking-wider text-ink-muted">MOT DE PASSE</label>
+            <div class="relative">
+              <input
+                id="motDePasse"
+                [type]="showPassword() ? 'text' : 'password'"
+                formControlName="motDePasse"
+                placeholder="••••••••"
+                class="w-full rounded-input border border-line px-3.5 py-2 pr-9 text-xs text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none transition-colors"
+              />
+              <button
+                type="button"
+                (click)="togglePasswordVisibility()"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink"
+              >
+                <app-icon [name]="showPassword() ? 'eye-off' : 'eye'" class="size-4" />
+              </button>
+            </div>
           </div>
 
           @if (errorMessage()) {
-            <p class="text-sm text-danger-500">{{ errorMessage() }}</p>
+            <div class="flex items-center gap-2 rounded-xl bg-danger-50 p-2.5 text-xs text-danger-600 border border-danger-100">
+              <span>{{ errorMessage() }}</span>
+            </div>
           }
 
-          <app-button type="submit" [disabled]="form.invalid || submitting()">
-            {{ submitting() ? 'Création en cours…' : 'Créer mon compte' }}
-          </app-button>
+           <div class="mt-2 flex w-full flex-col">
+            <app-button type="submit" [disabled]="form.invalid || submitting()" [fullWidth]="true">
+              {{ submitting() ? 'Création en cours…' : 'Créer mon espace Incubateur' }}
+            </app-button>
+          </div>
         </form>
 
-        <p class="mt-4 text-center text-sm text-neutral-500">
+        <p class="mt-5 text-center text-xs text-ink-muted">
           Déjà un compte ?
-          <a routerLink="/connexion" class="font-medium text-brand-500">Se connecter</a>
+          <a routerLink="/connexion" class="font-semibold text-ink transition-colors hover:underline">
+            Se connecter
+          </a>
         </p>
       </div>
     </div>
+  </div>
+</div>

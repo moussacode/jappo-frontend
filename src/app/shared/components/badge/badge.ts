@@ -13,7 +13,7 @@ export class BadgeComponent {
   status = input<BadgeStatus>('neutral');
 
   protected classes = computed(() => {
-    const base = 'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium';
+    const base = 'inline-flex items-center rounded-full  px-2.5 py-1 text-xs font-medium';
     const variants: Record<BadgeStatus, string> = {
       success: 'bg-success-100 text-success-500',
       warning: 'bg-warning-100 text-warning-500',

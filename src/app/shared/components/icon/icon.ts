@@ -7,9 +7,6 @@ export type IconName =
   | 'documents'
   | 'ai'
   | 'profile'
-  | 'cohortes'
-  | 'entrepreneurs'
-  | 'settings'
   | 'search'
   | 'bell'
   | 'menu'
@@ -33,7 +30,15 @@ export type IconName =
   |'arrow-right'
   |'File-Text-Add'
   |'File-Text'
+  |'cohortes'
+  |'entrepreneurs'
+  |'settings'
+  |'eye'
+  |'eye-off'
+
   ;
+
+  
 
 @Component({
   selector: 'app-icon',

@@ -32,7 +32,7 @@ export class Profil {
   });
 
   constructor() {
-    this.abonnementService.getById(this.user()?.abonnementId ?? null).subscribe((a) => this.abonnement.set(a));
+    this.abonnementService.getById(this.user()?.id ?? null).subscribe((a) => this.abonnement.set(a));
   }
 
   protected enregistrer(): void {
