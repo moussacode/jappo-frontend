@@ -27,19 +27,33 @@ export class Connexion {
   });
 
   protected onSubmit(): void {
-    if (this.form.invalid) return;
-    this.submitting.set(true);
-    this.errorMessage.set(null);
-
-    const { email, motDePasse } = this.form.getRawValue();
-    this.authService.login({ email, motDePasse }).subscribe({
-      next: () => this.router.navigate(['/entrepreneur/dashboard']),
-      error: () => {
-        this.errorMessage.set('Email ou mot de passe incorrect.');
-        this.submitting.set(false);
-      },
-    });
+  if (this.form.invalid) {
+    this.form.markAllAsTouched();
+    return;
   }
+
+  this.submitting.set(true);
+  this.errorMessage.set(null);
+
+  const { email, motDePasse } = this.form.getRawValue();
+
+  this.authService.login({ email, motDePasse }).subscribe({
+    next: (user) => {
+      console.log('UTILISATEUR CONNECTÉ:', user);
+
+      if (this.authService.isMembreEquipe(user)) {
+        this.router.navigate(['/incubateur']);
+      } else {
+        this.router.navigate(['/entrepreneur/dashboard']);
+      }
+    },
+
+    error: () => {
+      this.errorMessage.set('Email ou mot de passe incorrect.');
+      this.submitting.set(false);
+    },
+  });
+}
 
   showPassword = signal(false);
 

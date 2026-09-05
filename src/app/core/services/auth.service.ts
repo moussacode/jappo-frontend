@@ -25,13 +25,15 @@ export class AuthService {
     const utilisateur =
       MOCK_ENTREPRENEURS.find((u) => u.email === credentials.email) ??
       MOCK_MEMBRES_EQUIPE.find((u) => u.email === credentials.email);
+      console.log('UTILISATEUR TROUVÉ:', utilisateur);
 
     if (!utilisateur) {
       return throwError(() => new Error('Identifiants invalides'));
     }
     return of(utilisateur).pipe(
       delay(400),
-      tap((u) => this._currentUser.set(u)),
+      tap((u) => {console.log('UTILISATEUR CONNECTÉ:', u);
+        this._currentUser.set(u)}),
     );
   }
 
@@ -54,6 +56,10 @@ export class AuthService {
 
   logout(): void {
     this._currentUser.set(null);
+  }
+    /** Utilisé en interne par login/register ET par InscriptionIncubateurService après création du compte. */
+  setSession(utilisateur: UtilisateurConnecte): void {
+    this._currentUser.set(utilisateur);
   }
 
   /** Narrowing utilitaire — à utiliser dans les écrans Incubateur avant d'accéder à `role`/`structureId`. */

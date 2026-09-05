@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable, of, delay } from 'rxjs';
-import { Livrable } from '../models/livrable.model';
+import { Livrable, LivrableItem } from '../models/livrable.model';
 
 @Injectable({ providedIn: 'root' })
 export class LivrableService {
@@ -11,17 +11,25 @@ export class LivrableService {
     return of(this.livrables.find((l) => l.missionId === missionId)).pipe(delay(200));
   }
 
-  submit(missionId: string, projetId: string, fichierUrl: string): Observable<Livrable> {
-    // TODO backend réel : this.http.post<Livrable>(`/api/missions/${missionId}/livrables`, { fichierUrl })
+   submit(
+    missionId: string,
+    projetId: string,
+    items: LivrableItem[],
+    noteEntrepreneur: string,
+  ): Observable<Livrable> {
     const livrable: Livrable = {
       id: crypto.randomUUID(),
       missionId,
       projetId,
-      fichierUrl,
+      items,
+      noteEntrepreneur,
       dateSoumission: new Date().toISOString(),
       statutValidation: 'en_attente',
     };
+
     this.livrables.push(livrable);
+
     return of(livrable).pipe(delay(400));
+  
   }
 }

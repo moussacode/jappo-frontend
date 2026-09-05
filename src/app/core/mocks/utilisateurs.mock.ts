@@ -1,4 +1,3 @@
-
 import { Entrepreneur } from '../models/entrepreneur.model';
 import { MembreEquipe } from '../models/membre-equipe.model';
 
@@ -31,6 +30,16 @@ export const MOCK_ENTREPRENEURS: Entrepreneur[] = [
 
 export const MOCK_MEMBRES_EQUIPE: MembreEquipe[] = [
   {
+    id: 'admin-001',
+    nom: 'Moussa Mchangama',
+    email: 'admin@fabrique360.sn',
+    typeUtilisateur: 'membre_equipe',
+    dateCreation: '2026-01-10',
+    role: 'admin_structure',
+    structureId: 'struct-001',
+    emailVerified: true,
+  },
+  {
     id: 'coach-001',
     nom: 'Aïda Diagne',
     email: 'aida@fabrique360.sn',
@@ -38,5 +47,6 @@ export const MOCK_MEMBRES_EQUIPE: MembreEquipe[] = [
     dateCreation: '2026-01-10',
     role: 'coach',
     structureId: 'struct-001',
+    emailVerified: true,
   },
 ];

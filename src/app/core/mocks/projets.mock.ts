@@ -14,7 +14,7 @@ export const MOCK_PROJETS: Projet[] = [
     id: 'projet-002',
     entrepreneurId: 'ent-002',
     nom: 'Mon projet',
-    scoreMaturite: 52,
+    scoreMaturite: 23,
     etapeActuelle: 'business_model_canvas',
     cohorteId: 'coh-003',
     dateCreation: '2026-03-10',

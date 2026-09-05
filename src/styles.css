@@ -116,3 +116,56 @@ body {
   background-color: var(--color-surface-muted);
   color: var(--color-ink);
 }
+
+
+/* Flottement des cartes */
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes float-delayed {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(8px); }
+}
+
+.animate-float {
+  animation: float-slow 5s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float-delayed 6s ease-in-out infinite 0.8s;
+}
+
+/* Effets Lottie-style en SVG */
+@keyframes pulse-ring {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.25); opacity: 0; }
+  100% { transform: scale(0.95); opacity: 0; }
+}
+
+@keyframes draw-check {
+  0% { stroke-dashoffset: 24; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes bar-grow {
+  0%, 100% { transform: scaleY(0.4); }
+  50% { transform: scaleY(1); }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 2.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  transform-origin: center;
+}
+
+.animate-check {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: draw-check 1.2s ease-out forwards infinite alternate;
+  animation-delay: 0.5s;
+}
+
+.animate-bar-1 { animation: bar-grow 2s ease-in-out infinite 0.1s; transform-origin: bottom; }
+.animate-bar-2 { animation: bar-grow 2s ease-in-out infinite 0.4s; transform-origin: bottom; }
+.animate-bar-3 { animation: bar-grow 2s ease-in-out infinite 0.2s; transform-origin: bottom; }

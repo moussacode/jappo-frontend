@@ -30,27 +30,27 @@ interface ProjetAffiche {
       <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
   <app-kpi-card 
     label="Entrepreneurs suivis" 
-    [value]="40" 
+    [value]="projetsAffiches().length" 
     trend="+15.2%"
     trendLabel="Mois"
     trendDirection="up" 
   />
   <app-kpi-card 
     label="Cohortes actives" 
-    [value]="3" 
+    [value]="cohortes().length" 
     trend="+4.1%"
     trendLabel="Mois"
     trendDirection="up" 
   />
   <app-kpi-card
     label="Score de maturité moyen"
-    [value]="'65' + '%'"
+    [value]="scoreMoyen() + '%'"
     note="Sur l'ensemble des projets"
     noteVariant="brand"
   />
   <app-kpi-card
     label="Projets à surveiller"
-    [value]="'5'"
+    [value]="projetsAttention()"
     note="Score inférieur à 40%"
     noteVariant="neutral"
   />

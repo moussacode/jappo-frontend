@@ -1,45 +1,60 @@
-  <div class="flex flex-col gap-6 p-8">
+<div class="flex flex-col gap-6 p-6 sm:p-8">
+      <!-- En-tête -->
       <div>
-        <h1 class="text-2xl font-semibold text-neutral-900">Mon parcours</h1>
-        <p class="mt-1 text-sm text-neutral-500">De l'idée au lancement - {{ parcours.length }} étapes structurées</p>
-      </div>
-
-      <div class="flex items-center gap-6 rounded-[var(--radius-token-md)] bg-brand-50 p-5">
-        <span class="text-3xl font-semibold text-brand-500">{{ indexEtapeActuelle() }}/{{ parcours.length }}</span>
-        <p class="text-sm text-neutral-700">
-          étapes complétées - tu es à {{ pourcentage() }}% de ton parcours vers le lancement
+        <h1 class="text-2xl font-bold tracking-tight text-ink">Mon parcours</h1>
+        <p class="mt-1 text-xs sm:text-sm text-ink-muted">
+          De l'idée au lancement — {{ parcours.length }} étapes structurées
         </p>
       </div>
 
-      <div class="rounded-[var(--radius-token-md)] border border-neutral-200 bg-white">
-        @for (etape of parcours; track etape.cle; let i = $index) {
-          <div class="flex items-center gap-4 border-b border-neutral-100 px-5 py-4 last:border-0">
+      <!-- Banner de progression -->
+      <div class="flex items-center gap-6 rounded-[var(--radius-card-lg)] border border-line bg-accent/5 p-5 shadow-[var(--shadow-subtle)]">
+        <span class="text-3xl font-bold text-accent">{{ indexEtapeActuelle() }}/{{ parcours.length }}</span>
+        <p class="text-xs sm:text-sm font-medium text-ink">
+          étapes complétées — tu es à {{ pourcentage() }}% de ton parcours vers le lancement
+        </p>
+      </div>
+
+      <!-- Liste des étapes du parcours -->
+      <div class="rounded-[var(--radius-card-lg)] border border-line bg-surface overflow-hidden shadow-[var(--shadow-subtle)]">
+        @for (etape of parcours ; track etape.cle; let i = $index) {
+          <div class="flex items-center gap-4 border-b border-line px-5 py-4 last:border-0 hover:bg-surface-muted/30 transition-colors">
+            
+            <!-- Indicateur de statut (Numéro / Check) -->
             <span
-  class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold leading-none"
-  [class]="
-    i < indexEtapeActuelle()
-      ? 'bg-success-500 text-white'
-      : i === indexEtapeActuelle()
-        ? 'bg-brand-500 text-white'
-        : 'bg-neutral-100 text-neutral-500'
-  "
->
-  @if (i < indexEtapeActuelle()) {
-    <app-icon
-      name="check"
-      class="flex h-4 w-4 items-center justify-center font-bold"
-    />
-  } @else {
-    {{ i + 1 }}
-  }
-</span>
-            <span class="flex-1 text-sm font-medium text-neutral-900">{{ etape.label }}</span>
+              class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold leading-none transition-colors"
+              [class]="
+                i < indexEtapeActuelle()
+                  ? 'bg-vivid-green text-white'
+                  : i === indexEtapeActuelle()
+                    ? 'bg-accent text-white'
+                    : 'bg-surface-muted text-ink-muted border border-line'
+              "
+            >
+              @if (i < indexEtapeActuelle()) {
+                <app-icon
+                  name="check"
+                  class="size-4 font-bold"
+                />
+              } @else {
+                {{ i + 1 }}
+              }
+            </span>
+
+            <!-- Intitulé de l'étape -->
+            <span class="flex-1 text-xs sm:text-sm font-semibold text-ink">
+              {{ etape.label }}
+            </span>
+
+            <!-- Action ou Badge de statut -->
             @if (i === indexEtapeActuelle()) {
-              <app-button [routerLink]="['/entrepreneur/documents']">Continuer</app-button>
+              <app-button [routerLink]="['/entrepreneur/documents']" size="xs">
+                Continuer
+              </app-button>
             } @else if (i < indexEtapeActuelle()) {
-              <span class="text-xs font-medium text-success-500">Complétée</span>
+              <span class="text-xs font-semibold text-vivid-green">Complétée</span>
             } @else {
-              <span class="text-xs font-medium text-neutral-500">Verrouillée</span>
+              <span class="text-xs font-medium text-ink-muted">Verrouillée</span>
             }
           </div>
         }

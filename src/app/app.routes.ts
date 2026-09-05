@@ -3,8 +3,12 @@ import { Routes } from '@angular/router';
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: 'connexion',
+    redirectTo: '',
     pathMatch: 'full',
+  },
+  {
+    path: '',
+    loadComponent: () => import('./features/landing/landing-page/landing-page').then((m) => m.LandingPage),
   },
 
   // --- Auth / Onboarding (sans sidebar) ---
@@ -16,14 +20,19 @@ export const routes: Routes = [
     path: 'inscription',
     loadComponent: () => import('./features/auth/pages/inscription/inscription').then((m) => m.Inscription),
   },
-  {
-    path: 'diagnostic',
-    loadComponent: () => import('./features/auth/pages/diagnostic/diagnostic').then((m) => m.Diagnostic),
+    {
+    path: 'inscription/incubateur',
+    loadComponent: () =>
+      import('./features/auth/pages/inscription-structure/inscription-structure').then((m) => m.InscriptionStructure),
   },
-  {
-    path: 'bienvenue',
-    loadComponent: () => import('./features/auth/pages/bienvenue/bienvenue').then((m) => m.Bienvenue),
-  },
+  // {
+  //   path: 'diagnostic',
+  //   loadComponent: () => import('./features/auth/pages/diagnostic/diagnostic').then((m) => m.Diagnostic),
+  // },
+  // {
+  //   path: 'bienvenue',
+  //   loadComponent: () => import('./features/auth/pages/bienvenue/bienvenue').then((m) => m.Bienvenue),
+  // },
 
   // --- Espace Entrepreneur (avec sidebar) ---
   {
@@ -125,11 +134,25 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/incubateur/cohortes/cohorte-detail/cohorte-detail').then((m) => m.CohorteDetail),
       },
+      {
+        path: 'entrepreneurs',
+        loadComponent: () =>
+          import('./features/incubateur/entrepreneurs/entrepreneurs-list/entrepreneurs-list').then(
+            (m) => m.EntrepreneursList,
+          ),
+      },
+      {
+        path: 'entrepreneurs/:id',
+        loadComponent: () =>
+          import('./features/incubateur/entrepreneurs/entrepreneur-detail/entrepreneur-detail').then(
+            (m) => m.EntrepreneurDetail,
+          ),
+      },
     ],
   },
 
   {
     path: '**',
-    redirectTo: 'connexion',
+    redirectTo: '',
   },
 ];

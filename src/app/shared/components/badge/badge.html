@@ -1,1 +1,6 @@
-<span [class]="classes()"><ng-content /></span>
+<span [class]="classes()">
+  @if (dot()) {
+    <span [class]="dotClasses()"></span>
+  }
+  <ng-content />
+</span>

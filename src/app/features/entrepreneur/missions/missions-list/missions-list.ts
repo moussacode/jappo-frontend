@@ -9,12 +9,13 @@ import {  BadgeComponent } from '../../../../shared/components/badge/badge';
 import { Mission, StatutMission } from '../../../../core/models';
 import { STATUT_MISSION_BADGE } from '../../../../core/constants/statut-mission.constant';
 import { ProjetService } from '../../../../core/services/projet.service';
+import { Icon } from "../../../../shared/components/icon/icon";
 
 type FiltreStatut = 'toutes' | StatutMission;
 
 @Component({
   selector: 'app-missions-list',
-  imports: [RouterLink, BadgeComponent],
+  imports: [RouterLink, BadgeComponent, Icon],
   templateUrl: './missions-list.html',
   styleUrl: './missions-list.css',
 })

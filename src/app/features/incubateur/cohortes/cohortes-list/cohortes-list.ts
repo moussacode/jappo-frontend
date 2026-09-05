@@ -77,6 +77,9 @@ export class CohortesList {
 
   constructor() {
     const user = this.authService.currentUser();
+    console.log('USER CONNECTÉ :', user);
+  
+  console.log('EST MEMBRE :', this.authService.isMembreEquipe(user));
     if (!this.authService.isMembreEquipe(user)) return;
 
     this.cohorteService.getByStructure(user.structureId).subscribe((cohortes) => {
