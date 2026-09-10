@@ -36,17 +36,17 @@ import { ButtonComponent } from '../../../shared/components/button/button.compon
       </header>
 
       <!-- ================= HERO SECTION ================= -->
-      <section class="relative overflow-hidden pt-20 pb-16 sm:pt-28 sm:pb-24 border-b border-line">
+      <section class="relative overflow-hidden pt-4 pb-16 sm:pt-28 sm:pb-24 border-b border-line">
   <!-- Arrière-plan épuré et sobre -->
   <div class="absolute top-1/2 left-1/2 -z-10 h-[350px] w-[550px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/5 blur-[120px]"></div>
 
   <div class="mx-auto max-w-5xl px-6 text-center">
     
     <!-- Badge neutre -->
-    <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full border border-line bg-surface-muted/60 text-xs font-medium text-ink-muted mb-6">
-      <!-- <span class="size-2 rounded-full bg-vivid-green"></span> -->
+    <!-- <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full border border-line bg-surface-muted/60 text-xs font-medium text-ink-muted mb-6">
+    
       <span>Conçu pour tous les incubateurs et accélérateurs</span>
-    </div>
+    </div> -->
 
     <!-- Titre propre (Retour au design normal) -->
     <h1 class="text-4xl font-bold tracking-tight text-ink sm:text-6xl lg:text-7xl leading-[1.1]">

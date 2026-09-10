@@ -1,35 +1,42 @@
-import { Injectable } from '@angular/core';
-import { Observable, of, delay } from 'rxjs';
-import { Livrable, LivrableItem } from '../models/livrable.model';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { environment } from './../../environments/environment';
+import { LivrableResponse, CreateLivrableRequest, EvaluateLivrableRequest } from '../models/livrable.model';
 
 @Injectable({ providedIn: 'root' })
 export class LivrableService {
-  private livrables: Livrable[] = [];
+  private readonly http = inject(HttpClient);
+  private readonly apiUrl = `${environment.apiUrl}/livrables`;
 
-  getByMission(missionId: string): Observable<Livrable | undefined> {
-    // TODO backend réel : this.http.get<Livrable>(`/api/missions/${missionId}/livrable`)
-    return of(this.livrables.find((l) => l.missionId === missionId)).pipe(delay(200));
+  /**
+   * Soumettre un nouveau livrable pour une mission
+   */
+  soumettreLivrable(request: CreateLivrableRequest): Observable<LivrableResponse> {
+    return this.http.post<LivrableResponse>(this.apiUrl, request);
   }
 
-   submit(
-    missionId: string,
-    projetId: string,
-    items: LivrableItem[],
-    noteEntrepreneur: string,
-  ): Observable<Livrable> {
-    const livrable: Livrable = {
-      id: crypto.randomUUID(),
-      missionId,
-      projetId,
-      items,
-      noteEntrepreneur,
-      dateSoumission: new Date().toISOString(),
-      statutValidation: 'en_attente',
-    };
+  /**
+   * Récupérer tous les livrables d'une mission spécifique
+   */
+  getLivrablesByMission(missionProjetId: string): Observable<LivrableResponse[]> {
+    return this.http.get<LivrableResponse[]>(`${this.apiUrl}/mission/${missionProjetId}`);
+  }
 
-    this.livrables.push(livrable);
+  /**
+   * Récupérer tous les livrables d'un projet/startup
+   */
+  getLivrablesByProjet(projetId: string): Observable<LivrableResponse[]> {
+    return this.http.get<LivrableResponse[]>(`${this.apiUrl}/projet/${projetId}`);
+  }
 
-    return of(livrable).pipe(delay(400));
-  
+  /**
+   * Évaluer un livrable (Validation ou Demande de correction)
+   */
+  changerStatut(id: string, statut: string, commentaireCoach?: string): Observable<LivrableResponse> {
+    return this.http.patch<LivrableResponse>(`${this.apiUrl}/${id}/statut`, {
+      statut,
+      commentaireCoach,
+    });
   }
 }

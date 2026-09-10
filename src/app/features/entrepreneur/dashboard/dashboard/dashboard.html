@@ -1,102 +1,58 @@
 <div class="flex flex-col gap-6 p-8">
-      <div>
-        <h1 class="text-2xl font-semibold text-ink">Bonjour {{ prenom() }}</h1>
-        <p class="mt-1 text-sm text-ink-muted">Tu es sur la bonne voie — continue comme ça !</p>
-      </div>
+  <div>
+    <h1 class="text-2xl font-semibold text-ink">Bonjour {{ prenom() }}</h1>
+    <p class="mt-1 text-sm text-ink-muted">Tu es sur la bonne voie — continue comme ça !</p>
+  </div>
 
-      <div class="grid grid-cols-1 gap-5 md:grid-cols-[1.6fr_1fr]">
-        <div class="flex flex-col gap-5">
-          <div class="grid grid-cols-2 gap-5">
-            <app-kpi-card
-              label="Score de maturité"
-              [value]="(projet()?.scoreMaturite ?? 0) + '%'"
-              note="Progression continue"
-              noteVariant="success"
-            />
-            <app-kpi-card 
-              label="Étape actuelle" 
-              [value]="etapeActuelleLabel()" 
-              [note]="etapeIndexLabel()" 
-              noteVariant="brand" 
-            />
-          </div>
+  <div class="grid grid-cols-1 gap-5 md:grid-cols-[1fr_1.5fr]">
+    <!-- Carte KPI - Score de maturité uniquement -->
+    <div class="flex flex-col gap-5">
+      <app-kpi-card
+        label="Score de maturité"
+        [value]="(projet()?.scoreMaturite ?? 0) + '%'"
+        note="Progression continue"
+        noteVariant="success"
+      />
+    </div>
 
-          <div class="rounded-[var(--radius-card-lg)] border border-line bg-surface shadow-[var(--shadow-subtle)]">
-            <div class="border-b border-line px-5 py-4">
-              <h2 class="text-base font-semibold text-ink">Mon parcours</h2>
-            </div>
-            @for (etape of parcoursApercu(); track etape.cle; let i = $index) {
-              <div class="flex items-center gap-3.5 border-b border-line px-5 py-4 last:border-0">
-                <span
-                  class="h-2.5 w-2.5 shrink-0 rounded-full"
-                  [class]="
-                    i < indexApercuActuel()
-                      ? 'bg-vivid-green'
-                      : i === indexApercuActuel()
-                        ? 'bg-accent'
-                        : 'bg-line'
-                  "
-                ></span>
-                <span class="flex-1 text-sm font-medium text-ink">{{ etape.label }}</span>
-                @if (i === indexApercuActuel()) {
-                  <app-button [routerLink]="['/entrepreneur/documents']" size="xs">Continuer</app-button>
-                } @else if (i < indexApercuActuel()) {
-                  <span class="text-xs font-medium text-vivid-green">Complétée</span>
-                }
-              </div>
-            }
-            <div class="px-5 py-3">
-              <a
-                routerLink="/entrepreneur/parcours"
-                class="group inline-flex items-center gap-1.5 text-xs font-medium text-accent transition-colors hover:text-accent-strong"
-              >
-                Voir mon parcours
-                <app-icon
-                  name="arrow-right"
-                  class="size-4 flex items-center justify-center transition-transform duration-200 group-hover:translate-x-0.5"
-                />
-              </a>
-            </div>
-          </div>
+    <!-- Section des missions -->
+    <div class="flex flex-col gap-5">
+      <div class="rounded-[var(--radius-card-lg)] border border-line bg-surface shadow-[var(--shadow-subtle)]">
+        <div class="flex items-center justify-between border-b border-line px-6 py-4.5">
+          <h2 class="text-base font-semibold text-ink">Mes missions du moment</h2>
+          <a 
+            routerLink="/entrepreneur/missions" 
+            class="text-xs font-semibold text-accent transition-colors hover:text-accent-strong"
+          >
+            Voir tout
+          </a>
         </div>
 
-        <div class="flex flex-col gap-5">
-          <div class="rounded-[var(--radius-card-lg)] border border-line bg-surface shadow-[var(--shadow-subtle)]">
-            <div class="flex items-center justify-between border-b border-line px-6 py-4.5">
-              <h2 class="text-base font-semibold text-ink">Mes missions du moment</h2>
-              <a 
-                routerLink="/entrepreneur/missions" 
-                class="text-xs font-semibold text-accent transition-colors hover:text-accent-strong"
-              >
-                Voir tout
-              </a>
-            </div>
-
-            <div class="divide-y divide-line">
-              @for (mission of missions(); track mission.id) {
-                <div class="flex items-center justify-between px-6 py-4 transition-colors hover:bg-surface-muted/50">
-                  <div class="flex items-center gap-3.5 min-w-0">
-                    <div class="flex flex-col min-w-0">
-                      <span class="text-sm font-semibold text-ink truncate">{{ mission.titre }}</span>
-                      @if (mission.dateEcheance) {
-                        <span class="mt-0.5 text-xs text-ink-muted">Échéance : {{ mission.dateEcheance }}</span>
-                      }
-                    </div>
-                  </div>
-
-                  <div class="shrink-0 ml-4">
-                    <app-badge [status]="statutBadge(mission.statut).status">
-                      {{ statutBadge(mission.statut).label }}
-                    </app-badge>
-                  </div>
+        <div class="divide-y divide-line">
+          @for (mission of missions(); track mission.id) {
+            <div class="flex items-center justify-between px-6 py-4 transition-colors hover:bg-surface-muted/50">
+              <div class="flex items-center gap-3.5 min-w-0">
+                <div class="flex flex-col min-w-0">
+                  <span class="text-sm font-semibold text-ink truncate">{{ mission.titre }}</span>
+                  @if (mission.dateEcheance) {
+                    <span class="mt-0.5 text-xs text-ink-muted">Échéance : {{ mission.dateEcheance }}</span>
+                  }
                 </div>
-              } @empty {
-                <div class="px-6 py-8 text-center">
-                  <p class="text-sm text-ink-muted">Aucune mission en cours pour le moment.</p>
-                </div>
-              }
+              </div>
+
+              <div class="shrink-0 ml-4">
+                <app-badge [status]="statutBadge(mission.statut).status">
+                  {{ statutBadge(mission.statut).label }}
+                </app-badge>
+              </div>
             </div>
-          </div>
+          } @empty {
+            <div class="px-6 py-8 text-center">
+              <p class="text-sm text-ink-muted">Aucune mission en cours pour le moment.</p>
+            </div>
+          }
         </div>
       </div>
     </div>
+  </div>
+</div>

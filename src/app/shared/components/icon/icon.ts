@@ -38,7 +38,10 @@ export type IconName =
   | 'lock'
   | 'bar-chart'
   | 'link'
-  | 'x';
+  | 'x'
+  | 'chevrons-up-down'
+  | 'folder'
+  | 'warning';
 
 export type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | string;
 

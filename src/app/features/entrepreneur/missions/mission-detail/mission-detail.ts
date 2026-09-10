@@ -1,16 +1,21 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, OnInit, DestroyRef } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { forkJoin, switchMap } from 'rxjs';
+
 import { AuthService } from '../../../../core/services/auth.service';
 import { MissionService } from '../../../../core/services/mission.service';
-import { BadgeComponent } from '../../../../shared/components/badge/badge';
-import { STATUT_MISSION_BADGE } from '../../../../core/constants/statut-mission.constant';
-import { ButtonComponent } from '../../../../shared/components/button/button.component';
-import { LivrableService } from '../../../../core/services/livrable.service';
-import { Icon } from "../../../../shared/components/icon/icon";
-import { Projet, StatutMission } from '../../../../core/models';
 import { ProjetService } from '../../../../core/services/projet.service';
+import { LivrableService } from '../../../../core/services/livrable.service';
+
+import { BadgeComponent } from '../../../../shared/components/badge/badge';
+import { ButtonComponent } from '../../../../shared/components/button/button.component';
+import { Icon } from '../../../../shared/components/icon/icon';
+
+import { Projet, StatutMission } from '../../../../core/models';
+import { STATUT_MISSION_CONFIG } from '../../../../core/constants/statut-mission.constant';
+import { CreateLivrableRequest, TypeLivrable } from '../../../../core/models/livrable.model';
 
 export interface LivrableItem {
   id: string;
@@ -27,21 +32,28 @@ export interface LivrableItem {
   templateUrl: './mission-detail.html',
   styleUrl: './mission-detail.css',
 })
-export class MissionDetail {
+export class MissionDetail implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly authService = inject(AuthService);
   private readonly projetService = inject(ProjetService);
   private readonly missionService = inject(MissionService);
   private readonly livrableService = inject(LivrableService);
+  private readonly destroyRef = inject(DestroyRef);
 
-  private readonly missionId = this.route.snapshot.paramMap.get('id') ?? '';
+  protected readonly missionId = this.route.snapshot.paramMap.get('id') ?? '';
 
-  protected readonly mission = toSignal(this.missionService.getById(this.missionId), { initialValue: undefined });
+  // Récupération réactive des détails de la mission
+  protected readonly mission = toSignal(
+    this.missionService.getById(this.missionId),
+    { initialValue: undefined }
+  );
+
   protected readonly projet = signal<Projet | undefined>(undefined);
 
-  // État de soumission
+  // État de soumission et erreurs
   protected readonly submitting = signal(false);
   protected readonly submitted = signal(false);
+  protected readonly errorMessage = signal<string | null>(null);
 
   // Gestion des multi-livrables et de la note
   protected readonly items = signal<LivrableItem[]>([]);
@@ -52,18 +64,24 @@ export class MissionDetail {
   protected readonly newLinkUrl = signal('');
   protected readonly newLinkTitle = signal('');
 
-  constructor() {
+  ngOnInit(): void {
     const userId = this.authService.currentUser()?.id;
     if (userId) {
-      this.projetService.getPrincipalByEntrepreneur(userId).subscribe((p) => this.projet.set(p));
+      this.projetService
+        .getPrincipalByEntrepreneur(userId)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (p) => this.projet.set(p),
+          error: (err) => console.error('Erreur récupération projet:', err),
+        });
     }
   }
 
   protected statutBadge(statut: StatutMission) {
-    return STATUT_MISSION_BADGE[statut] ?? { status: 'neutral', label: statut || 'Inconnu' };
+    return STATUT_MISSION_CONFIG[statut] ?? { status: 'neutral', label: statut || 'Inconnu' };
   }
 
-  // Simulation d'ajout de fichier via input file
+  // Sélection de fichier local
   protected onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (!input.files || input.files.length === 0) return;
@@ -80,7 +98,7 @@ export class MissionDetail {
       this.items.update((prev) => [...prev, newItem]);
     });
 
-    input.value = ''; // Reset input
+    input.value = '';
   }
 
   // Ajout d'un lien Web (Figma, GitHub, Drive, Loom...)
@@ -107,29 +125,42 @@ export class MissionDetail {
     this.items.update((prev) => prev.filter((item) => item.id !== id));
   }
 
-  // Soumission globale
+  // Soumission globale vers l'API REST
   protected soumettre(): void {
-    const projetId = this.projet()?.id;
-    if (!projetId) return;
+    if (this.items().length === 0) return;
 
     this.submitting.set(true);
+    this.errorMessage.set(null);
 
-    // Payload global incluant la liste des fichiers/liens et la note explicative
-    this.livrableService
-  .submit(
-    this.missionId,
-    projetId,
-    this.items(),
-    this.noteEntrepreneur(),
-  )
-  .subscribe({
-    next: () => {
-      this.submitting.set(false);
-      this.submitted.set(true);
-    },
-    error: () => {
-      this.submitting.set(false);
-    },
-  });
+    // Préparation des requêtes HTTP pour chaque livrable
+    const requests = this.items().map((item) => {
+      const typePiece: TypeLivrable = item.type === 'lien' ? 'LIEN' : 'FICHIER';
+      const payload: CreateLivrableRequest = {
+        nom: item.titre,
+        url: item.valeur,
+        typePiece,
+        missionProjetId: this.missionId,
+      };
+      return this.livrableService.soumettreLivrable(payload); // CORRIGÉ
+    });
+
+    // 1. Dépôt simultané des livrables
+    // 2. Mise à jour automatique du statut de la mission vers 'EN_REVUE'
+    forkJoin(requests)
+      .pipe(
+        switchMap(() => this.missionService.updateStatut(this.missionId, 'EN_REVUE')), // CORRIGÉ
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: () => {
+          this.submitting.set(false);
+          this.submitted.set(true);
+        },
+        error: (err) => {
+          console.error('Erreur lors du dépôt des livrables:', err);
+          this.submitting.set(false);
+          this.errorMessage.set('Une erreur est survenue lors de la soumission de votre travail.');
+        },
+      });
   }
 }

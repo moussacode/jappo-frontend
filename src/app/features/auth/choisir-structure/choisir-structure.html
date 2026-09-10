@@ -1,0 +1,143 @@
+<div class="flex min-h-screen w-full items-center justify-center bg-surface-muted p-4 sm:p-6">
+  <div class="w-full max-w-md shrink-0 rounded-[var(--radius-card-lg)] border border-line bg-surface p-6 shadow-[var(--shadow-subtle)] sm:p-7">
+    
+    <!-- Header avec Logo & Déconnexion -->
+    <div class="flex items-center justify-between">
+      <img src="/logo.png" alt="JAPPO" class="h-7 w-auto object-contain" />
+      <button 
+        type="button" 
+        (click)="retourConnexion()" 
+        class="text-xs font-medium text-ink-muted hover:text-ink transition-colors"
+      >
+        Déconnexion
+      </button>
+    </div>
+
+    @if (!affichageFormulaire() && memberships().length > 0) {
+      <!-- CAS 1 : SÉLECTION D'UNE STRUCTURE EXISTANTE -->
+      <div class="mt-6">
+        <h1 class="text-lg font-semibold text-ink sm:text-xl">Sélectionnez votre espace</h1>
+        <p class="mt-1 text-xs text-ink-muted">Choisissez l'incubateur ou la structure avec laquelle vous souhaitez travailler.</p>
+      </div>
+
+      <div class="mt-5 flex flex-col gap-3">
+        @for (m of memberships(); track m.structure.id) {
+          <button
+            type="button"
+            (click)="choisirStructure(m)"
+            class="group flex items-center justify-between rounded-[var(--radius-token-md)] border border-line p-4 text-left transition-all hover:border-accent hover:bg-surface-muted"
+          >
+            <div>
+              <p class="text-sm font-medium text-ink group-hover:text-accent transition-colors">{{ m.structure.nom }}</p>
+              <p class="mt-0.5 text-xs text-ink-muted">{{ m.structure.ville || 'Dakar' }}, {{ m.structure.pays || 'Sénégal' }}</p>
+            </div>
+            <app-badge [status]="m.role === 'ADMIN_STRUCTURE' ? 'success' : 'neutral'">
+              {{ m.role }}
+            </app-badge>
+          </button>
+        }
+      </div>
+
+      <div class="mt-6 pt-4 border-t border-line">
+        <button
+          type="button"
+          (click)="basculerModeFormulaire(true)"
+          class="w-full text-center text-xs font-medium text-accent hover:underline"
+        >
+          + Créer ou rejoindre une autre structure
+        </button>
+      </div>
+
+    } @else {
+      <!-- CAS 2 : CRÉATION D'UNE STRUCTURE -->
+      <div class="mt-6">
+        <h1 class="text-lg font-semibold text-ink sm:text-xl">Créer votre Incubateur</h1>
+        <p class="mt-1 text-xs text-ink-muted">Configurez votre structure pour gérer vos cohortes et entrepreneurs.</p>
+      </div>
+
+      <form [formGroup]="structureForm" (ngSubmit)="creerStructure()" class="mt-5 flex flex-col gap-3.5">
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-medium text-ink-muted">Nom de la structure *</label>
+          <input 
+            type="text" 
+            formControlName="nom" 
+            placeholder="Ex: Fabrique 360" 
+            class="rounded-[var(--radius-input)] border border-line px-3.5 py-2 text-xs text-ink focus:border-accent focus:outline-none transition-colors" 
+          />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-medium text-ink-muted">Type de structure</label>
+          <select 
+            formControlName="type" 
+            class="rounded-[var(--radius-input)] border border-line px-3.5 py-2 text-xs text-ink bg-surface focus:border-accent focus:outline-none transition-colors"
+          >
+            <option value="incubateur">Incubateur</option>
+            <option value="accelerateur">Accélérateur</option>
+            <option value="coworking">Coworking</option>
+            <option value="association">Association</option>
+            <option value="autre">Autre</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-ink-muted">Pays *</label>
+            <input 
+              type="text" 
+              formControlName="pays" 
+              placeholder="Sénégal" 
+              class="rounded-[var(--radius-input)] border border-line px-3.5 py-2 text-xs text-ink focus:border-accent focus:outline-none transition-colors" 
+            />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-ink-muted">Ville *</label>
+            <input 
+              type="text" 
+              formControlName="ville" 
+              placeholder="Dakar" 
+              class="rounded-[var(--radius-input)] border border-line px-3.5 py-2 text-xs text-ink focus:border-accent focus:outline-none transition-colors" 
+            />
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-medium text-ink-muted">Description (Optionnel)</label>
+          <textarea 
+            formControlName="description" 
+            rows="2" 
+            placeholder="Présentez brièvement votre structure..."
+            class="rounded-[var(--radius-input)] border border-line px-3.5 py-2 text-xs text-ink focus:border-accent focus:outline-none transition-colors resize-none"
+          ></textarea>
+        </div>
+
+        @if (erreur()) {
+          <div class="rounded-[var(--radius-input)] border border-danger-100 bg-danger-50 p-2.5 text-xs text-danger-600">
+            {{ erreur() }}
+          </div>
+        }
+
+        <div class="mt-2 flex flex-col gap-2">
+          <app-button 
+            type="submit" 
+            [fullWidth]="true" 
+            [disabled]="structureForm.invalid || chargement()"
+          >
+            {{ chargement() ? 'Création en cours…' : 'Finaliser la création' }}
+          </app-button>
+
+          @if (memberships().length > 0) {
+            <button
+              type="button"
+              (click)="basculerModeFormulaire(false)"
+              class="w-full text-center text-xs font-medium text-ink-muted hover:text-ink transition-colors py-2"
+            >
+              Annuler et retourner au choix
+            </button>
+          }
+        </div>
+      </form>
+    }
+
+  </div>
+</div>

@@ -1,0 +1,162 @@
+<div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
+  
+  <!-- En-tête avec KPIs récapitulatifs -->
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h1 class="text-xl font-bold tracking-tight text-ink sm:text-2xl">Portefeuille de Projets</h1>
+      <p class="mt-1 text-xs text-ink-muted sm:text-sm">
+        Suivi, filtrage et accompagnement des entreprises actives dans votre structure.
+      </p>
+    </div>
+
+    <!-- Quick Stats Badges -->
+    <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 rounded-xl border border-line bg-surface px-3 py-1.5 shadow-xs">
+        <span class="text-xs text-ink-muted">Total :</span>
+        <span class="text-xs font-bold text-ink">{{ projetsFiltres().length }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barre d'outils : Filtres & Recherche -->
+  <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    
+    <!-- Onglets de statut (Pills défilables) -->
+    <div class="custom-scrollbar -mx-1 flex items-center gap-1.5 overflow-x-auto px-1 pb-1">
+      @for (tab of tabs; track tab.cle) {
+        <button
+          type="button"
+          (click)="filtreStatutActif.set(tab.cle)"
+          class="shrink-0 cursor-pointer rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all"
+          [class]="
+            filtreStatutActif() === tab.cle
+              ? 'bg-accent text-white shadow-xs'
+              : 'border border-line bg-surface text-ink-muted hover:bg-surface-muted hover:text-ink'
+          "
+        >
+          {{ tab.label }}
+        </button>
+      }
+    </div>
+
+    <!-- Champ de Recherche -->
+    <div class="relative w-full min-w-0 md:w-72">
+      <input
+        type="text"
+        [formControl]="searchControl"
+        placeholder="Rechercher un projet, entrepreneur..."
+        class="w-full rounded-xl border border-line bg-surface py-2 pl-9 pr-4 text-xs text-ink placeholder:text-ink-muted/60 transition-colors focus:border-accent focus:outline-none"
+      />
+      <app-icon name="search" class="absolute left-3 top-2.5 size-4 text-ink-muted" />
+    </div>
+  </div>
+
+  <!-- Conteneur Tableau (Contrôlé avec overflow & radius) -->
+  <div class="w-full min-w-0 overflow-hidden rounded-[var(--radius-card-lg)] border border-line bg-surface shadow-[var(--shadow-subtle)]">
+    @if (loading()) {
+      <div class="p-12 text-center text-xs font-medium text-ink-muted animate-pulse">
+        Chargement de vos projets en cours...
+      </div>
+    } @else {
+      <div class="w-full overflow-x-auto custom-scrollbar">
+        <table class="w-full min-w-[720px] table-fixed border-collapse text-left text-xs">
+          <thead>
+            <tr class="border-b border-line bg-surface-muted/50 font-semibold uppercase tracking-wider text-ink-muted">
+              <th class="w-4/12 px-5 py-3.5">Projet</th>
+              <th class="w-3/12 px-5 py-3.5">Entrepreneur & Cohorte</th>
+              <th class="w-2/12 px-5 py-3.5">Secteur</th>
+              <th class="w-2/12 px-5 py-3.5">Maturité</th>
+              <th class="w-2/12 px-5 py-3.5">Statut</th>
+              <th class="w-1/12 px-5 py-3.5 text-right"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-line">
+            @for (projet of projetsFiltres(); track projet.id) {
+              <tr class="group transition-colors hover:bg-surface-muted/40">
+                
+                <!-- Nom & Avatar du Projet -->
+                <td class="px-5 py-3.5">
+                  <div class="flex items-center gap-3 min-w-0">
+                    <div class="flex size-9 shrink-0 items-center justify-center rounded-xl border border-accent/20 bg-accent-soft font-bold text-accent">
+                      {{ projet.nom ? projet.nom.charAt(0).toUpperCase() : 'P' }}
+                    </div>
+                    <div class="flex min-w-0 flex-col">
+                      <a 
+                        [routerLink]="['/incubateur/projets', projet.id]" 
+                        class="truncate text-sm font-semibold text-ink transition-colors group-hover:text-accent"
+                        [title]="projet.nom"
+                      >
+                        {{ projet.nom }}
+                      </a>
+                      <span class="truncate text-[11px] text-ink-muted" [title]="projet.description || ''">
+                        {{ projet.description || 'Aucune description' }}
+                      </span>
+                    </div>
+                  </div>
+                </td>
+
+                <!-- Entrepreneur & Cohorte -->
+                <td class="px-5 py-3.5 min-w-0">
+                  <div class="flex min-w-0 flex-col">
+                    <span class="truncate font-semibold text-ink" [title]="projet.nomEntrepreneur || ''">
+                      {{ projet.nomEntrepreneur || 'Entrepreneur non assigné' }}
+                    </span>
+                    <span class="truncate text-[11px] text-ink-muted">
+                      {{ projet.nomCohorte ? ('Cohorte : ' + projet.nomCohorte) : 'Indépendant' }}
+                    </span>
+                  </div>
+                </td>
+
+                <!-- Secteur -->
+                <td class="px-5 py-3.5 font-medium text-ink-muted truncate">
+                  {{ projet.secteur || 'Non renseigné' }}
+                </td>
+
+                <!-- Score de Maturité -->
+                <td class="px-5 py-3.5">
+                  <div class="flex items-center gap-2">
+                    <div class="h-1.5 w-16 overflow-hidden rounded-full bg-line">
+                      <div 
+                        class="h-full rounded-full bg-accent transition-all duration-300" 
+                        [style.width.%]="projet.scoreMaturite || 0"
+                      ></div>
+                    </div>
+                    <span class="text-[11px] font-semibold text-ink">{{ projet.scoreMaturite || 0 }}%</span>
+                  </div>
+                </td>
+
+                <!-- Statut Badge -->
+                <td class="px-5 py-3.5 whitespace-nowrap">
+                  <app-badge [status]="statutBadge(projet.statut).status">
+                    {{ statutBadge(projet.statut).label }}
+                  </app-badge>
+                </td>
+
+                <!-- Lien d'Action -->
+                <td class="px-5 py-3.5 text-right whitespace-nowrap">
+                  <a
+                    [routerLink]="['/incubateur/projets', projet.id]"
+                    class="inline-flex items-center gap-1 text-xs font-semibold text-accent transition-colors hover:text-accent-strong"
+                  >
+                    Voir
+                    <app-icon name="chevron-right" class="size-3.5" />
+                  </a>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="px-6 py-12 text-center text-ink-muted">
+                  <div class="flex flex-col items-center justify-center gap-2">
+                    <app-icon name="folder" class="size-8 text-ink-muted/50" />
+                    <p class="text-xs sm:text-sm font-semibold text-ink">Aucun projet trouvé</p>
+                    <p class="text-xs text-ink-muted">Ajustez vos filtres ou le terme de recherche.</p>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>

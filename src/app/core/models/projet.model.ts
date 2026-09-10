@@ -1,11 +1,29 @@
-import { EtapeParcours } from './entrepreneur.model';
+export type StatutProjet = 
+  | 'IDEE' 
+  | 'EN_INCUBATION' 
+  | 'EN_ACCELERATION' 
+  | 'DIPLOME' 
+  | 'ABANDONNE';
 
 export interface Projet {
   id: string;
-  entrepreneurId: string;
   nom: string;
-  scoreMaturite: number;
-  etapeActuelle: EtapeParcours;
-  cohorteId: string | null;
-  dateCreation: string;
+  description?: string;
+  secteur?: string;
+  scoreMaturite?: number;
+  statut: StatutProjet | string;
+  entrepreneurId?: string;
+  nomEntrepreneur?: string;
+  cohorteId?: string;
+  nomCohorte?: string;
+  structureId?: string;
+  dateCreation?: string;
+}
+
+export interface CreateProjetRequest {
+  nom: string;
+  description?: string;
+  secteur?: string;
+  cohorteId?: string;
+  entrepreneurId?: string;
 }

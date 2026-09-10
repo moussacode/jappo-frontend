@@ -1,26 +1,40 @@
-export type StatutValidation =
-  | 'en_attente'
-  | 'en_revue'
-  | 'valide'
-  | 'rejete';
+export type TypeLivrable = 'FICHIER' | 'LIEN';
 
-export type TypeLivrableItem = 'fichier' | 'lien';
+export type StatutLivrable = 'EN_ATTENTE' | 'VALIDE' | 'A_CORRIGER';
 
-export interface LivrableItem {
+export interface LivrableResponse {
   id: string;
-  type: TypeLivrableItem;
-  titre: string;
-  valeur: string;
-  taille?: string;
+  nom: string;
+  url: string;
+  typePiece: TypeLivrable;
+  statut: StatutLivrable;
+  note?: number;
+  commentaireCoach?: string;
+  dateDepot?: string;          // ISO LocalDateTime
+  missionProjetId: string;
+  titreMission?: string;
+  projetId: string;
+  nomProjet?: string;
+  structureId?: string;
+
+  // Rétrocompatibilité UI
+  dateSoumission?: string;
+  statutValidation?: string;
+  commentaireRevue?: string;
 }
 
-export interface Livrable {
-  id: string;
-  missionId: string;
-  projetId: string;
-  items: LivrableItem[];
-  noteEntrepreneur?: string;
-  dateSoumission: string;
-  statutValidation: StatutValidation;
-  commentaireRevue?: string;
+// Alias pour compatibilité dans l'application
+export type Livrable = LivrableResponse;
+
+export interface CreateLivrableRequest {
+  nom: string;
+  url: string;
+  typePiece?: TypeLivrable;
+  missionProjetId: string;
+}
+
+export interface EvaluateLivrableRequest {
+  statut: StatutLivrable;
+  note?: number;
+  commentaireCoach?: string;
 }

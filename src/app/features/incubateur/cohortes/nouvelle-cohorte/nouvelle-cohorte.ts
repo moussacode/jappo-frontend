@@ -1,19 +1,26 @@
 import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { AuthService } from '../../../../core/services/auth.service';
 import { CohorteService } from '../../../../core/services/cohorte.service';
-import { Icon } from "../../../../shared/components/icon/icon";
+import { StructureContextService } from '../../../../core/services/structure-context.service';
+import { CreateCohorteRequest } from '../../../../core/models/cohorte.model';
+import { Icon } from '../../../../shared/components/icon/icon';
 
 @Component({
   selector: 'app-nouvelle-cohorte',
   imports: [ReactiveFormsModule, RouterLink, Icon],
   template: `
     <div class="flex flex-col gap-6 p-8">
-      <a routerLink="/incubateur/cohortes" class=" flex items-center gap-2 text-sm font-medium text-ink-muted hover:text-ink">  <app-icon
-    name="arrow-left"
-    class="size-4 flex items-center justify-center text-neutral-700"
-  /> Cohortes </a>
+      <a
+        routerLink="/incubateur/cohortes"
+        class="flex items-center gap-2 text-sm font-medium text-ink-muted hover:text-ink transition-colors"
+      >
+        <app-icon
+          name="arrow-left"
+          class="size-4 flex items-center justify-center text-neutral-700"
+        />
+        Cohortes
+      </a>
 
       <div>
         <h1 class="text-[24px] font-normal leading-[1.33] text-ink">Nouvelle cohorte</h1>
@@ -37,12 +44,12 @@ import { Icon } from "../../../../shared/components/icon/icon";
         </div>
 
         <div class="flex flex-col gap-1.5">
-          <label for="secteur" class="text-xs font-medium text-ink-muted">SECTEUR</label>
+          <label for="secteur" class="text-xs font-medium text-ink-muted">SECTEUR / DESCRIPTION</label>
           <input
             id="secteur"
             type="text"
             formControlName="secteur"
-            placeholder="Ex. Santé numérique"
+            placeholder="Ex. FinTech, Agrotech, Santé numérique..."
             class="rounded-[var(--radius-input)] border border-input-border px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-accent"
           />
         </div>
@@ -70,8 +77,8 @@ import { Icon } from "../../../../shared/components/icon/icon";
 })
 export class NouvelleCohorte {
   private readonly fb = inject(FormBuilder);
-  private readonly authService = inject(AuthService);
   private readonly cohorteService = inject(CohorteService);
+  private readonly structureContext = inject(StructureContextService);
   private readonly router = inject(Router);
 
   protected readonly creation = signal(false);
@@ -83,13 +90,34 @@ export class NouvelleCohorte {
   });
 
   protected creer(): void {
-    const user = this.authService.currentUser();
-    if (this.form.invalid || !this.authService.isMembreEquipe(user)) return;
+    if (this.form.invalid) return;
+
+    // Vérification facultative du rôle
+    if (this.structureContext.activeRole() !== 'ADMIN_STRUCTURE') {
+      alert('Seul un administrateur de structure peut créer une cohorte.');
+      return;
+    }
 
     this.creation.set(true);
+
     const { nom, secteur, dateDemarrage } = this.form.getRawValue();
-    this.cohorteService.create(user.structureId, nom, secteur, dateDemarrage).subscribe(() => {
-      this.router.navigate(['/incubateur/cohortes']);
+
+    // Construction du payload aligné avec CreateCohorteRequest (Spring Boot)
+    const requestPayload: CreateCohorteRequest = {
+      nom,
+      description: secteur,
+      dateDebut: dateDemarrage,
+    };
+
+    this.cohorteService.createCohorte(requestPayload).subscribe({
+      next: () => {
+        this.creation.set(false);
+        this.router.navigate(['/incubateur/cohortes']);
+      },
+      error: (error) => {
+        console.error('Erreur création cohorte :', error);
+        this.creation.set(false);
+      },
     });
   }
 }

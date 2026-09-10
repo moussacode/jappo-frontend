@@ -22,6 +22,11 @@ export class IncubateurLayout {
     icon: 'dashboard',
   },
   {
+      label: 'Projets',
+      path: '/incubateur/projets',
+      icon: 'folder', // 👈 Ajout du menu Projets
+    },
+  {
     label: 'Cohortes',
     path: '/incubateur/cohortes',
     icon: 'cohortes',
@@ -36,11 +41,11 @@ export class IncubateurLayout {
     path: '/incubateur/missions',
     icon: 'missions',
   },
-  {
-    label: 'Rapports',
-    path: '/incubateur/rapports',
-    icon: 'documents',
-  },
+  // {
+  //   label: 'Rapports',
+  //   path: '/incubateur/rapports',
+  //   icon: 'documents',
+  // },
   {
     label: 'Paramètres',
     path: '/incubateur/parametres',

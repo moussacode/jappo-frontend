@@ -1,47 +1,37 @@
-import { Injectable } from '@angular/core';
-import { Observable, of, delay } from 'rxjs';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { environment } from './../../environments/environment';
 import { ConversationIA, MessageIA } from '../models/conversation-ia.model';
-import { MOCK_CONVERSATIONS, MOCK_MESSAGES } from '../mocks/conversation.mock';
 
 @Injectable({ providedIn: 'root' })
 export class ConversationService {
-  private conversations = [...MOCK_CONVERSATIONS];
-  private messages = [...MOCK_MESSAGES];
+  private readonly http = inject(HttpClient);
+  private readonly apiUrl = `${environment.apiUrl}/conversations`;
 
+  /**
+   * Récupérer ou créer automatiquement la conversation IA rattachée à un projet
+   * GET /api/conversations/projet/:projetId
+   */
   getOrCreate(projetId: string): Observable<ConversationIA> {
-    // TODO backend réel : this.http.get<ConversationIA>(`/api/conversations?projetId=${projetId}`)
-    let conv = this.conversations.find((c) => c.projetId === projetId);
-    if (!conv) {
-      conv = { id: crypto.randomUUID(), projetId, dateCreation: new Date().toISOString() };
-      this.conversations.push(conv);
-    }
-    return of(conv).pipe(delay(200));
+    return this.http.get<ConversationIA>(`${this.apiUrl}/projet/${projetId}`);
   }
 
+  /**
+   * Récupérer la liste des messages d'une conversation
+   * GET /api/conversations/:conversationId/messages
+   */
   getMessages(conversationId: string): Observable<MessageIA[]> {
-    return of(this.messages.filter((m) => m.conversationId === conversationId)).pipe(delay(200));
+    return this.http.get<MessageIA[]>(`${this.apiUrl}/${conversationId}/messages`);
   }
 
+  /**
+   * Envoyer un nouveau message à l'assistant IA
+   * POST /api/conversations/:conversationId/messages
+   */
   sendMessage(conversationId: string, contenu: string): Observable<MessageIA> {
-    // TODO backend réel : this.http.post<MessageIA>(`/api/conversations/${conversationId}/messages`, { contenu })
-    const messageUtilisateur: MessageIA = {
-      id: crypto.randomUUID(),
-      conversationId,
-      auteur: 'entrepreneur',
-      contenu,
-      dateEnvoi: new Date().toISOString(),
-    };
-    this.messages.push(messageUtilisateur);
-
-    const reponseAssistant: MessageIA = {
-      id: crypto.randomUUID(),
-      conversationId,
-      auteur: 'assistant',
-      contenu: "C'est noté — dès que le vrai service IA sera connecté, je te répondrai avec une vraie suggestion contextualisée à ton projet.",
-      dateEnvoi: new Date().toISOString(),
-    };
-    this.messages.push(reponseAssistant);
-
-    return of(reponseAssistant).pipe(delay(600));
+    return this.http.post<MessageIA>(`${this.apiUrl}/${conversationId}/messages`, {
+      contenu
+    });
   }
 }

@@ -34,7 +34,7 @@ export class Profil {
   constructor() {
     const userId = this.user()?.id ?? null;
     if (userId) {
-      this.abonnementService.getById(userId).subscribe((a) => this.abonnement.set(a));
+      // this.abonnementService.getById(userId).subscribe((a) => this.abonnement.set(a));
     }
   }
 

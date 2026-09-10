@@ -1,134 +1,233 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, OnInit, DestroyRef } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { AuthService } from '../../../../core/services/auth.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import { DatePipe } from '@angular/common';
 
-import { ProjetService } from '../../../../core/services/projet.service';
+import {
+  DashboardService,
+  DashboardStatsResponse,
+  AlerteProjetResponse,
+  LivrableRecentResponse,
+} from '../../../../core/services/dashboard.service';
+import { StructureContextService } from '../../../../core/services/structure-context.service';
 
-import { Structure, Cohorte, Projet } from '../../../../core/models';
 import { KpiCardComponent } from '../../../../shared/components/kpi-card/kpi-card';
-import { BadgeComponent } from '../../../../shared/components/badge/badge';
-import { StructureService } from '../../../../core/services/structure.service';
-import { CohorteService } from '../../../../core/services/cohorte.service';
-
-interface ProjetAffiche {
-  projet: Projet;
-  nomEntrepreneur: string;
-}
+import { BadgeComponent, BadgeStatus } from '../../../../shared/components/badge/badge';
+import { Icon } from '../../../../shared/components/icon/icon';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [RouterLink, KpiCardComponent, BadgeComponent],
+  standalone: true,
+  imports: [RouterLink, KpiCardComponent, BadgeComponent, Icon, DatePipe],
   template: `
-    <div class="flex flex-col gap-6 p-8">
-      <div>
-        <h1 class="text-2xl font-semibold text-ink">Vue d'ensemble</h1>
-        @if (structure(); as s) {
-          <p class="mt-1 text-sm text-ink-muted">{{ s.nom }}</p>
-        }
-      </div>
-
-      <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-  <app-kpi-card 
-    label="Entrepreneurs suivis" 
-    [value]="projetsAffiches().length" 
-    trend="+15.2%"
-    trendLabel="Mois"
-    trendDirection="up" 
-  />
-  <app-kpi-card 
-    label="Cohortes actives" 
-    [value]="cohortes().length" 
-    trend="+4.1%"
-    trendLabel="Mois"
-    trendDirection="up" 
-  />
-  <app-kpi-card
-    label="Score de maturité moyen"
-    [value]="scoreMoyen() + '%'"
-    note="Sur l'ensemble des projets"
-    noteVariant="brand"
-  />
-  <app-kpi-card
-    label="Projets à surveiller"
-    [value]="projetsAttention()"
-    note="Score inférieur à 40%"
-    noteVariant="neutral"
-  />
-</div>
-
-      <div class="rounded-[var(--radius-token-md)] border border-line bg-surface">
-        <div class="border-b border-line px-5 py-4">
-          <h2 class="text-base font-semibold text-ink">Entrepreneurs suivis</h2>
+    <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-8 p-4 sm:p-6 lg:p-8">
+      
+      <!-- En-tête Notion Style -->
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div class="flex items-center gap-2 text-xs font-semibold text-ink-muted">
+            <span>Espace Incubateur</span>
+            <span>/</span>
+            <span class="text-ink">{{ nomStructure() }}</span>
+          </div>
+          <h1 class="mt-1 text-2xl font-bold tracking-tight text-ink sm:text-3xl">Vue d'ensemble</h1>
         </div>
-        @for (item of projetsAffiches(); track item.projet.id) {
+
+        <div class="flex items-center gap-3">
           <a
-            [routerLink]="['/incubateur/entrepreneurs', item.projet.entrepreneurId]"
-            class="flex items-center justify-between gap-3 border-b border-line px-5 py-3.5 last:border-0 hover:bg-surface-muted"
+            routerLink="/incubateur/entrepreneurs/inviter"
+            class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-action-fill px-4 py-2 text-xs font-semibold text-white shadow-[var(--shadow-subtle)] transition-all hover:opacity-90 cursor-pointer"
           >
-            <div>
-              <p class="text-sm font-medium text-ink">{{ item.nomEntrepreneur }}</p>
-              <p class="text-xs text-ink-muted">{{ item.projet.nom }}</p>
-            </div>
-            <app-badge [status]="item.projet.scoreMaturite >= 40 ? 'success' : 'warning'">
-              {{ item.projet.scoreMaturite }}%
-            </app-badge>
+            <app-icon name="plus" class="size-3.5 text-white" />
+            <span>Inviter des entrepreneurs</span>
           </a>
-        } @empty {
-          <p class="px-5 py-8 text-center text-sm text-ink-muted">Aucun entrepreneur suivi pour le moment.</p>
-        }
+        </div>
       </div>
+
+      <!-- SKELETON LOADER -->
+      @if (isLoading()) {
+        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 animate-pulse">
+          @for (i of [1, 2, 3, 4]; track i) {
+            <div class="h-28 rounded-2xl bg-line/40"></div>
+          }
+        </div>
+        <div class="h-64 rounded-2xl bg-line/30 animate-pulse"></div>
+      } @else {
+
+        <!-- 1. CARTES KPIS (Conserves ton composant KpiCardComponent) -->
+        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <app-kpi-card 
+            label="Entrepreneurs suivis" 
+            [value]="stats()?.entrepreneursActifs || 0" 
+            [note]="(stats()?.totalEntrepreneurs || 0) + ' membre(s) au total'"
+            noteVariant="neutral"
+          />
+          <app-kpi-card 
+            label="Cohortes actives" 
+            [value]="stats()?.totalCohortes || 0" 
+            note="Programmes en cours"
+            noteVariant="brand"
+          />
+          <app-kpi-card
+            label="Score de maturité moyen"
+            [value]="(stats()?.scoreMaturiteMoyen || 0) + '%'"
+            note="Moyenne sur tous les projets"
+            noteVariant="brand"
+          />
+          <app-kpi-card
+            label="Livrables à revoir"
+            [value]="stats()?.livrablesEnAttente || 0"
+            note="En attente d'évaluation"
+            noteVariant="neutral"
+          />
+        </div>
+
+        <!-- 2. BLOC PROJETS À SURVEILLER (ALERTES) -->
+        @if (alertes().length > 0) {
+          <div class="flex flex-col gap-3 rounded-2xl border border-warning-500/20 bg-warning-500/5 p-5 shadow-xs">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2 text-warning-700 font-bold text-xs uppercase tracking-wider">
+                <app-icon name="warning" class="size-4" />
+                <span>Attention requise ({{ alertes().length }} projet(s) avec une maturité < 40%)</span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-1">
+              @for (a of alertes(); track a.projetId) {
+                <a
+                  [routerLink]="['/incubateur/entrepreneurs', a.entrepreneurId || a.projetId]"
+                  class="flex items-center justify-between rounded-xl border border-line bg-surface p-3.5 hover:border-warning-500/40 transition-colors cursor-pointer shadow-2xs"
+                >
+                  <div class="flex flex-col min-w-0">
+                    <span class="text-xs font-bold text-ink truncate">{{ a.nomProjet }}</span>
+                    <span class="text-[11px] text-ink-muted truncate">{{ a.nomEntrepreneur }}</span>
+                  </div>
+                  <app-badge status="warning" size="sm">{{ a.scoreMaturite }}%</app-badge>
+                </a>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- 3. TABLEAU DES DERNIERS LIVRABLES DÉPOSÉS -->
+        <div class="w-full min-w-0 overflow-hidden rounded-2xl border border-line bg-surface shadow-[var(--shadow-subtle)]">
+          <div class="flex items-center justify-between border-b border-line px-6 py-4 bg-surface-muted/30">
+            <div class="flex items-center gap-2">
+              <app-icon name="missions" class="size-4 text-ink-muted" />
+              <h2 class="text-sm font-bold text-ink">Activité récente (Derniers livrables déposés)</h2>
+            </div>
+          </div>
+
+          <div class="divide-y divide-line">
+            @for (l of livrablesRecents(); track l.livrableId) {
+              <div class="flex items-center justify-between px-6 py-4 hover:bg-surface-muted/30 transition-colors gap-4">
+                <div class="flex items-center gap-3 min-w-0">
+                  <div class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-surface-muted border border-line text-ink-muted">
+                    <app-icon name="missions" class="size-4" />
+                  </div>
+                  <div class="flex flex-col min-w-0">
+                    <span class="text-xs font-bold text-ink truncate">{{ l.nomLivrable }}</span>
+                    <span class="text-[11px] text-ink-muted truncate">
+                      Par <strong>{{ l.nomEntrepreneur }}</strong> ({{ l.nomProjet }})
+                    </span>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-3 shrink-0">
+                  <span class="hidden sm:inline text-[11px] text-ink-muted">
+                    {{ l.dateDepot ? (l.dateDepot | date:'dd/MM/yyyy à HH:mm') : '' }}
+                  </span>
+                  <app-badge [status]="badgeLivrableStatus(l.statut)" size="sm">
+                    {{ formaterStatutLivrable(l.statut) }}
+                  </app-badge>
+                </div>
+              </div>
+            } @empty {
+              <p class="p-8 text-center text-xs text-ink-muted">
+                Aucun livrable récemment déposé.
+              </p>
+            }
+          </div>
+        </div>
+
+      }
+
     </div>
   `,
 })
-export class Dashboard {
-  private readonly authService = inject(AuthService);
-  private readonly structureService = inject(StructureService);
-  private readonly cohorteService = inject(CohorteService);
-  private readonly projetService = inject(ProjetService);
+export class Dashboard implements OnInit {
+  private readonly dashboardService = inject(DashboardService);
+  private readonly structureContext = inject(StructureContextService);
+  private readonly destroyRef = inject(DestroyRef);
 
-  protected readonly structure = signal<Structure | undefined>(undefined);
-  protected readonly cohortes = signal<Cohorte[]>([]);
-  protected readonly projetsAffiches = signal<ProjetAffiche[]>([]);
+  protected readonly isLoading = signal<boolean>(true);
+  protected readonly nomStructure = signal<string>('Incubateur');
 
-  protected readonly scoreMoyen = computed(() => {
-    const projets = this.projetsAffiches();
-    if (projets.length === 0) return 0;
-    const total = projets.reduce((sum, p) => sum + p.projet.scoreMaturite, 0);
-    return Math.round(total / projets.length);
-  });
+  // Données retournées par les endpoints optimisés du Backend
+  protected readonly stats = signal<DashboardStatsResponse | undefined>(undefined);
+  protected readonly alertes = signal<AlerteProjetResponse[]>([]);
+  protected readonly livrablesRecents = signal<LivrableRecentResponse[]>([]);
 
-  protected readonly projetsAttention = computed(
-    () => this.projetsAffiches().filter((p) => p.projet.scoreMaturite < 40).length,
-  );
+  ngOnInit(): void {
+    const activeMembership = this.structureContext.activeMembership();
+    if (activeMembership) {
+      this.nomStructure.set(activeMembership.structure.nom);
+    }
 
-  constructor() {
-    const user = this.authService.currentUser();
-    if (!this.authService.isMembreEquipe(user)) return;
-
-    const structureId = user.structureId;
-    this.structureService.getById(structureId).subscribe((s) => this.structure.set(s));
-    this.cohorteService.getByStructure(structureId).subscribe((cohortes) => {
-      this.cohortes.set(cohortes);
-      for (const cohorte of cohortes) {
-        this.projetService.getByCohorte(cohorte.id).subscribe((projets) => {
-          const items: ProjetAffiche[] = projets.map((projet) => ({
-            projet,
-            nomEntrepreneur: this.nomEntrepreneur(projet.entrepreneurId),
-          }));
-          this.projetsAffiches.update((existants) => [...existants, ...items]);
-        });
-      }
-    });
+    this.chargerDonneesDashboard();
   }
 
-  private nomEntrepreneur(entrepreneurId: string): string {
-    // TODO backend réel : le nom viendrait directement de la réponse API (jointure côté serveur)
-    // Provisoire : mapping en dur le temps que EntrepreneurService expose un lookup par id groupé
-    const noms: Record<string, string> = {
-      'ent-001': 'Awa Ndiaye',
-      'ent-002': 'Moussa Diop',
-      'ent-003': 'Fatou Sarr',
-    };
-    return noms[entrepreneurId] ?? 'Entrepreneur';
+  private chargerDonneesDashboard(): void {
+    this.isLoading.set(true);
+
+    forkJoin({
+      stats: this.dashboardService.getStats().pipe(catchError(() => of(undefined))),
+      alertes: this.dashboardService.getAlertes().pipe(catchError(() => of([]))),
+      livrablesRecents: this.dashboardService.getLivrablesRecents(5).pipe(catchError(() => of([]))),
+    })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: ({ stats, alertes, livrablesRecents }) => {
+          this.stats.set(stats);
+          this.alertes.set(alertes);
+          this.livrablesRecents.set(livrablesRecents);
+          this.isLoading.set(false);
+        },
+        error: (err) => {
+          console.error('Erreur chargement dashboard:', err);
+          this.isLoading.set(false);
+        },
+      });
+  }
+
+  protected badgeLivrableStatus(statut?: string): BadgeStatus {
+    switch (statut?.toUpperCase()) {
+      case 'VALIDE':
+        return 'success';
+      case 'EN_ATTENTE':
+        return 'warning';
+      case 'A_CORRIGER':
+      case 'REJETE':
+        return 'danger';
+      default:
+        return 'neutral';
+    }
+  }
+
+  protected formaterStatutLivrable(statut?: string): string {
+    switch (statut?.toUpperCase()) {
+      case 'VALIDE':
+        return 'Validé';
+      case 'EN_ATTENTE':
+        return 'En attente';
+      case 'A_CORRIGER':
+        return 'À corriger';
+      case 'REJETE':
+        return 'Rejeté';
+      default:
+        return statut || 'Déposé';
+    }
   }
 }

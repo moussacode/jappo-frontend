@@ -1,0 +1,88 @@
+@if (loading()) {
+  <div class="p-8 text-center text-ink-muted">Chargement de la fiche projet...</div>
+} @else if (projet(); as p) {
+  <div class="flex flex-col gap-6 p-6 sm:p-8">
+    
+    <!-- En-tête -->
+    <div class="flex items-center gap-4">
+      <a routerLink="/projets" class="p-2 rounded-xl border border-line bg-surface hover:bg-surface-muted transition-colors">
+        <app-icon name="arrow-left" class="size-4 text-ink" />
+      </a>
+      <div>
+        <h1 class="text-2xl font-bold text-ink">{{ p.nom }}</h1>
+        <p class="text-xs text-ink-muted">Secteur : {{ p.secteur || 'Non spécifié' }}</p>
+      </div>
+    </div>
+
+    <!-- Grille des informations principales -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+      
+      <!-- Entrepreneur -->
+      <div class="rounded-2xl border border-line bg-surface p-5 shadow-xs flex flex-col gap-3">
+        <span class="text-xs font-semibold uppercase text-ink-muted tracking-wider">Porteur de Projet</span>
+        <div class="flex items-center gap-3">
+          <div class="h-10 w-10 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center font-bold text-accent">
+            {{ p.nomEntrepreneur ? p.nomEntrepreneur.charAt(0).toUpperCase() : 'E' }}
+          </div>
+          <div>
+            <p class="text-sm font-bold text-ink">{{ p.nomEntrepreneur || 'Non assigné' }}</p>
+            <p class="text-xs text-ink-muted">Entrepreneur JAPPO</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cohorte -->
+      <div class="rounded-2xl border border-line bg-surface p-5 shadow-xs flex flex-col gap-3">
+        <span class="text-xs font-semibold uppercase text-ink-muted tracking-wider">Cohorte de rattachement</span>
+        <div class="flex items-center gap-3">
+          <div class="h-10 w-10 rounded-xl bg-surface-muted border border-line flex items-center justify-center text-accent">
+            <app-icon name="users" class="size-5" />
+          </div>
+          <div>
+            <p class="text-sm font-bold text-ink">{{ p.nomCohorte || 'Aucune cohorte' }}</p>
+            <p class="text-xs text-ink-muted">Promotion active</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Score Maturité -->
+      <div class="rounded-2xl border border-line bg-surface p-5 shadow-xs flex flex-col gap-3">
+        <span class="text-xs font-semibold uppercase text-ink-muted tracking-wider">Niveau de Maturité</span>
+        <div class="flex items-center gap-3">
+          <span class="text-2xl font-bold text-accent">{{ p.scoreMaturite || 0 }}%</span>
+          <div class="flex-1 h-2 bg-line rounded-full overflow-hidden">
+            <div class="h-full bg-accent rounded-full" [style.width.%]="p.scoreMaturite || 0"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Liste des Missions associées -->
+    <div class="rounded-2xl border border-line bg-surface overflow-hidden shadow-xs">
+      <div class="px-6 py-4 border-b border-line flex items-center justify-between bg-surface-muted/30">
+        <h2 class="text-base font-bold text-ink">Missions & Livrables</h2>
+        <span class="text-xs font-semibold text-ink-muted">{{ missions().length }} mission(s)</span>
+      </div>
+
+      <div class="divide-y divide-line">
+        @for (m of missions(); track m.id) {
+          <div class="px-6 py-4 flex items-center justify-between">
+            <div class="flex flex-col">
+              <span class="text-sm font-semibold text-ink">{{ m.titre }}</span>
+              <span class="text-xs text-ink-muted">Échéance : {{ m.dateEcheance || 'Non définie' }}</span>
+            </div>
+            <app-badge [status]="statutBadge(m.statut).status">
+              {{ statutBadge(m.statut).label }}
+            </app-badge>
+          </div>
+        } @empty {
+          <div class="p-8 text-center text-xs text-ink-muted">
+            Aucune mission enregistrée pour ce projet.
+          </div>
+        }
+      </div>
+    </div>
+
+  </div>
+}

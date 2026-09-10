@@ -1,44 +1,57 @@
-import { Injectable } from '@angular/core';
-import { Observable, of, delay } from 'rxjs';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { environment } from './../../environments/environment';
 import { Projet } from '../models/projet.model';
-import { EtapeParcours } from '../models/entrepreneur.model';
-import { MOCK_PROJETS } from '../mocks/projets.mock';
 
-@Injectable({ providedIn: 'root' })
+@Injectable({
+  providedIn: 'root',
+})
 export class ProjetService {
-  private projets = [...MOCK_PROJETS];
+  private readonly http = inject(HttpClient);
+  private readonly apiUrl = `${environment.apiUrl}/projets`;
 
-  /** MVP : un entrepreneur n'a qu'un seul projet visible — celui-ci le retrouve (ou le crée s'il n'existe pas encore). */
-  getPrincipalByEntrepreneur(entrepreneurId: string): Observable<Projet | undefined> {
-    // TODO backend réel : this.http.get<Projet>(`/api/entrepreneurs/${entrepreneurId}/projets`)
-    return of(this.projets.find((p) => p.entrepreneurId === entrepreneurId)).pipe(delay(250));
+  /**
+   * Récupérer tous les projets de la structure active
+   * GET /api/projets
+   */
+  getProjets(): Observable<Projet[]> {
+    return this.http.get<Projet[]>(this.apiUrl);
   }
 
-  /** Appelé automatiquement à l'inscription — voir AuthService.register(). */
-  creerProjetParDefaut(entrepreneurId: string, nom: string): Observable<Projet> {
-    // TODO backend réel : this.http.post<Projet>('/api/projets', { entrepreneurId, nom })
-    const projet: Projet = {
-      id: crypto.randomUUID(),
-      entrepreneurId,
-      nom,
-      scoreMaturite: 0,
-      etapeActuelle: 'ideation',
-      cohorteId: null,
-      dateCreation: new Date().toISOString(),
-    };
-    this.projets.push(projet);
-    return of(projet).pipe(delay(300));
+  /**
+   * Récupérer un projet par ID
+   * GET /api/projets/:id
+   */
+  getById(id: string): Observable<Projet> {
+    return this.http.get<Projet>(`${this.apiUrl}/${id}`);
   }
 
-  updateDiagnostic(projetId: string, etape: EtapeParcours): Observable<Projet> {
-    // TODO backend réel : this.http.patch<Projet>(`/api/projets/${projetId}/diagnostic`, { etape })
-    const projet = this.projets.find((p) => p.id === projetId)!;
-    projet.etapeActuelle = etape;
-    return of(projet).pipe(delay(300));
+  /**
+   * Récupérer les projets rattachés à une cohorte
+   * GET /api/projets/cohorte/:cohorteId
+   */
+  getByCohorte(cohorteId: string): Observable<Projet[]> {
+    return this.http.get<Projet[]>(`${this.apiUrl}/cohorte/${cohorteId}`);
   }
 
-    getByCohorte(cohorteId: string): Observable<Projet[]> {
-    // TODO backend réel : this.http.get<Projet[]>(`/api/cohortes/${cohorteId}/projets`)
-    return of(this.projets.filter((p) => p.cohorteId === cohorteId)).pipe(delay(300));
+  /**
+   * Récupérer le projet principal d'un entrepreneur
+   * GET /api/projets/entrepreneur/:entrepreneurId
+   */
+  getPrincipalByEntrepreneur(entrepreneurId: string): Observable<Projet> {
+    return this.http.get<Projet>(`${this.apiUrl}/entrepreneur/${entrepreneurId}`);
   }
+
+  /**
+   * Mettre à jour l'étape du diagnostic
+   * PATCH /api/projets/:id/diagnostic
+   */
+  updateDiagnostic(projetId: string, etape: string): Observable<Projet> {
+    return this.http.patch<Projet>(`${this.apiUrl}/${projetId}/diagnostic`, { etape });
+  }
+  
+  updateNomProjet(projetId: string, nom: string): Observable<Projet> {
+  return this.http.patch<Projet>(`${this.apiUrl}/${projetId}/nom`, { nom });
+}
 }

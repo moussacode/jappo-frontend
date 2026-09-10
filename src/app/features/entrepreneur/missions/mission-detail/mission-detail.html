@@ -1,10 +1,8 @@
- <div class="flex flex-col gap-6 p-8">
-      <a routerLink="/entrepreneur/missions" class="text-xs flex items-center gap-2 font-medium text-neutral-500 hover:text-neutral-700">
-        <app-icon
-    name="arrow-left"
-    class="size-3 flex items-center justify-center text-neutral-700"
-  /> Mes missions
-      </a>
+<div class="flex flex-col gap-6 p-8">
+  <a routerLink="/entrepreneur/missions" class="text-xs flex items-center gap-2 font-medium text-neutral-500 hover:text-neutral-700 transition-colors">
+    <app-icon name="arrow-left" class="size-3 flex items-center justify-center text-neutral-700" />
+    Mes missions
+  </a>
 
   @if (mission(); as m) {
     <!-- En-tête de la mission -->
@@ -17,10 +15,10 @@
           </app-badge>
         </div>
         <p class="mt-1.5 text-xs text-ink-muted flex items-center gap-2">
-          <span>{{ m.categorie }}</span>
+          <span>{{ m.nomProjet || 'Projet principal' }}</span>
           @if (m.dateEcheance) {
-            <span>:</span>
-            <span class="">Échéance : {{ m.dateEcheance }}</span>
+            <span>•</span>
+            <span>Échéance : {{ m.dateEcheance }}</span>
           }
         </p>
       </div>
@@ -41,7 +39,7 @@
         <!-- Carte Consignes -->
         <div class="rounded-[var(--radius-card-lg)] border border-line bg-surface p-6 shadow-[var(--shadow-subtle)]">
           <h2 class="text-base font-semibold text-ink">Consignes</h2>
-          <p class="mt-3 text-xs sm:text-sm text-ink-muted leading-relaxed">
+          <p class="mt-3 text-xs sm:text-sm text-ink-muted leading-relaxed whitespace-pre-line">
             {{ m.description || 'Aucune consigne détaillée fournie pour cette mission.' }}
           </p>
         </div>
@@ -58,7 +56,6 @@
           @if (submitted()) {
             <!-- Message de succès -->
             <div class="mt-6 rounded-xl bg-vivid-green/10 border border-vivid-green/20 p-5 flex items-start gap-3 text-xs font-medium text-vivid-green">
-              <!-- <app-icon name="check-circle" class="size-5 shrink-0 mt-0.5" /> -->
               <div>
                 <p class="font-semibold text-sm">Livrables soumis avec succès !</p>
                 <p class="mt-1 text-ink-muted font-normal">
@@ -180,11 +177,16 @@
                           title="Supprimer"
                         >
                           <app-icon name="x" class="size-4" />
-                
                         </button>
                       </div>
                     }
                   </div>
+                </div>
+              }
+
+              @if (errorMessage()) {
+                <div class="rounded-lg border border-danger-100 bg-danger-50 p-3 text-xs text-danger-600">
+                  {{ errorMessage() }}
                 </div>
               }
 
@@ -193,7 +195,7 @@
                 <app-button
                   [fullWidth]="true"
                   size="md"
-                  [disabled]="submitting() || (items().length === 0 && !noteEntrepreneur().trim())"
+                  [disabled]="submitting() || items().length === 0"
                   (click)="soumettre()"
                 >
                   {{ submitting() ? 'Envoi en cours…' : 'Soumettre mes livrables' }}
@@ -213,19 +215,28 @@
           
           <div class="space-y-4">
             <div>
-              <p class="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Assignée par</p>
+              <p class="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Assignée à / Responsable</p>
               <div class="mt-1.5 flex items-center gap-2.5">
                 <div class="h-7 w-7 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center text-accent text-xs font-bold">
-                  A
+                  {{ (m.nomAssigneA || 'C').charAt(0) }}
                 </div>
-                <p class="text-xs font-medium text-ink">Aïda Diagne <span class="text-ink-muted font-normal">(coach)</span></p>
+                <p class="text-xs font-medium text-ink">
+                  {{ m.nomAssigneA || 'Équipe pédagogique' }}
+                </p>
               </div>
             </div>
 
             <div class="pt-3 border-t border-line">
-              <p class="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Catégorie</p>
-              <p class="mt-1 text-xs font-medium text-ink">{{ m.categorie }}</p>
+              <p class="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Projet / Domaine</p>
+              <p class="mt-1 text-xs font-medium text-ink">{{ m.nomProjet || 'Projet principal' }}</p>
             </div>
+
+            @if (m.priorite) {
+              <div class="pt-3 border-t border-line">
+                <p class="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Priorité</p>
+                <p class="mt-1 text-xs font-medium text-ink">{{ m.priorite }}</p>
+              </div>
+            }
 
             <div class="pt-3 border-t border-line">
               <p class="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Formats acceptés</p>
@@ -238,7 +249,7 @@
     </div>
   } @else {
     <div class="rounded-[var(--radius-card-lg)] border border-line bg-surface p-12 text-center">
-      <p class="text-sm text-ink-muted">Mission introuvable ou archivée.</p>
+      <p class="text-sm text-ink-muted">Mission introuvable ou chargement en cours...</p>
     </div>
   }
 </div>

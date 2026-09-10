@@ -1,25 +1,59 @@
-import { Injectable } from '@angular/core';
-import { Observable, of, delay } from 'rxjs';
-import { Cohorte } from '../models/cohorte.model';
-import { MOCK_COHORTES } from '../mocks/cohortes.mock';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { environment } from './../../environments/environment';
+import { Cohorte, CreateCohorteRequest } from '../models/cohorte.model';
 
-@Injectable({ providedIn: 'root' })
+@Injectable({
+  providedIn: 'root',
+})
 export class CohorteService {
-  private cohortes = [...MOCK_COHORTES];
+  private readonly http = inject(HttpClient);
+  private readonly apiUrl = `${environment.apiUrl}/cohortes`;
 
-  getByStructure(structureId: string): Observable<Cohorte[]> {
-    // TODO backend réel : this.http.get<Cohorte[]>(`/api/structures/${structureId}/cohortes`)
-    return of(this.cohortes.filter((c) => c.structureId === structureId)).pipe(delay(300));
+  /**
+   * Récupère toutes les cohortes de la structure active (via en-tête X-Structure-Id)
+   */
+  getCohortes(): Observable<Cohorte[]> {
+    return this.http.get<Cohorte[]>(this.apiUrl);
   }
 
-  getById(id: string): Observable<Cohorte | undefined> {
-    return of(this.cohortes.find((c) => c.id === id)).pipe(delay(250));
+  /**
+   * Alias rétrocompatible pour dashboard.ts et entrepreneurs-list.ts
+   */
+  getByStructure(structureId?: string): Observable<Cohorte[]> {
+    return this.getCohortes();
   }
 
-  create(structureId: string, nom: string, secteur: string, dateDemarrage: string): Observable<Cohorte> {
-    // TODO backend réel : this.http.post<Cohorte>('/api/cohortes', { structureId, nom, secteur, dateDemarrage })
-    const cohorte: Cohorte = { id: crypto.randomUUID(), nom, secteur, dateDemarrage, structureId };
-    this.cohortes.push(cohorte);
-    return of(cohorte).pipe(delay(400));
+  /**
+   * Récupère une cohorte par son ID
+   */
+  getCohorteById(id: string): Observable<Cohorte> {
+    return this.http.get<Cohorte>(`${this.apiUrl}/${id}`);
+  }
+
+  /**
+   * Alias rétrocompatible pour cohorte-detail.ts
+   */
+  getById(id: string): Observable<Cohorte> {
+    return this.getCohorteById(id);
+  }
+
+  /**
+   * Crée une cohorte
+   */
+  createCohorte(request: CreateCohorteRequest): Observable<Cohorte> {
+    return this.http.post<Cohorte>(this.apiUrl, request);
+  }
+
+  /**
+   * Alias rétrocompatible de création
+   */
+  create(nom: string, secteur?: string, dateDemarrage?: string): Observable<Cohorte> {
+    return this.createCohorte({
+      nom,
+      description: secteur,
+      dateDebut: dateDemarrage,
+    });
   }
 }
