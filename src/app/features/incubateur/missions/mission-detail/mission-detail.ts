@@ -4,123 +4,181 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 
+// Services & Modèles
 import { MissionService } from '../../../../core/services/mission.service';
 import { LivrableService } from '../../../../core/services/livrable.service';
-import { BadgeComponent } from '../../../../shared/components/badge/badge';
-import { ButtonComponent } from '../../../../shared/components/button/button.component';
-import { Icon } from '../../../../shared/components/icon/icon';
-
 import { Mission, StatutMission } from '../../../../core/models/mission.model';
 import { LivrableResponse } from '../../../../core/models/livrable.model';
 import { STATUT_MISSION_CONFIG } from '../../../../core/constants/statut-mission.constant';
 
+// Design System Partagé
+import { BadgeComponent } from '../../../../shared/components/badge/badge';
+import { ButtonComponent } from '../../../../shared/components/button/button.component';
+import { Icon } from '../../../../shared/components/icon/icon';
+import { CardComponent } from '../../../../shared/components/card/card.component';
+import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+
 @Component({
   selector: 'app-mission-detail-incubateur',
   standalone: true,
-  imports: [RouterLink, FormsModule, BadgeComponent, ButtonComponent, Icon, DatePipe],
+  imports: [
+    RouterLink,
+    FormsModule,
+    DatePipe,
+    BadgeComponent,
+    ButtonComponent,
+    Icon,
+    CardComponent,
+    PageHeaderComponent,
+  ],
   template: `
-    <div class="flex flex-col gap-6 p-8">
-      <a routerLink="/incubateur/missions" class="text-sm font-medium text-ink-muted hover:text-ink transition-colors">
-        ← Missions
-      </a>
+    <div class="mx-auto flex w-full max-w-4xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
+      
+      <!-- Bouton Retour -->
+      <div>
+        <a
+          routerLink="/incubateur/missions"
+          class="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-muted transition-colors hover:text-ink cursor-pointer"
+        >
+          <app-icon name="arrow-left" class="size-3.5" />
+          <span>Retour aux missions</span>
+        </a>
+      </div>
 
       @if (mission(); as m) {
-        <div>
-          <div class="flex items-center gap-2.5">
-            <h1 class="text-[24px] font-normal leading-[1.33] text-ink">{{ m.titre }}</h1>
-            <app-badge [status]="statutBadge(m.statut).status">
+        
+        <!-- En-tête de la Mission -->
+        <div class="flex flex-col gap-3">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <h1 class="text-xl font-bold tracking-tight text-ink sm:text-2xl">{{ m.titre }}</h1>
+            <app-badge [status]="statutBadge(m.statut).status" size="md">
               {{ statutBadge(m.statut).label }}
             </app-badge>
           </div>
-          <p class="mt-1 text-sm text-ink-muted">
-            Projet : <strong class="text-ink">{{ m.nomProjet || 'Non assigné' }}</strong>
+          
+          <div class="flex items-center gap-3 text-xs text-ink-muted">
+            <span>Projet associé : <strong class="text-ink font-semibold">{{ m.nomProjet || 'Non assigné' }}</strong></span>
             @if (m.dateEcheance) {
-              · Échéance : {{ m.dateEcheance }}
+              <span>·</span>
+              <span class="flex items-center gap-1">
+                <app-icon name="calendar" class="size-3.5" />
+                <span>Échéance : {{ m.dateEcheance }}</span>
+              </span>
             }
-          </p>
+          </div>
         </div>
 
-        <!-- Consignes -->
-        <div class="rounded-[var(--radius-card)] border border-line bg-surface p-5">
-          <h2 class="text-sm font-semibold text-ink">Consignes</h2>
-          <p class="mt-2 text-sm text-ink-muted whitespace-pre-line">{{ m.description || 'Aucune consigne détaillée.' }}</p>
-        </div>
+        <!-- Consignes & Description -->
+        <app-card padding="lg" class="flex flex-col gap-2">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-ink-muted">Consignes & Attentes</h2>
+          <p class="text-xs sm:text-sm text-ink leading-relaxed whitespace-pre-line">
+            {{ m.description || 'Aucune consigne détaillée pour cette mission.' }}
+          </p>
+        </app-card>
 
         <!-- Livrables soumis (Support Multi-livrables) -->
-        <div class="rounded-[var(--radius-card)] border border-line bg-surface p-5">
-          <div class="flex items-center justify-between border-b border-line pb-3">
-            <h2 class="text-sm font-semibold text-ink">Livrables soumis ({{ livrables().length }})</h2>
+        <app-card padding="none" class="overflow-hidden shadow-xs">
+          <div class="flex items-center justify-between border-b border-line px-6 py-4 bg-surface-muted/30">
+            <h2 class="text-sm font-bold text-ink">Livrables soumis ({{ livrables().length }})</h2>
           </div>
 
           <div class="divide-y divide-line">
             @for (l of livrables(); track l.id) {
-              <div class="py-4 flex flex-col gap-3 first:pt-3 last:pb-0">
-                <div class="flex items-center justify-between gap-4">
-                  <div class="flex flex-col min-w-0">
-                    <span class="text-xs text-ink-muted">
-                      Soumis le {{ l.dateDepot ? (l.dateDepot | date:'dd/MM/yyyy à HH:mm') : 'Date inconnue' }}
-                    </span>
-                    <a
-                      [href]="l.url"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="text-sm text-accent font-medium hover:underline font-mono truncate"
-                    >
-                      {{ l.nom || l.url }} ↗
-                    </a>
+              <div class="p-6 flex flex-col gap-4 transition-colors hover:bg-surface-muted/20">
+                
+                <!-- Infos Fichier & Statut -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div class="flex items-center gap-3 min-w-0">
+                    <div class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-surface-muted border border-line text-ink-muted">
+                      <app-icon name="missions" class="size-4" />
+                    </div>
+                    <div class="flex flex-col min-w-0">
+                      <a
+                        [href]="l.url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="text-xs sm:text-sm text-accent font-semibold hover:underline truncate"
+                      >
+                        {{ l.nom || l.url }} ↗
+                      </a>
+                      <span class="text-[11px] text-ink-muted">
+                        Soumis le {{ l.dateDepot ? (l.dateDepot | date:'dd/MM/yyyy à HH:mm') : 'Récemment' }}
+                      </span>
+                    </div>
                   </div>
 
-                  <span class="text-xs font-semibold" [class]="getStatutCouleur(l.statut)">
+                  <span class="text-xs font-semibold px-2.5 py-1 rounded-lg self-start sm:self-auto" [class]="getStatutStyle(l.statut)">
                     {{ getStatutLabel(l.statut) }}
                   </span>
                 </div>
 
+                <!-- Section d'évaluation (Si en attente) -->
                 @if (l.statut === 'EN_ATTENTE') {
-                  <div class="flex flex-col gap-3 bg-surface-muted/30 p-3 rounded-xl border border-line">
+                  <div class="flex flex-col gap-3 bg-surface-muted/50 p-4 rounded-xl border border-line mt-1">
                     <textarea
                       [value]="commentaireSelectedId() === l.id ? commentaire() : ''"
                       (input)="surChangementCommentaire(l.id, $any($event.target).value)"
                       rows="2"
-                      placeholder="Commentaire ou remarques de correction (obligatoire en cas de demande de correction)"
-                      class="rounded-[var(--radius-input)] border border-line bg-surface px-3 py-2 text-xs text-ink focus:outline-none focus:border-accent resize-none"
+                      placeholder="Ajouter une remarque ou des consignes de correction (obligatoire si vous demandez une modification)..."
+                      class="rounded-xl border border-line bg-surface p-3 text-xs text-ink placeholder:text-ink-muted/50 focus:outline-none focus:border-accent resize-none transition-colors"
                     ></textarea>
 
-                    <div class="flex gap-2 justify-end">
-                      <button
+                    <div class="flex items-center justify-end gap-2">
+                      <!-- <app-button
                         type="button"
-                        [disabled]="traitement()"
-                        (click)="validerLivrable(l.id)"
-                        class="rounded-[var(--radius-button)] bg-action-fill px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-40 transition-opacity cursor-pointer"
-                      >
-                        Valider ce livrable
-                      </button>
-
-                      <button
-                        type="button"
+                        /* variant="outline" */
+                        size="xs"
                         [disabled]="traitement() || !commentaire().trim() || commentaireSelectedId() !== l.id"
                         (click)="demanderCorrection(l.id)"
-                        class="rounded-[var(--radius-button)] border border-line px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-muted disabled:opacity-40 transition-colors cursor-pointer"
                       >
                         Demander une correction
-                      </button>
+                      </app-button> -->
+
+                      <app-button
+                        type="button"
+                        size="xs"
+                        [disabled]="traitement()"
+                        (click)="validerLivrable(l.id)"
+                      >
+                        {{ traitement() ? 'Traitement...' : 'Valider ce livrable' }}
+                      </app-button>
                     </div>
                   </div>
                 } @else if (l.commentaireCoach) {
-                  <p class="text-xs text-ink-muted italic bg-surface-muted/20 p-2.5 rounded-lg border border-line">
-                    Remarque : {{ l.commentaireCoach }}
-                  </p>
+                  <!-- Remarque laissée précédemment -->
+                  <div class="flex items-start gap-2.5 bg-surface-muted/40 p-3.5 rounded-xl border border-line text-xs text-ink-muted">
+                    <span class="text-accent font-bold">Coach :</span>
+                    <p class="leading-relaxed italic">{{ l.commentaireCoach }}</p>
+                  </div>
                 }
+
               </div>
             } @empty {
-              <p class="mt-3 text-sm text-ink-muted">Aucun livrable soumis pour le moment.</p>
+              <div class="p-12 text-center flex flex-col items-center justify-center">
+                <div class="flex size-10 items-center justify-center rounded-full bg-surface-muted text-ink-muted mb-2 border border-line">
+                  <app-icon name="missions" class="size-5" />
+                </div>
+                <p class="text-xs font-semibold text-ink">Aucun livrable soumis</p>
+                <p class="text-[11px] text-ink-muted mt-0.5">L'entrepreneur n'a pas encore versé de fichier pour cette mission.</p>
+              </div>
             }
           </div>
-        </div>
+        </app-card>
+
       } @else if (isLoading()) {
-        <div class="p-8 text-center text-sm text-ink-muted">Chargement de la mission...</div>
+        <app-card padding="lg" class="animate-pulse flex flex-col gap-4 text-center py-12">
+          <p class="text-xs text-ink-muted">Chargement des détails de la mission...</p>
+        </app-card>
       } @else {
-        <div class="p-8 text-center text-sm text-ink-muted">Mission introuvable.</div>
+        <app-card padding="lg" class="text-center py-12">
+          <h2 class="text-sm font-bold text-ink">Mission introuvable</h2>
+          <p class="text-xs text-ink-muted mt-1">La mission demandée n'existe pas ou a été supprimée.</p>
+          <a routerLink="/incubateur/missions" class="mt-4 inline-block text-xs font-semibold text-accent hover:underline">
+            Retourner à la liste des missions
+          </a>
+        </app-card>
       }
+
     </div>
   `,
 })
@@ -150,14 +208,11 @@ export class MissionDetail implements OnInit {
 
   private chargerMissionEtLivrables(): void {
     this.isLoading.set(true);
-    console.log(this.missionId)
 
-    // 1. Charger la mission
     this.missionService
       .getById(this.missionId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        
         next: (m) => {
           this.mission.set(m);
           this.isLoading.set(false);
@@ -168,7 +223,6 @@ export class MissionDetail implements OnInit {
         },
       });
 
-    // 2. Charger les livrables associés
     this.livrableService
       .getLivrablesByMission(this.missionId)
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -187,12 +241,16 @@ export class MissionDetail implements OnInit {
     this.commentaire.set(valeur);
   }
 
-  protected validerLivrable(livrableId: string): void {
+ protected validerLivrable(livrableId: string): void {
     this.traitement.set(true);
-    const comm = this.commentaireSelectedId() === livrableId ? this.commentaire() : undefined;
+    const commentaireCoach = this.commentaireSelectedId() === livrableId ? this.commentaire() : undefined;
 
+    // Utilisation correcte du DTO attendu par le service frontend
     this.livrableService
-      .changerStatut(livrableId, 'VALIDE', comm)
+      .evaluerLivrable(livrableId, {
+        statut: 'VALIDE',
+        commentaireCoach: commentaireCoach || undefined
+      })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
@@ -200,11 +258,8 @@ export class MissionDetail implements OnInit {
           this.commentaire.set('');
           this.commentaireSelectedId.set(null);
 
-          // Recharger les livrables et passer le statut de la mission à VALIDEE
+          // Recharge les données pour synchroniser l'UI
           this.chargerMissionEtLivrables();
-          this.missionService.updateStatut(this.missionId, 'VALIDEE').subscribe({
-            next: (updatedMission) => this.mission.set(updatedMission),
-          });
         },
         error: (err) => {
           console.error('Erreur validation livrable:', err);
@@ -217,9 +272,14 @@ export class MissionDetail implements OnInit {
     if (!this.commentaire().trim() || this.commentaireSelectedId() !== livrableId) return;
 
     this.traitement.set(true);
+    const commentaireCoach = this.commentaire();
 
+    // Utilisation de evaluerLivrable avec le statut A_CORRIGER
     this.livrableService
-      .changerStatut(livrableId, 'A_CORRIGER', this.commentaire())
+      .evaluerLivrable(livrableId, {
+        statut: 'A_CORRIGER',
+        commentaireCoach: commentaireCoach
+      })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
@@ -227,11 +287,8 @@ export class MissionDetail implements OnInit {
           this.commentaire.set('');
           this.commentaireSelectedId.set(null);
 
-          // Recharger les livrables et passer le statut de la mission à A_CORRIGER
+          // Recharge les données pour synchroniser l'UI
           this.chargerMissionEtLivrables();
-          this.missionService.updateStatut(this.missionId, 'A_CORRIGER').subscribe({
-            next: (updatedMission) => this.mission.set(updatedMission),
-          });
         },
         error: (err) => {
           console.error('Erreur demande de correction:', err);
@@ -240,27 +297,27 @@ export class MissionDetail implements OnInit {
       });
   }
 
-  protected getStatutCouleur(statut?: string): string {
+  protected getStatutStyle(statut?: string): string {
     switch (statut?.toUpperCase()) {
       case 'VALIDE':
-        return 'text-success-600 font-bold';
+        return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20';
       case 'A_CORRIGER':
-        return 'text-danger-600 font-bold';
+        return 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20';
       case 'EN_ATTENTE':
-        return 'text-warning-600 font-bold';
+        return 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20';
       default:
-        return 'text-ink-muted';
+        return 'bg-surface-muted text-ink-muted border border-line';
     }
   }
 
   protected getStatutLabel(statut?: string): string {
     switch (statut?.toUpperCase()) {
       case 'VALIDE':
-        return '✓ Validé';
+        return 'Validé';
       case 'A_CORRIGER':
-        return '✗ Corrections demandées';
+        return 'Corrections demandées';
       case 'EN_ATTENTE':
-        return '⏳ En attente de révision';
+        return 'En attente de révision';
       default:
         return statut || 'Déposé';
     }

@@ -7,12 +7,23 @@ import { switchMap } from 'rxjs';
 import { AuthService } from '../../../../core/services/auth.service';
 import { StructureContextService } from '../../../../core/services/structure-context.service';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
-import { Icon } from '../../../../shared/components/icon/icon';
+import { Icon, IconName } from '../../../../shared/components/icon/icon';
+import { CardComponent } from '../../../../shared/components/card/card.component';
+import { FormFieldComponent } from '../../../../shared/components/input/form-field.component';
+import { InputComponent } from '../../../../shared/components/input/input.component';
 
 @Component({
   selector: 'app-connexion',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, ButtonComponent, Icon],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    ButtonComponent,
+    Icon,
+    CardComponent,
+    FormFieldComponent,
+    InputComponent, // <-- Ajouté ici pour résoudre l'erreur ngtsc
+  ],
   templateUrl: './connexion.html',
   styleUrl: './connexion.css',
 })
@@ -26,6 +37,11 @@ export class Connexion {
   protected readonly submitting = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly showPassword = signal(false);
+
+  // Getter typé strictement pour le composant <app-icon>
+  protected get passwordIcon(): IconName {
+    return this.showPassword() ? 'eye-off' : 'eye';
+  }
 
   protected readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],

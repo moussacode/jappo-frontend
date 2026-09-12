@@ -149,13 +149,13 @@
       <div class="flex items-center justify-end gap-3">
         <a
           routerLink="/incubateur/missions"
-          class="rounded-xl border border-line px-5 py-2.5 text-xs font-semibold text-ink-muted hover:bg-surface-muted transition-colors"
+          class="rounded-xl border border-line px-5 py-2 text-xs font-semibold text-ink-muted hover:bg-surface-muted transition-colors"
         >
           Annuler
         </a>
         <app-button
           type="submit"
-          size="md"
+          size="sm"
           [disabled]="isSubmitting()"
         >
           {{ isSubmitting() ? 'Création en cours...' : 'Publier la mission' }}

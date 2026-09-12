@@ -4,13 +4,14 @@ import { Observable } from 'rxjs';
 import { environment } from './../../environments/environment';
 
 export type RoleEquipe = 'ADMIN_STRUCTURE' | 'COACH';
-
+export type StatutMembre = 'ACCEPTE' | 'EN_ATTENTE' | 'REFUSE';
 export interface MembreEquipe {
   id: string;
   nom: string;
   prenom: string;
   email: string;
   role: RoleEquipe;
+  statut: StatutMembre;
   estProprietaire?: boolean; // <-- Ajoute cette ligne
 }
 @Injectable({ providedIn: 'root' })

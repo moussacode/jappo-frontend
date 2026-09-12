@@ -144,16 +144,37 @@ export type SettingTab = 'general' | 'compte' | 'preferences' | 'equipe';
                         <div class="flex flex-col min-w-0">
                           <div class="flex items-center gap-2">
                             <span class="truncate text-xs font-semibold text-ink leading-tight">
-                              {{ m.prenom }} {{ m.nom }}
+                              {{ m.prenom || 'Utilisateur' }} {{ m.nom || 'Invité' }}
                             </span>
-                            
                           </div>
                           <span class="truncate text-[11px] text-ink-muted leading-tight mt-0.5">{{ m.email }}</span>
                         </div>
                       </div>
 
-                      <!-- Sélection de Rôle / Statut Propriétaire -->
-                      <div>
+                      <!-- Zone d'actions : Statut & Rôle -->
+                      <div class="flex items-center gap-3 shrink-0">
+                        
+                        <!-- Badges de Statut -->
+                        @if (m.statut === 'ACCEPTE') {
+                          <span class="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-600 border border-emerald-200">
+                            Actif
+                          </span>
+                        } @else if (m.statut === 'EN_ATTENTE') {
+                          <div class="flex items-center gap-2">
+                            <span class="rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-semibold text-amber-600 border border-amber-200">
+                              En attente
+                            </span>
+                            <button 
+                              type="button"
+                              (click)="renvoyerInvitation(m.email, m.role)"
+                              class="text-[10px] font-medium text-accent hover:underline cursor-pointer"
+                            >
+                              Renvoyer
+                            </button>
+                          </div>
+                        }
+
+                        <!-- Sélection de Rôle -->
                         @if (m.estProprietaire) {
                           <span class="px-2.5 py-1 text-xs font-medium text-ink-muted bg-surface-muted/60 rounded-lg select-none">
                             Propriétaire
@@ -403,6 +424,13 @@ export class ParametresModal implements OnInit {
         },
         error: () => this.isSending.set(false),
       });
+  }
+
+  protected renvoyerInvitation(email: string, role: RoleEquipe): void {
+    this.invitationService
+      .envoyerInvitation(email, role)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe();
   }
 
   protected changerRole(membreId: string, role: RoleEquipe): void {

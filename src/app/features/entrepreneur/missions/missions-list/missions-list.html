@@ -1,88 +1,87 @@
-<div class="flex flex-col gap-6 p-6 sm:p-8">
-  <!-- En-tête -->
-  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-    <div>
-      <h1 class="text-2xl font-bold tracking-tight text-ink">Mes missions</h1>
-      <p class="mt-1 text-xs sm:text-sm text-ink-muted">
-        Consultez, filtrez et validez l'ensemble de vos livrables.
-      </p>
+<div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
+  
+  <!-- En-tête Page Unifié -->
+  <app-page-header
+    title="Mes missions"
+    [subtitle]="loading() ? 'Chargement de vos missions...' : missionsFiltrees().length + ' mission(s) affichée(s) sur ' + allMissions().length"
+  />
+
+  <!-- Barre de contrôles : Filtres Statuts (TabFilter) + Recherche -->
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <app-tab-filter
+      [options]="optionsFiltreStatut()"
+      [value]="filtreStatut()"
+      (valueChange)="filtreStatut.set($event)"
+    />
+
+    <div class="relative w-full sm:w-72">
+      <input
+        type="text"
+        [formControl]="searchControl"
+        placeholder="Rechercher par titre, cohorte..."
+        class="w-full rounded-xl border border-line bg-surface py-2.5 pl-9 pr-4 text-xs text-ink placeholder:text-ink-muted/60 transition-colors focus:border-accent focus:outline-none"
+      />
+      <app-icon name="search" class="absolute left-3 top-3 size-4 text-ink-muted" />
     </div>
   </div>
 
-  <!-- Filtres (Pills/Tabs) -->
-  <div class="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
-    @for (f of filtres; track f.cle) {
-      <button
-        type="button"
-        (click)="filtreActif.set(f.cle)"
-        class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all cursor-pointer whitespace-nowrap"
-        [class]="
-          filtreActif() === f.cle
-            ? 'bg-accent text-white shadow-xs'
-            : 'bg-surface border border-line text-ink-muted hover:bg-surface-muted hover:text-ink'
-        "
-      >
-        <span>{{ f.label }}</span>
-      </button>
-    }
-  </div>
+  <!-- Skeleton Loader -->
+  @if (loading()) {
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+        <app-card padding="md" class="animate-pulse flex flex-col justify-between gap-4 h-36">
+          <div class="flex items-center justify-between">
+            <div class="h-4 w-1/3 rounded bg-line"></div>
+            <div class="h-4 w-16 rounded-full bg-line"></div>
+          </div>
+          <div class="h-5 w-3/4 rounded bg-line/60"></div>
+          <div class="h-4 w-1/2 rounded bg-line/40"></div>
+        </app-card>
+      }
+    </div>
+  } @else {
+    
+    <!-- Grille de cartes unifiée (Même style que l'incubateur) -->
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      @for (mission of missionsFiltrees(); track mission.id) {
+        <app-entity-card
+          [title]="mission.titre"
+          [subtitle]="mission.nomCohorte || 'Mission de cohorte'"
+          [routerLink]="['/entrepreneur/missions', mission.id]"
+          [badgeLabel]="statutBadge(mission.statut).label"
+          [badgeStatus]="statutBadge(mission.statut).status"
+        >
+          <!-- Corps de la carte -->
+          <div card-body class="flex flex-col gap-2">
+            @if (mission.description) {
+              <p class="text-xs text-ink-muted line-clamp-2 leading-relaxed">
+                {{ mission.description }}
+              </p>
+            } @else {
+              <p class="text-xs text-ink-muted/50 italic">Aucune description détaillée.</p>
+            }
+          </div>
 
-  <!-- Liste des missions -->
-  <div class="rounded-[var(--radius-card-lg)] border border-line bg-surface overflow-hidden shadow-[var(--shadow-subtle)]">
-    @if (loading()) {
-      <div class="flex flex-col items-center justify-center px-6 py-12 text-center">
-        <p class="text-xs sm:text-sm font-medium text-ink-muted animate-pulse">Chargement de vos missions…</p>
-      </div>
-    } @else {
-      <div class="divide-y divide-line">
-        @for (mission of missionsFiltrees(); track mission.id) {
-          <a
-            [routerLink]="['/entrepreneur/missions', mission.id]"
-            class="group flex items-center justify-between gap-4 px-6 py-4.5 transition-colors hover:bg-surface-muted/40"
-          >
-            <!-- Gauche : Icône + Titre & Métadonnées -->
-            <div class="flex items-center gap-3.5 min-w-0">
-              <div class="h-9 w-9 rounded-xl bg-surface-muted border border-line flex items-center justify-center text-ink shrink-0 group-hover:border-accent/40 group-hover:text-accent transition-colors">
-                <app-icon name="missions" class="size-4" />
-              </div>
-              <div class="flex flex-col min-w-0">
-                <p class="text-sm font-semibold text-ink truncate group-hover:text-accent transition-colors">
-                  {{ mission.titre }}
-                </p>
-                <p class="mt-0.5 text-xs text-ink-muted flex items-center gap-2 flex-wrap">
-                  <!-- CORRIGÉ : categorie remplacé par nomCohorte -->
-                  @if (mission.nomCohorte) {
-                    <span>{{ mission.nomCohorte }}</span>
-                  }
-                  @if (mission.dateEcheance) {
-                    <span>•</span>
-                    <span class="font-medium">Échéance : {{ mission.dateEcheance | date:'dd/MM/yyyy' }}</span>
-                  }
-                </p>
-              </div>
-            </div>
-
-            <!-- Droite : Statut + Flèche -->
-            <div class="flex items-center gap-3 shrink-0">
-              <app-badge [status]="statutBadge(mission.statut).status">
-                {{ statutBadge(mission.statut).label }}
-              </app-badge>
-              <app-icon 
-                name="chevron-right" 
-                class="size-4 text-ink-muted/60 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-ink" 
-              />
-            </div>
-          </a>
-        } @empty {
-          <div class="flex flex-col items-center justify-center px-6 py-12 text-center">
-            <div class="h-10 w-10 rounded-full bg-surface-muted border border-line flex items-center justify-center text-ink-muted mb-3">
+          <!-- Pied de carte -->
+          <div card-footer class="w-full flex items-center justify-between text-[11px] text-ink-muted">
+            <span class="flex items-center gap-1.5">
+              <app-icon name="calendar" class="size-3.5" />
+              <span>{{ mission.dateEcheance ? ('Échéance : ' + (mission.dateEcheance | date:'dd/MM/yyyy')) : 'Aucune échéance' }}</span>
+            </span>
+          </div>
+        </app-entity-card>
+      } @empty {
+        <div class="col-span-full">
+          <div class="flex flex-col items-center justify-center rounded-2xl border border-line bg-surface p-12 text-center shadow-xs">
+            <div class="flex size-10 items-center justify-center rounded-full bg-surface-muted border border-line text-ink-muted mb-3">
               <app-icon name="missions" class="size-5" />
             </div>
-            <p class="text-xs sm:text-sm font-semibold text-ink">Aucune mission dans cette catégorie</p>
-            <p class="mt-1 text-xs text-ink-muted">Sélectionnez un autre filtre pour voir vos autres missions.</p>
+            <p class="text-xs sm:text-sm font-semibold text-ink">Aucune mission trouvée</p>
+            <p class="mt-1 text-xs text-ink-muted">Ajustez votre recherche ou changez de filtre pour voir vos jalons.</p>
           </div>
-        }
-      </div>
-    }
-  </div>
+        </div>
+      }
+    </div>
+
+  }
 </div>

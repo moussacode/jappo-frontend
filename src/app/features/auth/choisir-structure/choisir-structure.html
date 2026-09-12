@@ -1,5 +1,6 @@
 <div class="flex min-h-screen w-full items-center justify-center bg-surface-muted p-4 sm:p-6">
-  <div class="w-full max-w-md shrink-0 rounded-[var(--radius-card-lg)] border border-line bg-surface p-6 shadow-[var(--shadow-subtle)] sm:p-7">
+  
+  <app-card padding="md" class="w-full max-w-md shrink-0">
     
     <!-- Header avec Logo & Déconnexion -->
     <div class="flex items-center justify-between">
@@ -7,7 +8,7 @@
       <button 
         type="button" 
         (click)="retourConnexion()" 
-        class="text-xs font-medium text-ink-muted hover:text-ink transition-colors"
+        class="text-xs font-medium text-ink-muted hover:text-ink transition-colors cursor-pointer"
       >
         Déconnexion
       </button>
@@ -25,7 +26,7 @@
           <button
             type="button"
             (click)="choisirStructure(m)"
-            class="group flex items-center justify-between rounded-[var(--radius-token-md)] border border-line p-4 text-left transition-all hover:border-accent hover:bg-surface-muted"
+            class="group flex items-center justify-between rounded-xl border border-line p-4 text-left transition-all hover:border-accent hover:bg-surface-muted/60 cursor-pointer"
           >
             <div>
               <p class="text-sm font-medium text-ink group-hover:text-accent transition-colors">{{ m.structure.nom }}</p>
@@ -42,7 +43,7 @@
         <button
           type="button"
           (click)="basculerModeFormulaire(true)"
-          class="w-full text-center text-xs font-medium text-accent hover:underline"
+          class="w-full text-center text-xs font-semibold text-accent hover:underline cursor-pointer"
         >
           + Créer ou rejoindre une autre structure
         </button>
@@ -56,21 +57,23 @@
       </div>
 
       <form [formGroup]="structureForm" (ngSubmit)="creerStructure()" class="mt-5 flex flex-col gap-3.5">
-        <div class="flex flex-col gap-1">
-          <label class="text-xs font-medium text-ink-muted">Nom de la structure *</label>
-          <input 
-            type="text" 
-            formControlName="nom" 
-            placeholder="Ex: Fabrique 360" 
-            class="rounded-[var(--radius-input)] border border-line px-3.5 py-2 text-xs text-ink focus:border-accent focus:outline-none transition-colors" 
+        
+        <!-- Nom de la structure -->
+        <app-form-field label="Nom de la structure" inputId="nom" [error]="nomError" [required]="true">
+          <app-input
+            id="nom"
+            formControlName="nom"
+            placeholder="Ex: Fabrique 360"
+            [invalid]="structureForm.controls.nom.touched && structureForm.controls.nom.invalid"
           />
-        </div>
+        </app-form-field>
 
-        <div class="flex flex-col gap-1">
-          <label class="text-xs font-medium text-ink-muted">Type de structure</label>
+        <!-- Type de structure (Select unifié) -->
+        <app-form-field label="Type de structure" inputId="type">
           <select 
+            id="type"
             formControlName="type" 
-            class="rounded-[var(--radius-input)] border border-line px-3.5 py-2 text-xs text-ink bg-surface focus:border-accent focus:outline-none transition-colors"
+            class="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs text-ink focus:border-accent focus:outline-none transition-colors cursor-pointer"
           >
             <option value="incubateur">Incubateur</option>
             <option value="accelerateur">Accélérateur</option>
@@ -78,41 +81,43 @@
             <option value="association">Association</option>
             <option value="autre">Autre</option>
           </select>
-        </div>
+        </app-form-field>
 
+        <!-- Pays & Ville -->
         <div class="grid grid-cols-2 gap-3">
-          <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-ink-muted">Pays *</label>
-            <input 
-              type="text" 
-              formControlName="pays" 
-              placeholder="Sénégal" 
-              class="rounded-[var(--radius-input)] border border-line px-3.5 py-2 text-xs text-ink focus:border-accent focus:outline-none transition-colors" 
+          <app-form-field label="Pays" inputId="pays" [error]="paysError" [required]="true">
+            <app-input
+              id="pays"
+              formControlName="pays"
+              placeholder="Sénégal"
+              [invalid]="structureForm.controls.pays.touched && structureForm.controls.pays.invalid"
             />
-          </div>
-          <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-ink-muted">Ville *</label>
-            <input 
-              type="text" 
-              formControlName="ville" 
-              placeholder="Dakar" 
-              class="rounded-[var(--radius-input)] border border-line px-3.5 py-2 text-xs text-ink focus:border-accent focus:outline-none transition-colors" 
+          </app-form-field>
+
+          <app-form-field label="Ville" inputId="ville" [error]="villeError" [required]="true">
+            <app-input
+              id="ville"
+              formControlName="ville"
+              placeholder="Dakar"
+              [invalid]="structureForm.controls.ville.touched && structureForm.controls.ville.invalid"
             />
-          </div>
+          </app-form-field>
         </div>
 
-        <div class="flex flex-col gap-1">
-          <label class="text-xs font-medium text-ink-muted">Description (Optionnel)</label>
+        <!-- Description -->
+        <app-form-field label="Description (Optionnel)" inputId="description">
           <textarea 
+            id="description"
             formControlName="description" 
             rows="2" 
             placeholder="Présentez brièvement votre structure..."
-            class="rounded-[var(--radius-input)] border border-line px-3.5 py-2 text-xs text-ink focus:border-accent focus:outline-none transition-colors resize-none"
+            class="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs text-ink placeholder:text-ink-muted/50 focus:border-accent focus:outline-none transition-colors resize-none"
           ></textarea>
-        </div>
+        </app-form-field>
 
+        <!-- Banner Erreur API -->
         @if (erreur()) {
-          <div class="rounded-[var(--radius-input)] border border-danger-100 bg-danger-50 p-2.5 text-xs text-danger-600">
+          <div class="rounded-xl border border-rose-500/20 bg-rose-500/10 p-2.5 text-xs text-rose-600">
             {{ erreur() }}
           </div>
         }
@@ -130,7 +135,7 @@
             <button
               type="button"
               (click)="basculerModeFormulaire(false)"
-              class="w-full text-center text-xs font-medium text-ink-muted hover:text-ink transition-colors py-2"
+              class="w-full text-center text-xs font-medium text-ink-muted hover:text-ink transition-colors py-2 cursor-pointer"
             >
               Annuler et retourner au choix
             </button>
@@ -139,5 +144,5 @@
       </form>
     }
 
-  </div>
+  </app-card>
 </div>

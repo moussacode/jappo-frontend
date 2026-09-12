@@ -4,6 +4,16 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { AuthService } from '../../../core/services/auth.service';
+import { FormFieldComponent } from '../../../shared/components/input/form-field.component';
+import { InputComponent } from '../../../shared/components/input/input.component';
+import { ButtonComponent } from '../../../shared/components/button/button.component';
+import { CardComponent } from '../../../shared/components/card/card.component';
+
+// ⚠️ N'oublie pas d'importer tes composants partagés ici
+// import { CardComponent } from '../../../shared/components/card/card.component';
+// import { FormFieldComponent } from '../../../shared/components/form-field/form-field.component';
+// import { InputComponent } from '../../../shared/components/input/input.component';
+// import { ButtonComponent } from '../../../shared/components/button/button.component';
 
 interface InvitationInfo {
   nomUser: string;
@@ -16,10 +26,19 @@ interface InvitationInfo {
 @Component({
   selector: 'app-accept-invitation',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    FormFieldComponent,
+    InputComponent,
+    ButtonComponent,
+    CardComponent
+],
   template: `
     <div class="flex min-h-screen items-center justify-center bg-surface-subtle p-4">
-      <div class="w-full max-w-md rounded-[var(--radius-card-lg)] border border-line bg-surface p-8 shadow-[var(--shadow-card)]">
+      
+      <!-- Remplacement par app-card -->
+      <app-card padding="md" class="w-full max-w-[420px]">
         
         @if (loading()) {
           <div class="py-8 text-center">
@@ -56,15 +75,19 @@ interface InvitationInfo {
 
             <!-- Saisie du mot de passe : UNIQUEMENT SI LE COMPTE N'EXISTE PAS ENCORE -->
             @if (!details.compteExiste) {
-              <div class="flex flex-col gap-1.5">
-                <label class="text-xs font-semibold text-ink-muted">CRÉEZ VOTRE MOT DE PASSE *</label>
-                <input
+              <app-form-field
+                label="Créez votre mot de passe *"
+                inputId="nouveauMotDePasse"
+                [error]="form.controls.nouveauMotDePasse.touched && form.controls.nouveauMotDePasse.invalid ? 'Le mot de passe doit contenir au moins 8 caractères.' : undefined"
+              >
+                <app-input
                   type="password"
+                  id="nouveauMotDePasse"
                   formControlName="nouveauMotDePasse"
                   placeholder="8 caractères minimum"
-                  class="rounded-[var(--radius-input)] border border-line bg-surface px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted/50 focus:border-accent focus:outline-none transition-colors"
+                  [invalid]="form.controls.nouveauMotDePasse.touched && form.controls.nouveauMotDePasse.invalid"
                 />
-              </div>
+              </app-form-field>
             } @else {
               <!-- Note informative si le compte est déjà actif -->
               <div class="rounded-xl border border-accent/20 bg-accent-soft/30 p-3 text-xs text-ink-muted leading-relaxed">
@@ -78,13 +101,15 @@ interface InvitationInfo {
               </div>
             }
 
-            <button
+            <!-- Remplacement par app-button -->
+            <app-button
               type="submit"
+              [fullWidth]="true"
               [disabled]="form.invalid || submitting()"
-              class="mt-2 w-full rounded-[var(--radius-button)] bg-action-fill py-2.5 text-sm font-medium text-white shadow-[var(--shadow-subtle)] hover:opacity-90 disabled:opacity-40 transition-opacity"
+              class="mt-2"
             >
               {{ submitting() ? 'Validation de votre accès…' : 'Confirmer & accéder à mon espace' }}
-            </button>
+            </app-button>
           </form>
         } @else {
           <!-- Token invalide ou expiré -->
@@ -105,7 +130,7 @@ interface InvitationInfo {
           </div>
         }
 
-      </div>
+      </app-card>
     </div>
   `,
 })
@@ -124,7 +149,7 @@ export class AcceptInvitationComponent implements OnInit {
 
   protected readonly form = this.fb.nonNullable.group({
     accepte: [false, Validators.requiredTrue],
-    nouveauMotDePasse: [''], // Rendu conditionnel dynamique dans ngOnInit
+    nouveauMotDePasse: [''], 
   });
 
   ngOnInit(): void {
@@ -139,7 +164,6 @@ export class AcceptInvitationComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (data) => {
-          console.log('Invitation info:', data); //  Debugging log
           this.info.set(data);
           this.loading.set(false);
 
@@ -148,8 +172,10 @@ export class AcceptInvitationComponent implements OnInit {
               Validators.required,
               Validators.minLength(8),
             ]);
-            this.form.controls.nouveauMotDePasse.updateValueAndValidity();
+          } else {
+            this.form.controls.nouveauMotDePasse.clearValidators();
           }
+          this.form.controls.nouveauMotDePasse.updateValueAndValidity();
         },
         error: (err) => {
           this.errorMessage.set(
@@ -167,9 +193,10 @@ export class AcceptInvitationComponent implements OnInit {
     this.errorMessage.set(null);
 
     const values = this.form.getRawValue();
+    const passwordToSend = this.info()?.compteExiste ? undefined : values.nouveauMotDePasse;
 
     this.authService
-      .accepterInvitation(this.token, values.nouveauMotDePasse)
+      .accepterInvitation(this.token, passwordToSend)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {

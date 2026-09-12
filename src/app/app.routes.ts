@@ -18,6 +18,11 @@ export const routes: Routes = [
     path: 'connexion',
     loadComponent: () => import('./features/auth/pages/connexion/connexion').then((m) => m.Connexion),
   },
+  {
+  path: 'mot-de-passe-oublie',
+  loadComponent: () => import('./features/auth/pages/forgot-password/forgot-password.component').then(m => m.ForgotPasswordComponent)
+}
+,
  
     {
     path: 'inscription/incubateur',
@@ -164,10 +169,7 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/incubateur/missions/missions-list/missions-list').then((m) => m.MissionsList),
       },
-      {
-    path: 'missions/nouvelle',
-    loadComponent: () => import('./features/incubateur/missions/mission-create/mission-create').then((m) => m.MissionCreate),
-  },
+    
   
             {
         path: 'missions/attribuer',
@@ -184,7 +186,7 @@ export const routes: Routes = [
           import('./features/incubateur/projets/projets-list/projets-list').then((m) => m.ProjetsList),
       },
        {
-        path: 'projets/:uuid',
+        path: 'projets/:id',
         loadComponent: () =>
           import('./features/incubateur/projets/projet-detail/projet-detail').then(
             (m) => m.ProjetDetail,

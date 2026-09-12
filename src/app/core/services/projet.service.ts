@@ -24,6 +24,7 @@ export class ProjetService {
    * GET /api/projets/:id
    */
   getById(id: string): Observable<Projet> {
+    console.log(id)
     return this.http.get<Projet>(`${this.apiUrl}/${id}`);
   }
 

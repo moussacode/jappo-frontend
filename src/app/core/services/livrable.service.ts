@@ -33,10 +33,11 @@ export class LivrableService {
   /**
    * Évaluer un livrable (Validation ou Demande de correction)
    */
-  changerStatut(id: string, statut: string, commentaireCoach?: string): Observable<LivrableResponse> {
-    return this.http.patch<LivrableResponse>(`${this.apiUrl}/${id}/statut`, {
-      statut,
-      commentaireCoach,
-    });
+ /**
+   * Évaluer un livrable (Validation ou Demande de correction)
+   */
+  evaluerLivrable(id: string, request: EvaluateLivrableRequest): Observable<LivrableResponse> {
+    return this.http.patch<LivrableResponse>(`${this.apiUrl}/${id}/evaluer`, request);
+  
   }
 }

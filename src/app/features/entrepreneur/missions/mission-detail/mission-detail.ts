@@ -141,16 +141,12 @@ export class MissionDetail implements OnInit {
         typePiece,
         missionProjetId: this.missionId,
       };
-      return this.livrableService.soumettreLivrable(payload); // CORRIGÉ
+      return this.livrableService.soumettreLivrable(payload);
     });
 
-    // 1. Dépôt simultané des livrables
-    // 2. Mise à jour automatique du statut de la mission vers 'EN_REVUE'
+    // Envoi simultané des livrables (le backend s'occupe de mettre à jour le statut de la mission)
     forkJoin(requests)
-      .pipe(
-        switchMap(() => this.missionService.updateStatut(this.missionId, 'EN_REVUE')), // CORRIGÉ
-        takeUntilDestroyed(this.destroyRef)
-      )
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.submitting.set(false);
@@ -159,7 +155,10 @@ export class MissionDetail implements OnInit {
         error: (err) => {
           console.error('Erreur lors du dépôt des livrables:', err);
           this.submitting.set(false);
-          this.errorMessage.set('Une erreur est survenue lors de la soumission de votre travail.');
+          const backendMessage = typeof err.error === 'string' ? err.error : err.error?.message;
+          this.errorMessage.set(
+            backendMessage || 'Une erreur est survenue lors de la soumission de votre travail.'
+          );
         },
       });
   }

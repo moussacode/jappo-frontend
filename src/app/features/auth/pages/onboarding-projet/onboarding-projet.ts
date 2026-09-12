@@ -3,17 +3,29 @@ import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
+// Services & Modèles
 import { AuthService } from '../../../../core/services/auth.service';
 import { ProjetService } from '../../../../core/services/projet.service';
-import { Projet } from '../../../../core/models/projet.model';
+
+// Design System Partagé
+import { CardComponent } from '../../../../shared/components/card/card.component';
+import { ButtonComponent } from '../../../../shared/components/button/button.component';
+import { FormFieldComponent } from '../../../../shared/components/input/form-field.component';
+import { InputComponent } from '../../../../shared/components/input/input.component';
 
 @Component({
   selector: 'app-onboarding-projet',
   standalone: true,
-  imports: [FormsModule],
+  imports: [
+    FormsModule,
+    CardComponent,
+    ButtonComponent,
+    FormFieldComponent,
+    InputComponent,
+  ],
   template: `
-    <div class="flex min-h-screen items-center justify-center bg-surface-subtle p-4">
-      <div class="w-full max-w-lg rounded-[var(--radius-card-lg)] border border-line bg-surface p-8 shadow-[var(--shadow-card)]">
+    <div class="flex min-h-screen items-center justify-center bg-surface-muted/30 p-4">
+      <app-card padding="lg" class="w-full max-w-lg shadow-sm">
         
         <!-- Indicateur de progression (Étape 2 / 2) -->
         <div class="mb-6 flex items-center justify-between border-b border-line pb-4">
@@ -23,35 +35,27 @@ import { Projet } from '../../../../core/models/projet.model';
 
         <!-- En-tête -->
         <div class="flex flex-col gap-2">
-          <div class="flex size-12 items-center justify-center rounded-2xl bg-accent-soft text-2xl text-accent-strong">
-            🚀
-          </div>
-          <h1 class="text-2xl font-bold tracking-tight text-ink mt-2">
+          
+          <h1 class="text-xl font-bold tracking-tight text-ink sm:text-2xl mt-2">
             Quel est le nom de votre projet ?
           </h1>
-          <p class="text-sm text-ink-muted leading-relaxed">
+          <p class="text-xs sm:text-sm text-ink-muted leading-relaxed">
             Pour personnaliser votre espace d'accompagnement et démarrer vos premières missions, donnez un nom à votre startup ou entreprise.
           </p>
         </div>
 
         <!-- Formulaire -->
-        <div class="mt-6 flex flex-col gap-4">
-          <div class="flex flex-col gap-1.5">
-            <label for="nomProjet" class="text-xs font-semibold text-ink-muted uppercase">
-              Nom de la startup / entreprise *
-            </label>
-            <input
-              id="nomProjet"
-              type="text"
+        <div class="mt-6 flex flex-col gap-5">
+          <app-form-field label="Nom de la startup / entreprise" [required]="true">
+            <app-input
               [(ngModel)]="nomProjet"
               placeholder="Ex: TerangaSkills, SolarSénégal..."
-              class="rounded-[var(--radius-input)] border border-line bg-surface px-4 py-3 text-sm text-ink placeholder:text-ink-muted/50 focus:border-accent focus:outline-none transition-colors"
               (keyup.enter)="valider()"
             />
-          </div>
+          </app-form-field>
 
-          <div class="rounded-xl border border-line/60 bg-surface-muted/40 p-3.5 text-xs text-ink-muted flex items-start gap-2.5">
-            <span class="text-base">💡</span>
+          <div class="rounded-xl border border-line bg-surface-muted/40 p-3.5 text-xs text-ink-muted flex items-start gap-2.5">
+            
             <p class="leading-relaxed">
               Pas encore fixé sur le nom final ? Pas d'inquiétude, vous pourrez le modifier à tout moment dans les paramètres de votre espace.
             </p>
@@ -59,7 +63,7 @@ import { Projet } from '../../../../core/models/projet.model';
         </div>
 
         @if (errorMessage()) {
-          <div class="mt-4 rounded-lg border border-danger-100 bg-danger-50 p-3 text-xs text-danger-600">
+          <div class="mt-4 rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-xs text-rose-600 dark:text-rose-400">
             {{ errorMessage() }}
           </div>
         }
@@ -75,17 +79,17 @@ import { Projet } from '../../../../core/models/projet.model';
             Passer pour le moment →
           </button>
 
-          <button
+          <app-button
             type="button"
-            (click)="valider()"
+            size="sm"
             [disabled]="!nomProjet().trim() || submitting()"
-            class="rounded-[var(--radius-button)] bg-action-fill px-6 py-2.5 text-sm font-medium text-white shadow-[var(--shadow-subtle)] hover:opacity-90 disabled:opacity-40 transition-opacity cursor-pointer"
+            (click)="valider()"
           >
             {{ submitting() ? 'Enregistrement…' : 'Accéder à mon espace' }}
-          </button>
+          </app-button>
         </div>
 
-      </div>
+      </app-card>
     </div>
   `,
 })
@@ -107,20 +111,17 @@ export class OnboardingProjetComponent implements OnInit {
       return;
     }
 
-    // Récupération du projet "Mon Projet" généré lors de la validation d'invitation
     this.projetService
       .getPrincipalByEntrepreneur(user.id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (p) => {
           this.projetId.set(p.id);
-          // Si le nom a déjà été modifié par rapport au nom par défaut, on redirige directement
           if (p.nom !== 'Mon Projet') {
             this.router.navigate(['/entrepreneur/dashboard']);
           }
         },
         error: () => {
-          // En cas d'erreur de chargement, laisser passer vers le dashboard
           this.router.navigate(['/entrepreneur/dashboard']);
         },
       });
@@ -155,7 +156,6 @@ export class OnboardingProjetComponent implements OnInit {
   }
 
   protected skip(): void {
-    // Conservation de "Mon Projet" et accès direct au dashboard
     this.router.navigate(['/entrepreneur/dashboard']);
   }
 }

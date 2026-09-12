@@ -5,163 +5,152 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { DatePipe } from '@angular/common';
 
+// Services & Modèles
 import { MissionService } from '../../../../core/services/mission.service';
 import { Mission, StatutMission, PrioriteMission } from '../../../../core/models/mission.model';
+
+// Design System Partagé
 import { Icon } from '../../../../shared/components/icon/icon';
 import { BadgeComponent, BadgeStatus } from '../../../../shared/components/badge/badge';
+import { CardComponent } from '../../../../shared/components/card/card.component';
+import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { ButtonComponent } from '../../../../shared/components/button/button.component';
+import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state';
+import { TabFilterComponent, TabOption } from '../../../../shared/components/tab-filter/tab-filter.component';
+import { EntityCardComponent } from "../../../../shared/components/entity-card/entity-card.component";
+import { MissionCreateModalComponent } from "../mission-create/mission-create";
+
+// Modale de création
 
 export type FiltreStatutMission = 'TOUTES' | 'EN_COURS' | 'A_REVOIR' | 'VALIDEE';
 
 @Component({
   selector: 'app-missions-list',
   standalone: true,
-  imports: [RouterLink, ReactiveFormsModule, Icon, BadgeComponent, DatePipe],
+  imports: [
+    RouterLink,
+    ReactiveFormsModule,
+    DatePipe,
+    Icon,
+    BadgeComponent,
+    CardComponent,
+    PageHeaderComponent,
+    ButtonComponent,
+    EmptyStateComponent,
+    TabFilterComponent,
+    EntityCardComponent,
+    MissionCreateModalComponent
+],
   template: `
     <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
       
-      <!-- En-tête -->
-      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 class="text-xl font-bold tracking-tight text-ink sm:text-2xl">Missions & Jalons</h1>
-          <p class="mt-1 text-xs text-ink-muted sm:text-sm">
-            @if (isLoading()) {
-              Chargement des missions...
-            } @else {
-              {{ missions().length }} mission(s) configurée(s)
-            }
-          </p>
-        </div>
-
-        <a
-          routerLink="/incubateur/missions/nouvelle"
-          class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-action-fill px-4 py-2.5 text-xs font-semibold text-white shadow-[var(--shadow-subtle)] transition-all hover:opacity-90 cursor-pointer"
-        >
+      <!-- En-tête Page Unifié -->
+      <app-page-header
+        title="Missions & Jalons"
+        [subtitle]="
+          isLoading()
+            ? 'Chargement des missions...'
+            : missionsFiltrees().length + ' mission(s) affichée(s) sur ' + missions().length
+        "
+      >
+        <!-- Déclencheur de la modale -->
+        <app-button size="sm" (click)="showCreateModal.set(true)">
           <app-icon name="plus" class="size-4 text-white" />
-          <span>Nouvelle Mission</span>
-        </a>
-      </div>
+          <span class="hidden sm:inline">Nouvelle Mission</span>
+        </app-button>
+      </app-page-header>
 
-      <!-- Barre d'outils (Filtres + Recherche) -->
+      <!-- Barre de contrôles : Filtres Statuts + Recherche -->
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <!-- Onglets par statut -->
-        <div class="flex items-center gap-1 rounded-xl border border-line bg-surface p-1 text-xs font-semibold shadow-xs">
-          <button
-            type="button"
-            (click)="filtreStatut.set('TOUTES')"
-            [class]="filtreStatut() === 'TOUTES' ? 'bg-action-fill text-white shadow-xs' : 'text-ink-muted hover:text-ink'"
-            class="cursor-pointer rounded-lg px-3 py-1.5 transition-all"
-          >
-            Toutes ({{ missions().length }})
-          </button>
-          <button
-            type="button"
-            (click)="filtreStatut.set('EN_COURS')"
-            [class]="filtreStatut() === 'EN_COURS' ? 'bg-action-fill text-white shadow-xs' : 'text-ink-muted hover:text-ink'"
-            class="cursor-pointer rounded-lg px-3 py-1.5 transition-all"
-          >
-            En cours
-          </button>
-          <button
-            type="button"
-            (click)="filtreStatut.set('A_REVOIR')"
-            [class]="filtreStatut() === 'A_REVOIR' ? 'bg-action-fill text-white shadow-xs' : 'text-ink-muted hover:text-ink'"
-            class="cursor-pointer rounded-lg px-3 py-1.5 transition-all"
-          >
-            À réviser
-          </button>
-          <button
-            type="button"
-            (click)="filtreStatut.set('VALIDEE')"
-            [class]="filtreStatut() === 'VALIDEE' ? 'bg-action-fill text-white shadow-xs' : 'text-ink-muted hover:text-ink'"
-            class="cursor-pointer rounded-lg px-3 py-1.5 transition-all"
-          >
-            Validées
-          </button>
-        </div>
+        <app-tab-filter
+          [options]="optionsFiltreStatut()"
+          [value]="filtreStatut()"
+          (valueChange)="filtreStatut.set($event)"
+        />
 
-        <!-- Recherche réactive -->
         <div class="relative w-full sm:w-72">
           <input
             type="text"
             [formControl]="searchControl"
             placeholder="Rechercher par titre, projet, responsable..."
-            class="w-full rounded-xl border border-line bg-surface py-2 pl-9 pr-4 text-xs text-ink placeholder:text-ink-muted/60 transition-colors focus:border-accent focus:outline-none"
+            class="w-full rounded-xl border border-line bg-surface py-2.5 pl-9 pr-4 text-xs text-ink placeholder:text-ink-muted/60 transition-colors focus:border-accent focus:outline-none"
           />
-          <app-icon name="search" class="absolute left-3 top-2.5 size-4 text-ink-muted" />
+          <app-icon name="search" class="absolute left-3 top-3 size-4 text-ink-muted" />
         </div>
       </div>
 
       <!-- SKELETON LOADER -->
       @if (isLoading()) {
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 animate-pulse">
+        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           @for (i of [1, 2, 3, 4, 5, 6]; track i) {
-            <div class="h-36 rounded-2xl bg-line/40"></div>
+            <app-card padding="md" class="animate-pulse flex flex-col justify-between gap-4 h-36">
+              <div class="flex items-center justify-between">
+                <div class="h-4 w-1/3 rounded bg-line"></div>
+                <div class="h-4 w-16 rounded-full bg-line"></div>
+              </div>
+              <div class="h-5 w-3/4 rounded bg-line/60"></div>
+              <div class="h-4 w-1/2 rounded bg-line/40"></div>
+            </app-card>
           }
         </div>
       } @else {
 
-        <!-- LISTE EN GRILLE NOTION STYLE -->
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <!-- LISTE EN GRILLE AVEC ENTITY-CARD -->
+        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           @for (m of missionsFiltrees(); track m.id) {
-            <a
+            <app-entity-card
+              [title]="m.titre"
+              [subtitle]="m.nomProjet ? ('Projet : ' + m.nomProjet) : 'Cohorte générale'"
               [routerLink]="['/incubateur/missions', m.id]"
-              class="group flex flex-col justify-between gap-4 rounded-2xl border border-line bg-surface p-5 shadow-[var(--shadow-subtle)] transition-all hover:border-accent/40 hover:shadow-md cursor-pointer"
+              [badgeLabel]="formaterStatut(m.statut)"
+              [badgeStatus]="badgeStatus(m.statut)"
             >
-              <div class="flex flex-col gap-2 min-w-0">
-                <div class="flex items-center justify-between gap-2">
-                  <span class="text-[11px] font-semibold text-accent uppercase tracking-wider truncate">
-                    {{ m.nomProjet ? 'Projet : ' + m.nomProjet : 'Cohorte générale' }}
-                  </span>
-                  
+              <!-- Corps de la carte -->
+              <div card-body class="flex flex-col gap-2">
+                @if (m.priorite) {
                   <div class="flex items-center gap-1.5">
-                    @if (m.priorite) {
-                      <app-badge [status]="badgePrioriteStatus(m.priorite)" size="sm">
-                        {{ m.priorite }}
-                      </app-badge>
-                    }
-                    <app-badge [status]="badgeStatus(m.statut)" size="sm">
-                      {{ formaterStatut(m.statut) }}
+                    <span class="text-[11px] text-ink-muted">Priorité :</span>
+                    <app-badge [status]="badgePrioriteStatus(m.priorite)" size="sm">
+                      {{ m.priorite }}
                     </app-badge>
                   </div>
-                </div>
-
-                <h2 class="text-sm font-bold text-ink group-hover:text-accent transition-colors truncate">
-                  {{ m.titre }}
-                </h2>
+                }
 
                 @if (m.description) {
                   <p class="text-xs text-ink-muted line-clamp-2 leading-relaxed">
                     {{ m.description }}
                   </p>
+                } @else {
+                  <p class="text-xs text-ink-muted/50 italic">Aucune description détaillée.</p>
                 }
               </div>
 
               <!-- Pied de carte -->
-              <div class="flex flex-col gap-2 border-t border-line pt-3 text-[11px] text-ink-muted">
-                <div class="flex items-center justify-between">
-                  <span class="flex items-center gap-1">
-                    <app-icon name="calendar" class="size-3.5" />
-                    <span>Échéance : {{ m.dateEcheance ? (m.dateEcheance | date:'dd/MM/yyyy') : 'Aucune' }}</span>
-                  </span>
-                </div>
+              <div card-footer class="w-full flex items-center justify-between text-[11px] text-ink-muted">
+                <span class="flex items-center gap-1.5">
+                  <app-icon name="calendar" class="size-3.5" />
+                  <span>{{ m.dateEcheance ? (m.dateEcheance | date:'dd/MM/yyyy') : 'Aucune' }}</span>
+                </span>
 
                 @if (m.nomAssigneA) {
-                  <div class="flex items-center gap-1 text-[11px] text-ink font-medium">
-                    <span class="text-ink-muted">Assigné à :</span>
-                    <span class="truncate">{{ m.nomAssigneA }}</span>
-                  </div>
+                  <span class="font-medium text-ink truncate max-w-[120px]" [title]="m.nomAssigneA">
+                    {{ m.nomAssigneA }}
+                  </span>
                 }
               </div>
-            </a>
+            </app-entity-card>
           } @empty {
-            <div class="col-span-full flex flex-col items-center justify-center rounded-2xl border border-dashed border-line bg-surface p-12 text-center">
-              <div class="flex size-12 items-center justify-center rounded-full bg-surface-muted text-ink-muted mb-3 border border-line">
-                <app-icon name="missions" class="size-6" />
-              </div>
-              <h2 class="text-sm font-bold text-ink">Aucune mission trouvée</h2>
-              <p class="mt-1 text-xs text-ink-muted max-w-sm">
-                Ajustez votre recherche ou créez une nouvelle mission pour la promotion.
-              </p>
+            <div class="col-span-full">
+              <app-empty-state
+                title="Aucune mission trouvée"
+                description="Ajustez votre recherche ou créez une nouvelle mission pour la promotion."
+                iconName="missions"
+              >
+                <app-button size="xs" (click)="showCreateModal.set(true)">
+                  <app-icon name="plus" class="size-3.5" />
+                  <span>Créer une mission</span>
+                </app-button>
+              </app-empty-state>
             </div>
           }
         </div>
@@ -169,6 +158,14 @@ export type FiltreStatutMission = 'TOUTES' | 'EN_COURS' | 'A_REVOIR' | 'VALIDEE'
       }
 
     </div>
+
+    <!-- Modale de Création de Mission -->
+    @if (showCreateModal()) {
+      <app-mission-create-modal
+        (close)="showCreateModal.set(false)"
+        (created)="chargerMissions(); showCreateModal.set(false)"
+      />
+    }
   `,
 })
 export class MissionsList implements OnInit {
@@ -178,9 +175,29 @@ export class MissionsList implements OnInit {
   protected readonly isLoading = signal<boolean>(true);
   protected readonly missions = signal<Mission[]>([]);
   protected readonly filtreStatut = signal<FiltreStatutMission>('TOUTES');
+  protected readonly showCreateModal = signal<boolean>(false);
 
   protected readonly searchControl = new FormControl('', { nonNullable: true });
   protected readonly searchTerm = signal('');
+
+  protected readonly compteEnCours = computed(() =>
+    this.missions().filter((m) => m.statut === 'EN_COURS' || m.statut === 'A_FAIRE').length
+  );
+
+  protected readonly compteARevoir = computed(() =>
+    this.missions().filter((m) => m.statut === 'SOUMIS' || m.statut === 'A_CORRIGER').length
+  );
+
+  protected readonly compteValidees = computed(() =>
+    this.missions().filter((m) => m.statut === 'VALIDEE' || (m.statut as string) === 'VALIDE').length
+  );
+
+  protected readonly optionsFiltreStatut = computed<TabOption<FiltreStatutMission>[]>(() => [
+    { value: 'TOUTES', label: 'Toutes', count: this.missions().length },
+    { value: 'EN_COURS', label: 'En cours', count: this.compteEnCours() },
+    { value: 'A_REVOIR', label: 'À réviser', count: this.compteARevoir() },
+    { value: 'VALIDEE', label: 'Validées', count: this.compteValidees() },
+  ]);
 
   protected readonly missionsFiltrees = computed(() => {
     const term = this.searchTerm().toLowerCase().trim();
@@ -190,7 +207,7 @@ export class MissionsList implements OnInit {
     if (filtre === 'EN_COURS') {
       liste = liste.filter((m) => m.statut === 'EN_COURS' || m.statut === 'A_FAIRE');
     } else if (filtre === 'A_REVOIR') {
-      liste = liste.filter((m) => m.statut === 'EN_REVUE' || m.statut === 'A_CORRIGER');
+      liste = liste.filter((m) => m.statut === 'SOUMIS' || m.statut === 'A_CORRIGER');
     } else if (filtre === 'VALIDEE') {
       liste = liste.filter((m) => m.statut === 'VALIDEE' || (m.statut as string) === 'VALIDE');
     }
@@ -216,7 +233,7 @@ export class MissionsList implements OnInit {
     this.chargerMissions();
   }
 
-  private chargerMissions(): void {
+  protected chargerMissions(): void {
     this.isLoading.set(true);
     this.missionService
       .getMissions()
@@ -238,7 +255,7 @@ export class MissionsList implements OnInit {
       case 'VALIDEE':
       case 'VALIDE' as any:
         return 'success';
-      case 'EN_REVUE':
+      case 'SOUMIS':
       case 'EN_COURS':
         return 'primary';
       case 'A_CORRIGER':
@@ -254,7 +271,7 @@ export class MissionsList implements OnInit {
       case 'VALIDEE':
       case 'VALIDE' as any:
         return 'Validée';
-      case 'EN_REVUE':
+      case 'SOUMIS':
         return 'En revue';
       case 'EN_COURS':
         return 'En cours';

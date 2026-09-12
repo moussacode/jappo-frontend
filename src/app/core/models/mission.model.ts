@@ -1,4 +1,4 @@
-export type StatutMission = 'A_FAIRE' | 'EN_COURS' | 'EN_REVUE' | 'A_CORRIGER' | 'VALIDEE' | 'EN_RETARD';
+export type StatutMission = 'A_FAIRE' | 'EN_COURS' | 'SOUMIS' | 'A_CORRIGER' | 'VALIDEE' | 'EN_RETARD';
 export type PrioriteMission = 'BASSE' | 'MOYENNE' | 'HAUTE' | 'URGENTE';
 
 export interface Mission {

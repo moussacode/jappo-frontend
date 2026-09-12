@@ -5,6 +5,7 @@ import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { DatePipe } from '@angular/common';
 
+// Services & Modèles
 import {
   DashboardService,
   DashboardStatsResponse,
@@ -13,50 +14,59 @@ import {
 } from '../../../../core/services/dashboard.service';
 import { StructureContextService } from '../../../../core/services/structure-context.service';
 
+// Design System Partagé
 import { KpiCardComponent } from '../../../../shared/components/kpi-card/kpi-card';
 import { BadgeComponent, BadgeStatus } from '../../../../shared/components/badge/badge';
 import { Icon } from '../../../../shared/components/icon/icon';
+import { CardComponent } from '../../../../shared/components/card/card.component';
+import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { ButtonComponent } from '../../../../shared/components/button/button.component';
+import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [RouterLink, KpiCardComponent, BadgeComponent, Icon, DatePipe],
+  imports: [
+    RouterLink,
+    DatePipe,
+    KpiCardComponent,
+    BadgeComponent,
+    Icon,
+    CardComponent,
+    PageHeaderComponent,
+    ButtonComponent,
+    EmptyStateComponent,
+  ],
   template: `
     <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-8 p-4 sm:p-6 lg:p-8">
       
-      <!-- En-tête Notion Style -->
-      <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div class="flex items-center gap-2 text-xs font-semibold text-ink-muted">
-            <span>Espace Incubateur</span>
-            <span>/</span>
-            <span class="text-ink">{{ nomStructure() }}</span>
-          </div>
-          <h1 class="mt-1 text-2xl font-bold tracking-tight text-ink sm:text-3xl">Vue d'ensemble</h1>
-        </div>
-
-        <div class="flex items-center gap-3">
-          <a
-            routerLink="/incubateur/entrepreneurs/inviter"
-            class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-action-fill px-4 py-2 text-xs font-semibold text-white shadow-[var(--shadow-subtle)] transition-all hover:opacity-90 cursor-pointer"
-          >
-            <app-icon name="plus" class="size-3.5 text-white" />
+      <!-- En-tête Page Unifié avec PageHeaderComponent -->
+      <app-page-header
+        title="Vue d'ensemble"
+        [subtitle]="'Espace Incubateur / ' + nomStructure()"
+      >
+        <a routerLink="/incubateur/entrepreneurs/inviter">
+          <app-button size="sm">
+            <app-icon name="plus" class="size-3.5" />
             <span>Inviter des entrepreneurs</span>
-          </a>
-        </div>
-      </div>
+          </app-button>
+        </a>
+      </app-page-header>
 
       <!-- SKELETON LOADER -->
       @if (isLoading()) {
         <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 animate-pulse">
           @for (i of [1, 2, 3, 4]; track i) {
-            <div class="h-28 rounded-2xl bg-line/40"></div>
+            <app-card padding="md" class="h-28 animate-pulse bg-line/20">
+              <div class="h-4 w-1/2 rounded bg-line mb-3"></div>
+              <div class="h-8 w-1/3 rounded bg-line"></div>
+            </app-card>
           }
         </div>
-        <div class="h-64 rounded-2xl bg-line/30 animate-pulse"></div>
+        <app-card padding="md" class="h-64 animate-pulse bg-line/20" />
       } @else {
 
-        <!-- 1. CARTES KPIS (Conserves ton composant KpiCardComponent) -->
+        <!-- 1. CARTES KPIS -->
         <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           <app-kpi-card 
             label="Entrepreneurs suivis" 
@@ -86,10 +96,10 @@ import { Icon } from '../../../../shared/components/icon/icon';
 
         <!-- 2. BLOC PROJETS À SURVEILLER (ALERTES) -->
         @if (alertes().length > 0) {
-          <div class="flex flex-col gap-3 rounded-2xl border border-warning-500/20 bg-warning-500/5 p-5 shadow-xs">
+          <div class="flex flex-col gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5 shadow-xs">
             <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2 text-warning-700 font-bold text-xs uppercase tracking-wider">
-                <app-icon name="warning" class="size-4" />
+              <div class="flex items-center gap-2 text-amber-700 font-bold text-xs uppercase tracking-wider">
+                <app-icon name="warning" class="size-4 text-amber-600" />
                 <span>Attention requise ({{ alertes().length }} projet(s) avec une maturité < 40%)</span>
               </div>
             </div>
@@ -98,7 +108,7 @@ import { Icon } from '../../../../shared/components/icon/icon';
               @for (a of alertes(); track a.projetId) {
                 <a
                   [routerLink]="['/incubateur/entrepreneurs', a.entrepreneurId || a.projetId]"
-                  class="flex items-center justify-between rounded-xl border border-line bg-surface p-3.5 hover:border-warning-500/40 transition-colors cursor-pointer shadow-2xs"
+                  class="flex items-center justify-between rounded-xl border border-line bg-surface p-3.5 hover:border-amber-500/40 transition-colors cursor-pointer shadow-2xs"
                 >
                   <div class="flex flex-col min-w-0">
                     <span class="text-xs font-bold text-ink truncate">{{ a.nomProjet }}</span>
@@ -111,8 +121,8 @@ import { Icon } from '../../../../shared/components/icon/icon';
           </div>
         }
 
-        <!-- 3. TABLEAU DES DERNIERS LIVRABLES DÉPOSÉS -->
-        <div class="w-full min-w-0 overflow-hidden rounded-2xl border border-line bg-surface shadow-[var(--shadow-subtle)]">
+        <!-- 3. ACTIVITÉ RÉCENTE (DERNIERS LIVRABLES DÉPOSÉS) -->
+        <app-card padding="none" class="w-full min-w-0">
           <div class="flex items-center justify-between border-b border-line px-6 py-4 bg-surface-muted/30">
             <div class="flex items-center gap-2">
               <app-icon name="missions" class="size-4 text-ink-muted" />
@@ -145,12 +155,16 @@ import { Icon } from '../../../../shared/components/icon/icon';
                 </div>
               </div>
             } @empty {
-              <p class="p-8 text-center text-xs text-ink-muted">
-                Aucun livrable récemment déposé.
-              </p>
+              <div class="p-8">
+                <app-empty-state
+                  title="Aucun livrable récemment déposé"
+                  description="Les livrables soumis par les entrepreneurs de vos cohortes apparaîtront ici."
+                  iconName="missions"
+                />
+              </div>
             }
           </div>
-        </div>
+        </app-card>
 
       }
 
@@ -165,7 +179,6 @@ export class Dashboard implements OnInit {
   protected readonly isLoading = signal<boolean>(true);
   protected readonly nomStructure = signal<string>('Incubateur');
 
-  // Données retournées par les endpoints optimisés du Backend
   protected readonly stats = signal<DashboardStatsResponse | undefined>(undefined);
   protected readonly alertes = signal<AlerteProjetResponse[]>([]);
   protected readonly livrablesRecents = signal<LivrableRecentResponse[]>([]);
