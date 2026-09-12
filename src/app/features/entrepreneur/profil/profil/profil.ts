@@ -1,17 +1,17 @@
-
 import { Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../../../core/services/auth.service';
 import { EntrepreneurService } from '../../../../core/services/entrepreneur.service';
 import { AbonnementService } from '../../../../core/services/abonnement.service';
 import { Abonnement } from '../../../../core/models';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
+import { BadgeComponent } from '../../../../shared/components/badge/badge';
+import { Icon } from '../../../../shared/components/icon/icon';
 
 @Component({
   selector: 'app-profil',
-  imports: [ReactiveFormsModule, RouterLink, ButtonComponent  ],
- 
+  imports: [ReactiveFormsModule, RouterLink, ButtonComponent, BadgeComponent, Icon],
   templateUrl: './profil.html',
   styleUrl: './profil.css',
 })
@@ -28,11 +28,27 @@ export class Profil {
   protected readonly enregistre = signal(false);
 
   protected readonly form = this.fb.nonNullable.group({
-    nom: [this.user()?.nom ?? ''],
+    nom: [this.user()?.nom ?? '', [Validators.required]],
   });
 
   constructor() {
-    this.abonnementService.getById(this.user()?.abonnementId ?? null).subscribe((a) => this.abonnement.set(a));
+    const userId = this.user()?.id ?? null;
+    if (userId) {
+      // this.abonnementService.getById(userId).subscribe((a) => this.abonnement.set(a));
+    }
+  }
+
+  protected userInitiales(): string {
+    const u = this.user();
+    if (!u) return 'U';
+    if (u.nom) {
+      const parts = u.nom.trim().split(' ');
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[1][0]).toUpperCase();
+      }
+      return u.nom.substring(0, 2).toUpperCase();
+    }
+    return u.email ? u.email.substring(0, 2).toUpperCase() : 'U';
   }
 
   protected enregistrer(): void {
@@ -41,9 +57,17 @@ export class Profil {
 
     this.enregistrement.set(true);
     this.enregistre.set(false);
-    this.entrepreneurService.updateProfil(id, { nom: this.form.getRawValue().nom }).subscribe(() => {
-      this.enregistrement.set(false);
-      this.enregistre.set(true);
+
+    this.entrepreneurService.updateProfil(id, { nom: this.form.getRawValue().nom }).subscribe({
+      next: () => {
+        this.enregistrement.set(false);
+        this.enregistre.set(true);
+        this.form.markAsPristine();
+        setTimeout(() => this.enregistre.set(false), 3500);
+      },
+      error: () => {
+        this.enregistrement.set(false);
+      },
     });
   }
 }

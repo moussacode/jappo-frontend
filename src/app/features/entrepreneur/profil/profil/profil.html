@@ -1,55 +1,168 @@
-<div class="flex flex-col gap-6 p-8">
-      <h1 class="text-2xl font-semibold text-neutral-900">Mon profil</h1>
+<div class="flex flex-col gap-8 p-6 sm:p-8 max-w-7xl mx-auto w-full">
+  
+  <!-- En-tête de la page -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight text-ink">Mon profil</h1>
+      <p class="mt-1 text-xs sm:text-sm text-ink-muted">
+        Gère tes informations personnelles, ton identité et tes paramètres de compte.
+      </p>
+    </div>
+  </div>
 
-      <div class="grid grid-cols-1 gap-6 md:grid-cols-[1.4fr_1fr]">
-        <div class="rounded-[var(--radius-token-md)] border border-neutral-200 bg-white p-6">
-          <h2 class="text-base font-semibold text-neutral-900">Informations personnelles</h2>
+  <!-- Banner Utilisateur avec Avatar -->
+  <div class="rounded-[var(--radius-card-lg)] border border-line bg-surface p-6 shadow-[var(--shadow-subtle)] flex flex-col sm:flex-row items-center sm:items-start gap-6">
+    <div class="relative group shrink-0">
+      <div class="h-20 w-20 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent text-2xl font-bold uppercase shadow-sm">
+        {{ userInitiales() }}
+      </div>
+      <button 
+        type="button" 
+        class="absolute -bottom-1.5 -right-1.5 h-7 w-7 rounded-full bg-surface border border-line flex items-center justify-center text-ink-muted shadow-sm hover:text-accent hover:border-accent transition-colors cursor-pointer"
+        title="Changer la photo"
+      >
+        <app-icon name="edit" class="size-3.5" />
+      </button>
+    </div>
 
-          <form [formGroup]="form" (ngSubmit)="enregistrer()" class="mt-5 flex flex-col gap-4">
-            <div class="flex flex-col gap-2">
-              <label for="nom" class="text-xs font-medium text-neutral-500">NOM COMPLET</label>
-              <input
-                id="nom"
-                type="text"
-                formControlName="nom"
-                class="rounded-[var(--radius-token-sm)] border border-neutral-200 px-3.5 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
-              />
-            </div>
+    <div class="flex flex-col items-center sm:items-start text-center sm:text-left flex-1 min-w-0">
+      <div class="flex items-center gap-3 flex-wrap justify-center sm:justify-start">
+        <h2 class="text-xl font-bold text-ink truncate">{{ user()?.nom || 'Entrepreneur' }}</h2>
+        <!-- <app-badge status="info">{{ user()?.typeUtilisateur }}</app-badge> -->
+      </div>
+      <p class="mt-1 text-xs text-ink-muted">{{ user()?.email }}</p>
+      <p class="mt-1 text-xs text-ink-muted">Membre depuis le A GERER</p>
+    </div>
+  </div>
 
-            <div class="flex flex-col gap-2">
-              <label class="text-xs font-medium text-neutral-500">ADRESSE EMAIL</label>
-              <div class="rounded-[var(--radius-token-sm)] border border-neutral-100 bg-neutral-50 px-3.5 py-2.5 text-sm text-neutral-500">
-                {{ user()?.email }}
-              </div>
-            </div>
-
-            <app-button type="submit" [disabled]="form.invalid || enregistrement()" class="self-start">
-              {{ enregistrement() ? 'Enregistrement…' : 'Enregistrer les modifications' }}
-            </app-button>
-            @if (enregistre()) {
-              <p class="text-sm text-success-500">✓ Profil mis à jour</p>
-            }
-          </form>
+  <!-- Grille Principale -->
+  <div class="grid grid-cols-1 gap-8 md:grid-cols-[1.6fr_1fr]">
+    
+    <!-- Formulaire d'édition des Informations -->
+    <div class="flex flex-col gap-6">
+      <div class="rounded-[var(--radius-card-lg)] border border-line bg-surface p-6 shadow-[var(--shadow-subtle)]">
+        <div class="flex items-center justify-between pb-4 border-b border-line mb-6">
+          <div>
+            <h2 class="text-base font-semibold text-ink">Informations personnelles</h2>
+            <p class="text-xs text-ink-muted mt-0.5">Mets à jour tes coordonnées de profil.</p>
+          </div>
+          <app-icon name="profile" class="size-5 text-accent" />
         </div>
 
-        <div class="flex flex-col gap-4 rounded-[var(--radius-token-md)] border border-brand-500 bg-brand-50 p-6">
-          <h2 class="text-base font-semibold text-brand-500">Formule actuelle</h2>
-          @if (abonnement(); as a) {
-            <p class="text-3xl font-semibold text-neutral-900">{{ a.type === 'premium' ? 'Premium' : 'Gratuit' }}</p>
-            @if (a.type === 'gratuit') {
-              <p class="text-sm text-neutral-700">
-                Accès au parcours de base. Passe en Premium pour débloquer l'IA avancée et la génération illimitée de
-                documents.
-              </p>
-              <app-button [fullWidth]="true" [routerLink]="['/entrepreneur/profil/changer-forfait']">
-                Passer à Premium - 3 000 FCFA/mois
-              </app-button>
-            } @else {
-              <p class="text-sm text-neutral-700">
-                Renouvellement le {{ a.dateRenouvellement }}. Merci de soutenir JAPPO !
-              </p>
+        <form [formGroup]="form" (ngSubmit)="enregistrer()" class="flex flex-col gap-5">
+          
+          <!-- Champ Nom Complet -->
+          <div class="flex flex-col gap-1.5">
+            <label for="nom" class="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
+              NOM COMPLET
+            </label>
+            <input
+              id="nom"
+              type="text"
+              formControlName="nom"
+              placeholder="Ton nom complet"
+              class="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs sm:text-sm text-ink placeholder:text-ink-muted/50 focus:border-accent focus:outline-none transition-colors"
+            />
+          </div>
+
+          <!-- Champ Email Readonly -->
+          <div class="flex flex-col gap-1.5">
+            <div class="flex items-center justify-between">
+              <label class="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
+                ADRESSE EMAIL
+              </label>
+              <span class="text-[10px] text-ink-muted flex items-center gap-1">
+                <app-icon name="lock" class="size-3" /> Non modifiable
+              </span>
+            </div>
+            <div class="flex items-center justify-between rounded-xl border border-line bg-surface-muted/40 px-3.5 py-2.5 text-xs sm:text-sm text-ink-muted">
+              <span class="truncate">{{ user()?.email }}</span>
+              <app-icon name="check" class="size-4 text-vivid-green shrink-0" />
+            </div>
+          </div>
+
+          <!-- Action Sauvegarde -->
+          <div class="pt-4 border-t border-line flex items-center justify-between gap-4">
+            <app-button 
+              type="submit" 
+              size="md" 
+              [disabled]="form.invalid || form.pristine || enregistrement()"
+            >
+              {{ enregistrement() ? 'Enregistrement…' : 'Enregistrer les modifications' }}
+            </app-button>
+
+            @if (enregistre()) {
+              <div class="flex items-center gap-1.5 text-xs font-semibold text-vivid-green">
+                <app-icon name="check" class="size-4" />
+                <span>Profil mis à jour avec succès</span>
+              </div>
             }
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+    <!-- Section Formule / Abonnement -->
+    <div class="flex flex-col gap-6">
+      <div class="rounded-[var(--radius-card-lg)] border border-accent/20 bg-accent/5 p-6 shadow-[var(--shadow-subtle)] flex flex-col justify-between relative overflow-hidden">
+        <div class="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-accent/10 blur-xl pointer-events-none"></div>
+
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-accent bg-accent/10 px-2.5 py-1 rounded-md">
+              Formule actuelle
+            </span>
+            <app-icon name="sparkles" class="size-5 text-accent" />
+          </div>
+
+          @if (abonnement(); as a) {
+            <h3 class="text-2xl font-bold text-ink">
+              {{ a.type === 'premium' ? 'Pass Premium' : 'Formule Découverte' }}
+            </h3>
+
+            @if (a.type === 'gratuit') {
+              <p class="mt-2 text-xs text-ink-muted leading-relaxed">
+                Accès au parcours de base. Passe en Premium pour débloquer l'IA avancée et la génération illimitée de documents.
+              </p>
+
+              <ul class="mt-4 space-y-2 text-xs text-ink">
+                <li class="flex items-center gap-2">
+                  <app-icon name="check" class="size-3.5 text-accent shrink-0" />
+                  <span>Coaching IA illimité</span>
+                </li>
+                <li class="flex items-center gap-2">
+                  <app-icon name="check" class="size-3.5 text-accent shrink-0" />
+                  <span>Génération de documents illimitée</span>
+                </li>
+              </ul>
+
+              <div class="mt-6">
+                <app-button [fullWidth]="true" size="md" [routerLink]="['/entrepreneur/profil/changer-forfait']">
+                  Passer à Premium — 3 000 FCFA/mois
+                </app-button>
+              </div>
+            } @else {
+              <p class="mt-2 text-xs text-ink leading-relaxed">
+                Vous bénéficiez de toutes les fonctionnalités avancées. Merci de soutenir JAPPO !
+              </p>
+              @if (a.dateRenouvellement) {
+                <p class="mt-4 text-[11px] font-mono text-ink-muted">
+                  Renouvellement le <span class="font-semibold text-ink">{{ a.dateRenouvellement }}</span>
+                </p>
+              }
+              <div class="mt-6">
+                <app-button variant="secondary" [fullWidth]="true" size="xs" [routerLink]="['/entrepreneur/profil/changer-forfait']">
+                  Gérer mon abonnement
+                </app-button>
+              </div>
+            }
+          } @else {
+            <p class="text-xs text-ink-muted">Chargement de votre formule...</p>
           }
         </div>
       </div>
     </div>
+
+  </div>
+</div>

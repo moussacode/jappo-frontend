@@ -1,36 +1,74 @@
-import { Injectable } from '@angular/core';
-import { Observable, of, delay } from 'rxjs';
-import { Entrepreneur, EtapeParcours } from '../models/entrepreneur.model';
-import { MOCK_ENTREPRENEURS } from '../mocks/utilisateurs.mock';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { environment } from './../../environments/environment';
+import { Entrepreneur } from '../models/entrepreneur.model';
+
+export interface InvitationResultResponse {
+  invites: string[];
+  dejaMembres: string[];
+  totalEnvoyes: number;
+}
+
+export interface InviterEntrepreneursPayload {
+  emails: string[];
+  cohorteId?: string;
+}
+export interface EntrepreneurResponse {
+  id: string;
+  prenom?: string;
+  nom?: string;
+  email: string;
+  cohorteId?: string;
+  nomCohorte?: string;
+  statutInvitation: 'ACTIF' | 'EN_ATTENTE' | string;
+  dateInvitation?: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class EntrepreneurService {
-  private entrepreneurs = [...MOCK_ENTREPRENEURS];
+  private readonly http = inject(HttpClient);
+  private readonly apiUrl = `${environment.apiUrl}/users`;
 
+
+  /**
+   * Récupérer la liste des entrepreneurs avec leur statut d'invitation (DTO)
+   * GET /api/users/entrepreneurs
+   */
+  getEntrepreneurs(): Observable<EntrepreneurResponse[]> {
+    return this.http.get<EntrepreneurResponse[]>(`${this.apiUrl}/entrepreneurs`);
+  }
+
+  /**
+   * Récupérer la liste des entrepreneurs de la structure
+   * GET /api/users/entrepreneurs
+   */
   getAll(): Observable<Entrepreneur[]> {
-    // TODO backend réel : this.http.get<Entrepreneur[]>('/api/structures/{id}/entrepreneurs')
-    return of(this.entrepreneurs).pipe(delay(300));
+    return this.http.get<Entrepreneur[]>(`${this.apiUrl}/entrepreneurs`);
   }
 
-  getById(id: string): Observable<Entrepreneur | undefined> {
-    // TODO backend réel : this.http.get<Entrepreneur>(`/api/entrepreneurs/${id}`)
-    return of(this.entrepreneurs.find((e) => e.id === id)).pipe(delay(300));
+  /**
+   * Récupérer les détails d'un entrepreneur par ID
+   * GET /api/users/{id}
+   */
+  getById(id: string): Observable<EntrepreneurResponse> {
+    return this.http.get<EntrepreneurResponse>(`${this.apiUrl}/${id}`);
   }
 
-  getByCohorte(cohorteId: string): Observable<Entrepreneur[]> {
-    return of(this.entrepreneurs.filter((e) => e.cohorteId === cohorteId)).pipe(delay(300));
+  /**
+   * Mettre à jour le profil d'un entrepreneur
+   * PATCH /api/users/{id}
+   */
+  updateProfil(id: string, changements: Partial<Entrepreneur>): Observable<Entrepreneur> {
+    return this.http.patch<Entrepreneur>(`${this.apiUrl}/${id}`, changements);
   }
 
-  updateDiagnostic(id: string, etape: EtapeParcours): Observable<Entrepreneur> {
-    const entrepreneur = this.entrepreneurs.find((e) => e.id === id)!;
-    entrepreneur.etapeActuelle = etape;
-    return of(entrepreneur).pipe(delay(300));
-  }
+  /**
+   * Envoyer une invitation à un ou plusieurs entrepreneurs
+   * POST /api/users/inviter
+   */
 
-  updateProfil(id: string, changements: Partial<Pick<Entrepreneur, 'nom'>>): Observable<Entrepreneur> {
-    // TODO backend réel : this.http.patch<Entrepreneur>(`/api/entrepreneurs/${id}`, changements)
-    const entrepreneur = this.entrepreneurs.find((e) => e.id === id)!;
-    Object.assign(entrepreneur, changements);
-    return of(entrepreneur).pipe(delay(300));
-  }
+inviterMultiple(payload: InviterEntrepreneursPayload): Observable<InvitationResultResponse> {
+  return this.http.post<InvitationResultResponse>(`${this.apiUrl}/inviter`, payload);
+}
 }

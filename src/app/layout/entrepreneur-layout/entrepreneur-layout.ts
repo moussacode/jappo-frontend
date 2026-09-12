@@ -21,11 +21,11 @@ export class EntrepreneurLayout {
     path: '/entrepreneur/dashboard',
     icon: 'dashboard',
   },
-  {
-    label: 'Mon parcours',
-    path: '/entrepreneur/parcours',
-    icon: 'route',
-  },
+  // {
+  //   label: 'Mon parcours',
+  //   path: '/entrepreneur/parcours',
+  //   icon: 'route',
+  // },
   {
     label: 'Mes missions',
     path: '/entrepreneur/missions',
@@ -36,15 +36,15 @@ export class EntrepreneurLayout {
     path: '/entrepreneur/documents',
     icon: 'documents',
   },
-  {
-    label: 'Assistant IA',
-    path: '/entrepreneur/assistant-ia',
-    icon: 'ai',
-  },
-  {
-    label: 'Mon profil',
-    path: '/entrepreneur/profil',
-    icon: 'profile',
-  },
+  // {
+  //   label: 'Assistant IA',
+  //   path: '/entrepreneur/assistant-ia',
+  //   icon: 'ai',
+  // },
+  // {
+  //   label: 'Mon profil',
+  //   path: '/entrepreneur/profil',
+  //   icon: 'profile',
+  // },
 ];
 }
