@@ -87,11 +87,7 @@ export const routes: Routes = [
           import('./features/entrepreneur/missions/mission-detail/mission-detail').then((m) => m.MissionDetail),
       },
      
-      {
-        path: 'assistant-ia',
-        loadComponent: () =>
-          import('./features/entrepreneur/assistant-ia/assistant-ia/assistant-ia').then((m) => m.AssistantIa),
-      },
+     
       {
         path: 'profil',
         loadComponent: () =>
@@ -149,13 +145,13 @@ export const routes: Routes = [
             (m) => m.EntrepreneursList,
           ),
       },
-       {
-        path: 'entrepreneurs/inviter',
-        loadComponent: () =>
-          import('./features/incubateur/entrepreneurs/inviter-entrepreneur/inviter-entrepreneur').then(
-            (m) => m.InviterEntrepreneur,
-          ),
-      },
+      //  {
+      //   path: 'entrepreneurs/inviter',
+      //   loadComponent: () =>
+      //     import('./features/incubateur/entrepreneurs/inviter-entrepreneur/inviter-entrepreneur').then(
+      //       (m) => m.InviterEntrepreneur,
+      //     ),
+      // },
       {
         path: 'entrepreneurs/:id',
         loadComponent: () =>
@@ -191,6 +187,11 @@ export const routes: Routes = [
           import('./features/incubateur/projets/projet-detail/projet-detail').then(
             (m) => m.ProjetDetail,
           ),
+      },
+       {
+        path: 'assistant-ia',
+        loadComponent: () =>
+          import('./features/incubateur/assistant-ia/assistant-ia/assistant-ia').then((m) => m.AssistantIa),
       },
       {
   path: 'parametres',

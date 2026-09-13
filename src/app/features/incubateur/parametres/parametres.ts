@@ -169,35 +169,25 @@ export class Parametres implements OnInit {
     { id: 'notifications', label: 'Notifications', icon: 'settings', section: 'Préférences' },
   ];
 
-  ngOnInit(): void {
-    const structureId = this.structureContext.getActiveStructureId();
-    if (structureId && !this.structure()) {
-      this.structureService
-        .getById(structureId)
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe({
-          error: (err) => console.error('Erreur chargement structure:', err),
-        });
-    }
-  }
-
+ 
+ngOnInit(): void {}
   protected sauvegarderStructure(): void {
     const s = this.structure();
     if (!s) return;
     
     // On extrait uniquement les champs modifiables pour éviter l'erreur de typage sur 'type'
     const payload = {
-      nom: s.nom,
-      emailContact: s.email,
-      telephone: s.telephone,
-    };
+  nom: s.nom,
+  email: s.email,
+  telephone: s.telephone,
+};
 
-    this.structureService
-      .updateProfil(s.id, payload)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: () => console.log('Structure mise à jour avec succès'),
-        error: (err) => console.error('Erreur lors de la mise à jour:', err),
-      });
+this.structureService
+  .updateProfil(s.id, payload)
+  .pipe(takeUntilDestroyed(this.destroyRef))
+  .subscribe({
+    next: (updated) => this.structureContext.updateActiveStructure(updated),
+    error: (err) => console.error('Erreur lors de la mise à jour:', err),
+  });
   }
 }

@@ -18,11 +18,14 @@ import { STATUT_MISSION_CONFIG } from '../../../../core/constants/statut-mission
 import { CreateLivrableRequest, TypeLivrable } from '../../../../core/models/livrable.model';
 
 export interface LivrableItem {
-  id: string;
+   id: string;
   type: 'fichier' | 'lien';
   titre: string;
-  valeur: string; // Nom du fichier ou URL du lien
+  valeur: string;
   taille?: string;
+
+  // Présent uniquement pour les fichiers locaux
+  fichier?: File;
 }
 
 @Component({
@@ -82,24 +85,29 @@ export class MissionDetail implements OnInit {
   }
 
   // Sélection de fichier local
-  protected onFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (!input.files || input.files.length === 0) return;
+ protected onFileSelected(event: Event): void {
+  const input = event.target as HTMLInputElement;
 
-    Array.from(input.files).forEach((file) => {
-      const sizeMb = (file.size / (1024 * 1024)).toFixed(1) + ' Mo';
-      const newItem: LivrableItem = {
-        id: crypto.randomUUID(),
-        type: 'fichier',
-        titre: file.name,
-        valeur: file.name,
-        taille: sizeMb,
-      };
-      this.items.update((prev) => [...prev, newItem]);
-    });
+  if (!input.files || input.files.length === 0) return;
 
-    input.value = '';
-  }
+  Array.from(input.files).forEach((file) => {
+    const sizeMb =
+      (file.size / (1024 * 1024)).toFixed(1) + ' Mo';
+
+    const newItem: LivrableItem = {
+      id: crypto.randomUUID(),
+      type: 'fichier',
+      titre: file.name,
+      valeur: file.name,
+      taille: sizeMb,
+      fichier: file,
+    };
+
+    this.items.update((prev) => [...prev, newItem]);
+  });
+
+  input.value = '';
+}
 
   // Ajout d'un lien Web (Figma, GitHub, Drive, Loom...)
   protected ajouterLien(): void {
@@ -126,40 +134,81 @@ export class MissionDetail implements OnInit {
   }
 
   // Soumission globale vers l'API REST
-  protected soumettre(): void {
-    if (this.items().length === 0) return;
+ protected soumettre(): void {
+  if (this.items().length === 0) return;
 
-    this.submitting.set(true);
-    this.errorMessage.set(null);
+  this.submitting.set(true);
+  this.errorMessage.set(null);
 
-    // Préparation des requêtes HTTP pour chaque livrable
-    const requests = this.items().map((item) => {
-      const typePiece: TypeLivrable = item.type === 'lien' ? 'LIEN' : 'FICHIER';
+  const requests = this.items().map((item) => {
+    // ─────────────────────────────────────
+    // CAS 1 : LIVRE / LIEN
+    // ─────────────────────────────────────
+    if (item.type === 'lien') {
       const payload: CreateLivrableRequest = {
         nom: item.titre,
         url: item.valeur,
-        typePiece,
+        typePiece: 'LIEN',
         missionProjetId: this.missionId,
       };
-      return this.livrableService.soumettreLivrable(payload);
-    });
 
-    // Envoi simultané des livrables (le backend s'occupe de mettre à jour le statut de la mission)
-    forkJoin(requests)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: () => {
-          this.submitting.set(false);
-          this.submitted.set(true);
-        },
-        error: (err) => {
-          console.error('Erreur lors du dépôt des livrables:', err);
-          this.submitting.set(false);
-          const backendMessage = typeof err.error === 'string' ? err.error : err.error?.message;
-          this.errorMessage.set(
-            backendMessage || 'Une erreur est survenue lors de la soumission de votre travail.'
-          );
-        },
-      });
-  }
+      return this.livrableService.soumettreLivrable(payload);
+    }
+
+    // ─────────────────────────────────────
+    // CAS 2 : FICHIER
+    // ─────────────────────────────────────
+
+    if (!item.fichier) {
+      throw new Error(
+        `Le fichier "${item.titre}" est introuvable.`
+      );
+    }
+
+    return this.livrableService
+      .uploaderFichier(item.fichier)
+      .pipe(
+        switchMap((uploadResponse) => {
+          const payload: CreateLivrableRequest = {
+            nom: item.titre,
+            url: uploadResponse.url,
+            typePiece: 'FICHIER',
+            missionProjetId: this.missionId,
+          };
+
+          return this.livrableService.soumettreLivrable(payload);
+        })
+      );
+  });
+
+  forkJoin(requests)
+    .pipe(
+      takeUntilDestroyed(this.destroyRef)
+    )
+    .subscribe({
+      next: () => {
+        this.submitting.set(false);
+        this.submitted.set(true);
+      },
+
+      error: (err) => {
+        console.error(
+          'Erreur lors du dépôt des livrables:',
+          err
+        );
+
+        this.submitting.set(false);
+
+        const backendMessage =
+          typeof err.error === 'string'
+            ? err.error
+            : err.error?.message;
+
+        this.errorMessage.set(
+          backendMessage ||
+          'Une erreur est survenue lors de la soumission de votre travail.'
+        );
+      },
+    });
+}
 }

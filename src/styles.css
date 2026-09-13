@@ -171,4 +171,69 @@ body {
 .animate-bar-3 { animation: bar-grow 2s ease-in-out infinite 0.2s; transform-origin: bottom; }
 
 
+/* Conteneur des onglets */
+.cohort-tabs {
+  border-bottom: none !important;
+  scrollbar-width: none;
+}
 
+.cohort-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+/* Tous les boutons */
+.cohort-tabs button {
+  position: relative;
+  border-bottom: 0 !important;
+}
+
+/* Supprime complètement les bordures transparentes */
+.cohort-tabs button.border-transparent {
+  border-bottom-color: transparent !important;
+}
+
+/* Onglet actif */
+.cohort-tabs button.border-accent {
+  border-bottom: 0 !important;
+}
+
+/* Petit indicateur uniquement sous l'onglet actif */
+.cohort-tabs button.border-accent::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 0;
+  height: 2px;
+  border-radius: 9999px;
+  background: var(--color-accent, #D9622E);
+}
+
+/* Évite que le bouton + soit considéré comme un onglet actif */
+.cohort-tabs > a {
+  border-bottom: 0 !important;
+}
+
+/* Scrollbar globale Jappo */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--color-line-strong);
+}

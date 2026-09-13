@@ -22,15 +22,16 @@ export class IncubateurLayout {
     icon: 'dashboard',
   },
   {
-      label: 'Projets',
-      path: '/incubateur/projets',
-      icon: 'folder', // 👈 Ajout du menu Projets
-    },
-  {
     label: 'Cohortes',
     path: '/incubateur/cohortes',
     icon: 'cohortes',
   },
+  {
+      label: 'Projets',
+      path: '/incubateur/projets',
+      icon: 'folder', // 👈 Ajout du menu Projets
+    },
+  
   {
     label: 'Entrepreneurs',
     path: '/incubateur/entrepreneurs',
@@ -46,10 +47,10 @@ export class IncubateurLayout {
   //   path: '/incubateur/rapports',
   //   icon: 'documents',
   // },
-  {
-    label: 'Paramètres',
-    path: '/incubateur/parametres',
-    icon: 'settings',
+ {
+    label: 'Assistant IA',
+    path: '/incubateur/assistant-ia',
+    icon: 'ai',
   },
 ];
 }

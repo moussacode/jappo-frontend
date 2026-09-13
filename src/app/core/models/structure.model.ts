@@ -4,7 +4,7 @@ export type TypeStructure = 'incubateur' | 'accelerateur' | 'coworking' | 'assoc
 export interface Structure {
   id: string;
   nom: string;
-  emailContact: string;
+  email: string;
   telephone?: string;
   type: TypeStructure;
   pays: string;

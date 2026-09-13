@@ -1,0 +1,14 @@
+{
+  "incubateur.dashboard.titre": "Overview",
+  "incubateur.cohortes.titre": "Cohorts",
+  "incubateur.entrepreneurs.titre": "Entrepreneurs",
+  "parametres.preferences.titre": "Display preferences",
+  "parametres.preferences.sousTitre": "Customize the appearance and language of JAPPO.",
+  "parametres.apparence.titre": "Appearance",
+  "parametres.apparence.description": "Choose the app's visual mode.",
+  "parametres.apparence.systeme": "System",
+  "parametres.apparence.clair": "Light",
+  "parametres.apparence.sombre": "Dark",
+  "parametres.langue.titre": "Interface language",
+  "parametres.langue.description": "Choose the language used in JAPPO."
+}
