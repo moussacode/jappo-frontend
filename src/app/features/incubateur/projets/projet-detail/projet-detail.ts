@@ -2,6 +2,9 @@ import { Component, inject, signal, OnInit, DestroyRef } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
+
+import { Router } from '@angular/router';
+
 // Services & Modèles
 import { ProjetService } from '../../../../core/services/projet.service';
 import { MissionService } from '../../../../core/services/mission.service';
@@ -62,6 +65,13 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
               }
             </p>
           </div>
+          <button
+  type="button"
+  (click)="archiverProjet()"
+  class="text-xs font-semibold text-danger hover:underline shrink-0"
+>
+  Archiver le projet
+</button>
         </div>
 
         <!-- GRILLE DE SYNTHÈSE (KPIs / Infos clés) -->
@@ -148,6 +158,7 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
 })
 export class ProjetDetail implements OnInit {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly projetService = inject(ProjetService);
   private readonly missionService = inject(MissionService);
   private readonly destroyRef = inject(DestroyRef);
@@ -182,6 +193,17 @@ export class ProjetDetail implements OnInit {
         },
       });
   }
+
+  protected archiverProjet(): void {
+  const p = this.projet();
+  if (!p) return;
+  if (!confirm(`Archiver le projet "${p.nom}" ? Il ne sera plus actif dans l'incubation.`)) return;
+
+  this.projetService.archiverProjet(p.id).subscribe({
+    next: () => this.router.navigate(['/incubateur/projets']),
+    error: (err) => console.error('Erreur lors de l\'archivage du projet:', err),
+  });
+}
 
   protected statutBadge(statut: string): { status: BadgeStatus; label: string } {
     switch (statut?.toUpperCase()) {

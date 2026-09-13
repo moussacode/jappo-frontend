@@ -4,6 +4,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 
+
+import {  Router } from '@angular/router';
 // Services & Modèles
 import { MissionService } from '../../../../core/services/mission.service';
 import { LivrableService } from '../../../../core/services/livrable.service';
@@ -54,6 +56,13 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
             <app-badge [status]="statutBadge(m.statut).status" size="md">
               {{ statutBadge(m.statut).label }}
             </app-badge>
+            <button
+  type="button"
+  (click)="supprimerMission()"
+  class="text-xs font-semibold text-danger hover:underline shrink-0"
+>
+  Supprimer
+</button>
           </div>
           
           <div class="flex items-center gap-3 text-xs text-ink-muted">
@@ -94,13 +103,12 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
                     </div>
                     <div class="flex flex-col min-w-0">
                       <a
-                        [href]="l.url"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="text-xs sm:text-sm text-accent font-semibold hover:underline truncate"
-                      >
-                        {{ l.nom || l.url }} ↗
-                      </a>
+                         href="javascript:void(0)"
+  (click)="ouvrirLivrable(l)"
+  class="text-xs sm:text-sm text-accent font-semibold hover:underline truncate cursor-pointer"
+>
+  {{ l.nom || l.url }} ↗
+</a>
                       <span class="text-[11px] text-ink-muted">
                         Soumis le {{ l.dateDepot ? (l.dateDepot | date:'dd/MM/yyyy à HH:mm') : 'Récemment' }}
                       </span>
@@ -109,6 +117,16 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
 
                   <span class="text-xs font-semibold px-2.5 py-1 rounded-lg self-start sm:self-auto" [class]="getStatutStyle(l.statut)">
                     {{ getStatutLabel(l.statut) }}
+                    @if (l.statut === 'EN_ATTENTE') {
+  <button
+    type="button"
+    (click)="supprimerLivrable(l)"
+    class="text-[11px] font-semibold text-danger hover:underline shrink-0"
+    title="Supprimer ce livrable"
+  >
+    Supprimer
+  </button>
+}
                   </span>
                 </div>
 
@@ -184,6 +202,7 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
 })
 export class MissionDetail implements OnInit {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly missionService = inject(MissionService);
   private readonly livrableService = inject(LivrableService);
   private readonly destroyRef = inject(DestroyRef);
@@ -206,6 +225,31 @@ export class MissionDetail implements OnInit {
     this.chargerMissionEtLivrables();
   }
 
+  ouvrirLivrable(l: LivrableResponse): void {
+  this.livrableService.ouvrirFichier(l.url);
+}
+
+  protected supprimerMission(): void {
+  const m = this.mission();
+  if (!m) return;
+  if (!confirm(`Supprimer la mission "${m.titre}" pour ce projet ?`)) return;
+
+  this.missionService.deleteMission(m.id).subscribe({
+    next: () => this.router.navigate(['/incubateur/missions']),
+    error: (err) => console.error('Erreur lors de la suppression de la mission:', err),
+  });
+}
+
+protected supprimerLivrable(livrable: LivrableResponse): void {
+  if (!confirm(`Supprimer le livrable "${livrable.nom}" ?`)) return;
+
+  this.livrableService.deleteLivrable(livrable.id).subscribe({
+    next: () => {
+      this.livrables.update((liste) => liste.filter((l) => l.id !== livrable.id));
+    },
+    error: (err) => console.error('Erreur lors de la suppression du livrable:', err),
+  });
+}
   private chargerMissionEtLivrables(): void {
     this.isLoading.set(true);
 

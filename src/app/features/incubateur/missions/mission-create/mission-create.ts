@@ -12,6 +12,7 @@ import { Icon } from '../../../../shared/components/icon/icon';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 import { FormFieldComponent } from '../../../../shared/components/input/form-field.component';
 import { InputComponent } from '../../../../shared/components/input/input.component';
+import { ModalComponent } from '../../../../shared/components/modal/modal.component';
 
 @Component({
   selector: 'app-mission-create-modal',
@@ -22,33 +23,20 @@ import { InputComponent } from '../../../../shared/components/input/input.compon
     ButtonComponent,
     FormFieldComponent,
     InputComponent,
-  ],
+    ModalComponent
+],
   template: `
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-xs p-4 overflow-y-auto">
-      <div 
-        class="relative w-full max-w-2xl rounded-2xl border border-line bg-surface shadow-xl overflow-hidden flex flex-col my-8 animate-in fade-in zoom-in-95 duration-200"
-        (click)="$event.stopPropagation()"
-      >
-        
-        <!-- En-tête -->
-        <div class="flex items-center justify-between border-b border-line px-6 py-4 bg-surface-muted/30">
-          <div class="flex flex-col">
-            <h2 class="text-sm font-bold text-ink">Créer une nouvelle mission</h2>
-            <p class="text-[11px] text-ink-muted">Définissez un jalon et assignez-le à une cohorte ou un projet.</p>
-          </div>
-          <button
-            type="button"
-            (click)="close.emit()"
-            class="flex size-8 items-center justify-center rounded-lg text-ink-muted hover:bg-surface-muted hover:text-ink transition-colors cursor-pointer"
-          >
-            <app-icon name="x" class="size-4" />
-          </button>
-        </div>
-
-        <!-- Formulaire -->
-        <form [formGroup]="missionForm" (ngSubmit)="onSubmit()" class="flex flex-col gap-5 p-6 overflow-y-auto max-h-[75vh]">
-          
-          <!-- Titre -->
+    <app-modal
+  title="Créer une nouvelle mission"
+  subtitle="Définissez un jalon et assignez-le à une cohorte ou un projet."
+  maxWidth="2xl"
+  (close)="close.emit()"
+>
+  <form
+    [formGroup]="missionForm"
+    (ngSubmit)="onSubmit()"
+    class="flex flex-col gap-5 overflow-y-auto max-h-[75vh]"
+  >
           <app-form-field
             label="Titre de la mission"
             [required]="true"
@@ -159,26 +147,23 @@ import { InputComponent } from '../../../../shared/components/input/input.compon
               {{ errorMessage() }}
             </div>
           }
+    <div class="flex items-center justify-end gap-3 pt-4 border-t border-line mt-2">
+      <app-button type="button" variant="ghost" size="sm" (click)="close.emit()">
+        Annuler
+      </app-button>
 
-          <!-- Actions -->
-          <div class="flex items-center justify-end gap-3 pt-4 border-t border-line mt-2">
-            <app-button type="button" variant="ghost" size="sm" (click)="close.emit()">
-              Annuler
-            </app-button>
-            <app-button type="submit" size="sm" [disabled]="isSubmitting()">
-              @if (isSubmitting()) {
-                <span>Création...</span>
-              } @else {
-                <app-icon name="plus" class="size-3.5" />
-                <span>Publier la mission</span>
-              }
-            </app-button>
-          </div>
-
-        </form>
-
-      </div>
+      <app-button type="submit" size="sm" [disabled]="isSubmitting()">
+        @if (isSubmitting()) {
+          <span>Création...</span>
+        } @else {
+          <app-icon name="plus" class="size-3.5" />
+          <span>Publier la mission</span>
+        }
+      </app-button>
     </div>
+  </form>
+</app-modal>
+       
   `,
 })
 export class MissionCreateModalComponent implements OnInit {

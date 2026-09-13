@@ -55,4 +55,15 @@ export class ProjetService {
   updateNomProjet(projetId: string, nom: string): Observable<Projet> {
   return this.http.patch<Projet>(`${this.apiUrl}/${projetId}/nom`, { nom });
 }
+
+updateProjet(
+  id: string,
+  changements: Partial<Pick<Projet, 'nom' | 'description' | 'secteur'>>,
+): Observable<Projet> {
+  return this.http.patch<Projet>(`${this.apiUrl}/${id}`, changements);
+}
+
+archiverProjet(id: string): Observable<void> {
+  return this.http.delete<void>(`${this.apiUrl}/${id}`);
+}
 }

@@ -56,4 +56,16 @@ export class CohorteService {
       dateDebut: dateDemarrage,
     });
   }
+
+
+  updateCohorte(
+  id: string,
+  changements: Partial<Pick<Cohorte, 'nom' | 'description' | 'dateDebut' | 'dateFin' | 'statut'>>,
+): Observable<Cohorte> {
+  return this.http.patch<Cohorte>(`${this.apiUrl}/${id}`, changements);
+}
+
+archiverCohorte(id: string): Observable<void> {
+  return this.http.delete<void>(`${this.apiUrl}/${id}`);
+}
 }

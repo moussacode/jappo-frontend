@@ -106,4 +106,15 @@ export class StructureContextService {
   getActiveStructure(): Structure | null {
     return this.activeStructure();
   }
+
+
+  updateActiveStructure(partial: Partial<Structure>): void {
+  const current = this._activeMembership();
+  if (!current) return;
+
+  this._activeMembership.set({
+    ...current,
+    structure: { ...current.structure, ...partial },
+  });
+}
 }

@@ -41,7 +41,10 @@ export type IconName =
   | 'x'
   | 'chevrons-up-down'
   | 'folder'
-  | 'warning';
+  | 'warning'
+  |'copie'
+  |'chevron-up'
+  |'chevron-down';
 
 export type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | string;
 

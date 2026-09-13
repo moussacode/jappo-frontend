@@ -1,6 +1,6 @@
 import { Injectable, signal, computed } from '@angular/core';
-import { FR } from '../i18n/fr';
-import { EN } from '../i18n/en';
+import FR from '../i18n/fr.json';
+import EN from '../i18n/en.json';
 
 export type Locale = 'fr' | 'en';
 

@@ -42,29 +42,31 @@ export type FiltreStatutProjet = 'TOUS' | 'EN_INCUBATION' | 'DIAGNOSTIC' | 'IDEE
     <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
       
       <!-- En-tête Page Unifié -->
-      <app-page-header
-        title="Projets"
-        [subtitle]="
-          loading()
-            ? 'Chargement des projets en cours...'
-            : projetsFiltrees().length + ' projet(s) affiché(s) sur ' + allProjets().length
-        "
-      >
-        <!-- Switcher Grille / Tableau -->
-        <app-view-switcher
-          [mode]="vueMode()"
-          tableIcon="missions"
-          (modeChange)="vueMode.set($event)"
-        />
+    <!-- En-tête Page Unifié -->
+<app-page-header
+  title="Projets"
+  [subtitle]="
+    loading()
+      ? 'Chargement des projets en cours...'
+      : projetsFiltrees().length + ' projet(s) affiché(s) sur ' + allProjets().length
+  "
+  breadcrumb="Incubateur > Suivi des projets"
+>
+  <!-- Switcher Grille / Tableau -->
+  <app-view-switcher
+    [mode]="vueMode()"
+    tableIcon="missions"
+    (modeChange)="vueMode.set($event)"
+  />
 
-        <!-- Bouton de création -->
-        <a routerLink="/incubateur/projets/nouveau">
-          <app-button size="sm">
-            <app-icon name="plus" class="size-4" />
-            <span class="hidden sm:inline">Nouveau projet</span>
-          </app-button>
-        </a>
-      </app-page-header>
+  <!-- Bouton de création -->
+  <a routerLink="/incubateur/projets/nouveau">
+    <app-button size="sm">
+      <app-icon name="plus" class="size-4 mr-1.5" />
+      <span class="hidden sm:inline">Nouveau projet</span>
+    </app-button>
+  </a>
+</app-page-header>
 
       <!-- Barre de contrôles : Onglets + Recherche -->
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -247,7 +249,7 @@ export class ProjetsList implements OnInit {
   private readonly projetService = inject(ProjetService);
   private readonly destroyRef = inject(DestroyRef);
 
-  protected readonly vueMode = signal<VueMode>('grid');
+  protected readonly vueMode = signal<VueMode>('table');
   protected readonly loading = signal<boolean>(true);
   protected readonly allProjets = signal<Projet[]>([]);
   protected readonly filtreStatutActif = signal<FiltreStatutProjet>('TOUS');

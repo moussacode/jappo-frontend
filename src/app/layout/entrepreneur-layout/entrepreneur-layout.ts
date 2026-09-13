@@ -36,11 +36,7 @@ export class EntrepreneurLayout {
     path: '/entrepreneur/documents',
     icon: 'documents',
   },
-  // {
-  //   label: 'Assistant IA',
-  //   path: '/entrepreneur/assistant-ia',
-  //   icon: 'ai',
-  // },
+  
   // {
   //   label: 'Mon profil',
   //   path: '/entrepreneur/profil',

@@ -21,9 +21,9 @@ export class StructureService {
    * Mettre à jour le profil de l'incubateur/structure
    * PATCH /api/structures/:id
    */
-  updateProfil(
+   updateProfil(
     id: string,
-    changements: Partial<Pick<Structure, 'nom' | 'emailContact' | 'telephone'>>,
+    changements: Partial<Pick<Structure, 'nom' | 'email' | 'telephone' | 'description' | 'ville' | 'logo'>>,
   ): Observable<Structure> {
     return this.http.patch<Structure>(`${this.apiUrl}/${id}`, changements);
   }

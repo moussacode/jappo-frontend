@@ -1,4 +1,4 @@
-export type StatutCohorte = 'PLANIFIEE' | 'EN_COURS' | 'TERMINEE';
+export type StatutCohorte = 'PLANIFIEE' | 'EN_COURS' | 'TERMINEE' | 'ARCHIVEE';;
 
 export interface Cohorte {
   id: string;

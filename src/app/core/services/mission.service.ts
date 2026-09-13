@@ -55,4 +55,15 @@ export class MissionService {
   getById(id: string): Observable<Mission> {
     return this.http.get<Mission>(`${this.apiUrl}/${id}`);
   }
+
+  updateMissionDetails(
+  id: string,
+  changements: Partial<Pick<Mission, 'titre' | 'description' | 'dateEcheance' | 'priorite'>>,
+): Observable<Mission> {
+  return this.http.patch<Mission>(`${this.apiUrl}/${id}/details`, changements);
+}
+
+deleteMission(id: string): Observable<void> {
+  return this.http.delete<void>(`${this.apiUrl}/${id}`);
+}
 }

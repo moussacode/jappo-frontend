@@ -18,9 +18,10 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
 import { AvatarComponent } from '../../../../shared/components/avatar/avatar.component';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state';
-import { ViewSwitcherComponent } from '../../../../shared/components/view-switcher/view-switcher.component';
 import { TabFilterComponent, TabOption } from '../../../../shared/components/tab-filter/tab-filter.component';
-import { EntityCardComponent } from "../../../../shared/components/entity-card/entity-card.component";
+import { InviterEntrepreneurModalComponent } from '../inviter-entrepreneur/inviter-entrepreneur';
+
+// Import de la modale d'invitation
 
 export interface LigneEntrepreneur {
   entrepreneur: Entrepreneur;
@@ -30,7 +31,6 @@ export interface LigneEntrepreneur {
   dateInvitation?: string;
 }
 
-export type VueMode = 'grid' | 'table';
 export type FiltreStatut = 'ACTIFS' | 'EN_ATTENTE' | 'TOUS';
 
 @Component({
@@ -46,48 +46,34 @@ export type FiltreStatut = 'ACTIFS' | 'EN_ATTENTE' | 'TOUS';
     AvatarComponent,
     ButtonComponent,
     EmptyStateComponent,
-    ViewSwitcherComponent,
     TabFilterComponent,
-    EntityCardComponent
+    InviterEntrepreneurModalComponent
 ],
   template: `
     <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
       
       <!-- En-tête Page -->
       <app-page-header
-        title="Entrepreneurs"
-        [subtitle]="
-          isLoading()
-            ? 'Chargement de la promotion...'
-            : compteActifs() + ' actif(s) sur ' + toutesLesLignes().length + ' membre(s)'
-        "
+        title="Gestion des Entrepreneurs"
+        subtitle="Suivez et surveillez l'activité et la progression de vos entrepreneurs."
+        breadcrumb="Incubateur > Entrepreneurs"
       >
-        <!-- Switcher Grille / Liste -->
-        <app-view-switcher
-          [mode]="vueMode()"
-          tableIcon="entrepreneurs"
-          (modeChange)="vueMode.set($event)"
-        />
-
-        <a routerLink="/incubateur/entrepreneurs/inviter">
-          <app-button size="sm">
-            <app-icon name="plus" class="size-4" />
-            <span class="hidden sm:inline">Inviter des entrepreneurs</span>
-          </app-button>
-        </a>
+        <!-- Déclencheur de la Modale -->
+        <app-button size="sm" (click)="showInviteModal.set(true)">
+          <app-icon name="plus" class="size-4 mr-1.5" />
+          <span>Inviter des entrepreneurs</span>
+        </app-button>
       </app-page-header>
 
       <!-- Barre de contrôles : Filtres Statuts + Recherche -->
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         
-        <!-- Onglets par Statut (Composant unifié app-tab-filter) -->
         <app-tab-filter
           [options]="optionsFiltreStatut()"
           [value]="filtreStatut()"
           (valueChange)="filtreStatut.set($event)"
         />
 
-        <!-- Recherche réactive -->
         <div class="relative w-full sm:w-72">
           <input
             type="text"
@@ -101,164 +87,108 @@ export type FiltreStatut = 'ACTIFS' | 'EN_ATTENTE' | 'TOUS';
 
       <!-- VUES DE DONNÉES -->
       @if (isLoading()) {
-        <!-- Skeleton Loader -->
-        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          @for (i of [1, 2, 3, 4, 5, 6]; track i) {
-            <app-card padding="md" class="animate-pulse">
-              <div class="flex items-center gap-3">
-                <div class="size-10 rounded-xl bg-line"></div>
-                <div class="flex-1 flex flex-col gap-1.5">
-                  <div class="h-4 w-3/4 rounded bg-line"></div>
-                  <div class="h-3 w-1/2 rounded bg-line/60"></div>
-                </div>
-              </div>
-              <div class="h-12 w-full rounded-lg bg-line/40 mt-4"></div>
-            </app-card>
+        <div class="flex flex-col gap-3">
+          @for (i of [1, 2, 3, 4, 5]; track i) {
+            <div class="h-16 w-full animate-pulse rounded-xl bg-surface-muted border border-line"></div>
           }
         </div>
       } @else {
 
-        <!-- VUE 1 : GRILLE DE CARTES -->
-      
-        @if (vueMode() === 'grid') {
-          <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            @for (ligne of lignesFiltrees(); track ligne.entrepreneur.id) {
-              <app-entity-card
-                [title]="afficherNom(ligne.entrepreneur)"
-                
-                [routerLink]="['/incubateur/entrepreneurs', ligne.entrepreneur.id]"
-                [badgeLabel]="estMembreActif(ligne.statutInvitation) ? 'Actif' : 'En attente'"
-                [badgeStatus]="estMembreActif(ligne.statutInvitation) ? 'success' : 'warning'"
-              >
-                <!-- Corps de la carte : Projet & Cohorte -->
-                <div card-body class="flex flex-col gap-1.5 text-xs">
-                  <div class="flex items-center justify-between min-w-0 gap-2">
-                    <span class="text-ink-muted shrink-0">Projet :</span>
-                    <span class="font-semibold text-ink truncate">{{ ligne.projet?.nom || '—' }}</span>
-                  </div>
-                  <div class="flex items-center justify-between min-w-0 gap-2">
-                    <span class="text-ink-muted shrink-0">Cohorte :</span>
-                    <span class="font-medium text-ink truncate">{{ ligne.nomCohorte }}</span>
-                  </div>
-                </div>
+        <app-card padding="none" class="w-full min-w-0">
+          <div class="w-full overflow-x-auto custom-scrollbar">
+            <table class="w-full min-w-[700px] table-fixed border-collapse text-left text-xs">
+              <thead>
+                <tr class="border-b border-line bg-surface-muted/50 font-semibold uppercase tracking-wider text-ink-muted">
+                  <th class="w-4/12 px-5 py-3.5">Entrepreneur</th>
+                  <th class="w-2/12 px-5 py-3.5">Projet</th>
+                  <th class="w-2/12 px-5 py-3.5">Cohorte</th>
+                  <th class="w-2/12 px-5 py-3.5">Statut</th>
+                  <th class="w-2/12 px-5 py-3.5 text-right">Maturité</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-line">
+                @for (ligne of lignesFiltrees(); track ligne.entrepreneur.id) {
+                  <tr class="group transition-colors hover:bg-surface-muted/40">
+                    
+                    <!-- Entrepreneur -->
+                    <td class="px-5 py-3.5">
+                      <div class="flex items-center gap-3 min-w-0">
+                        <app-avatar [initials]="initiales(ligne.entrepreneur)" size="sm" />
+                        <div class="flex min-w-0 flex-col">
+                          <a 
+                            [routerLink]="['/incubateur/entrepreneurs', ligne.entrepreneur.id]"
+                            class="truncate text-xs font-bold text-ink transition-colors group-hover:text-accent"
+                          >
+                            {{ afficherNom(ligne.entrepreneur) }}
+                          </a>
+                          <span class="truncate text-[11px] text-ink-muted">
+                            {{ ligne.entrepreneur.email }}
+                          </span>
+                        </div>
+                      </div>
+                    </td>
 
-                <!-- Pied de carte : Score de maturité -->
-                <div card-footer class="w-full flex items-center justify-between text-xs">
-                  <span class="font-medium text-ink-muted">Score de maturité</span>
-                  <div class="flex items-center gap-2">
-                    <div class="h-1.5 w-14 overflow-hidden rounded-full bg-line">
-                      <div 
-                        class="h-full rounded-full bg-accent transition-all duration-300" 
-                        [style.width.%]="ligne.projet?.scoreMaturite || 0"
-                      ></div>
-                    </div>
-                    <span class="font-bold text-ink">{{ ligne.projet?.scoreMaturite || 0 }}%</span>
-                  </div>
-                </div>
-              </app-entity-card>
-            } @empty {
-              <div class="col-span-full">
-                <app-empty-state
-                  title="Aucun entrepreneur trouvé"
-                  description="Ajustez votre recherche ou votre filtre de statut pour voir plus de résultats."
-                  iconName="entrepreneurs"
-                >
-                  <a routerLink="/incubateur/entrepreneurs/inviter">
-                    <app-button size="xs">
-                      <app-icon name="plus" class="size-3.5" />
-                      <span>Inviter un entrepreneur</span>
-                    </app-button>
-                  </a>
-                </app-empty-state>
-              </div>
-            }
-          </div>
-        }
+                    <!-- Projet -->
+                    <td class="px-5 py-3.5 font-semibold text-ink truncate">
+                      {{ ligne.projet?.nom || '—' }}
+                    </td>
 
-        <!-- VUE 2 : TABLEAU LISTE NOTION -->
-        @if (vueMode() === 'table') {
-          <app-card padding="none" class="w-full min-w-0">
-            <div class="w-full overflow-x-auto custom-scrollbar">
-              <table class="w-full min-w-[700px] table-fixed border-collapse text-left text-xs">
-                <thead>
-                  <tr class="border-b border-line bg-surface-muted/50 font-semibold uppercase tracking-wider text-ink-muted">
-                    <th class="w-4/12 px-5 py-3.5">Entrepreneur</th>
-                    <th class="w-2/12 px-5 py-3.5">Projet</th>
-                    <th class="w-2/12 px-5 py-3.5">Cohorte</th>
-                    <th class="w-2/12 px-5 py-3.5">Statut</th>
-                    <th class="w-2/12 px-5 py-3.5 text-right">Maturité</th>
+                    <!-- Cohorte -->
+                    <td class="px-5 py-3.5 text-ink-muted font-medium truncate">
+                      {{ ligne.nomCohorte }}
+                    </td>
+
+                    <!-- Statut -->
+                    <td class="px-5 py-3.5 whitespace-nowrap">
+                      <app-badge [status]="estMembreActif(ligne.statutInvitation) ? 'success' : 'warning'" size="sm">
+                        {{ estMembreActif(ligne.statutInvitation) ? 'Actif' : 'En attente' }}
+                      </app-badge>
+                    </td>
+
+                    <!-- Maturité -->
+                    <td class="px-5 py-3.5 text-right whitespace-nowrap">
+                      <div class="flex items-center justify-end gap-2">
+                        <div class="h-1.5 w-12 overflow-hidden rounded-full bg-line">
+                          <div 
+                            class="h-full rounded-full bg-accent transition-all duration-300" 
+                            [style.width.%]="ligne.projet?.scoreMaturite || 0"
+                          ></div>
+                        </div>
+                        <span class="text-xs font-bold text-ink">{{ ligne.projet?.scoreMaturite || 0 }}%</span>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody class="divide-y divide-line">
-                  @for (ligne of lignesFiltrees(); track ligne.entrepreneur.id) {
-                    <tr class="group transition-colors hover:bg-surface-muted/40">
-                      <!-- Entrepreneur -->
-                      <td class="px-5 py-3.5">
-                        <div class="flex items-center gap-3 min-w-0">
-                          <app-avatar [initials]="initiales(ligne.entrepreneur)" size="sm" />
-                          <div class="flex min-w-0 flex-col">
-                            <a 
-                              [routerLink]="['/incubateur/entrepreneurs', ligne.entrepreneur.id]"
-                              class="truncate text-xs font-bold text-ink transition-colors group-hover:text-accent"
-                            >
-                              {{ afficherNom(ligne.entrepreneur) }}
-                            </a>
-                            <span class="truncate text-[11px] text-ink-muted">
-                              {{ ligne.entrepreneur.email }}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-
-                      <!-- Projet -->
-                      <td class="px-5 py-3.5 font-semibold text-ink truncate">
-                        {{ ligne.projet?.nom || '—' }}
-                      </td>
-
-                      <!-- Cohorte -->
-                      <td class="px-5 py-3.5 text-ink-muted font-medium truncate">
-                        {{ ligne.nomCohorte }}
-                      </td>
-
-                      <!-- Statut -->
-                      <td class="px-5 py-3.5 whitespace-nowrap">
-                        <app-badge [status]="estMembreActif(ligne.statutInvitation) ? 'success' : 'warning'" size="sm">
-                          {{ estMembreActif(ligne.statutInvitation) ? 'Actif' : 'En attente' }}
-                        </app-badge>
-                      </td>
-
-                      <!-- Maturité -->
-                      <td class="px-5 py-3.5 text-right whitespace-nowrap">
-                        <div class="flex items-center justify-end gap-2">
-                          <div class="h-1.5 w-12 overflow-hidden rounded-full bg-line">
-                            <div 
-                              class="h-full rounded-full bg-accent transition-all duration-300" 
-                              [style.width.%]="ligne.projet?.scoreMaturite || 0"
-                            ></div>
-                          </div>
-                          <span class="text-xs font-bold text-ink">{{ ligne.projet?.scoreMaturite || 0 }}%</span>
-                        </div>
-                      </td>
-                    </tr>
-                  } @empty {
-                    <tr>
-                      <td colspan="5" class="p-8">
-                        <app-empty-state
-                          title="Aucun entrepreneur trouvé"
-                          description="Ajustez votre recherche ou votre filtre de statut pour voir plus de résultats."
-                          iconName="entrepreneurs"
-                        />
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          </app-card>
-        }
+                } @empty {
+                  <tr>
+                    <td colspan="5" class="p-12 text-center">
+                      <app-empty-state
+                        title="Aucun entrepreneur trouvé"
+                        description="Ajustez votre recherche ou invitez de nouveaux entrepreneurs."
+                        iconName="entrepreneurs"
+                      >
+                        <app-button size="xs" (click)="showInviteModal.set(true)">
+                          <app-icon name="plus" class="size-3.5 mr-1" />
+                          <span>Inviter un entrepreneur</span>
+                        </app-button>
+                      </app-empty-state>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </app-card>
 
       }
     </div>
+
+    <!-- AFFICHAGE CONDITIONNEL DE LA MODALE -->
+    @if (showInviteModal()) {
+      <app-inviter-entrepreneur-modal
+        (close)="showInviteModal.set(false)"
+        (invited)="chargerDonnees()"
+      />
+    }
   `,
 })
 export class EntrepreneursList implements OnInit {
@@ -266,10 +196,13 @@ export class EntrepreneursList implements OnInit {
   private readonly projetService = inject(ProjetService);
   private readonly destroyRef = inject(DestroyRef);
 
-  protected readonly vueMode = signal<VueMode>('grid');
+  protected readonly vueMode = signal<string>('table');
   protected readonly filtreStatut = signal<FiltreStatut>('ACTIFS');
   protected readonly isLoading = signal<boolean>(true);
   protected readonly toutesLesLignes = signal<LigneEntrepreneur[]>([]);
+  
+  // Signal de contrôle de la modale
+  protected readonly showInviteModal = signal<boolean>(false);
 
   protected readonly searchControl = new FormControl('', { nonNullable: true });
   protected readonly searchTerm = signal('');
@@ -287,7 +220,6 @@ export class EntrepreneursList implements OnInit {
     this.toutesLesLignes().filter((l) => !this.estMembreActif(l.statutInvitation)).length
   );
 
-  // Computed pour alimenter de manière réactive le composant app-tab-filter
   protected readonly optionsFiltreStatut = computed<TabOption<FiltreStatut>[]>(() => [
     { value: 'ACTIFS', label: 'Actifs', count: this.compteActifs() },
     { value: 'EN_ATTENTE', label: 'Invitations en attente', count: this.compteEnAttente() },
@@ -319,7 +251,6 @@ export class EntrepreneursList implements OnInit {
     return [...lignes].sort((a, b) => {
       const aActif = this.estMembreActif(a.statutInvitation);
       const bActif = this.estMembreActif(b.statutInvitation);
-
       if (aActif !== bActif) return aActif ? -1 : 1;
 
       const nameA = this.afficherNom(a.entrepreneur) || a.entrepreneur.email;
@@ -336,7 +267,7 @@ export class EntrepreneursList implements OnInit {
     this.chargerDonnees();
   }
 
-  private chargerDonnees(): void {
+  protected chargerDonnees(): void {
     this.isLoading.set(true);
 
     forkJoin({

@@ -45,20 +45,23 @@ export type FiltreStatutMission = 'TOUTES' | 'EN_COURS' | 'A_REVOIR' | 'VALIDEE'
     <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
       
       <!-- En-tête Page Unifié -->
-      <app-page-header
-        title="Missions & Jalons"
-        [subtitle]="
-          isLoading()
-            ? 'Chargement des missions...'
-            : missionsFiltrees().length + ' mission(s) affichée(s) sur ' + missions().length
-        "
-      >
-        <!-- Déclencheur de la modale -->
-        <app-button size="sm" (click)="showCreateModal.set(true)">
-          <app-icon name="plus" class="size-4 text-white" />
-          <span class="hidden sm:inline">Nouvelle Mission</span>
-        </app-button>
-      </app-page-header>
+      <!-- En-tête Page Unifié -->
+<app-page-header
+  title="Missions & Jalons"
+  subtitle="Suivez et pilotez l'avancement des missions et livrables de la promotion."
+  breadcrumb="Incubateur > Suivi des missions"
+>
+  <div class="flex items-center gap-2">
+    <app-button size="sm" class="hidden sm:flex">
+      <!-- <app-icon name="download" class="size-4 mr-1.5" /> -->
+      <span>Exporter</span>
+    </app-button>
+    <app-button size="sm" (click)="showCreateModal.set(true)">
+      <app-icon name="plus" class="size-4 mr-1.5 text-white" />
+      <span class="hidden sm:inline">Nouvelle Mission</span>
+    </app-button>
+  </div>
+</app-page-header>
 
       <!-- Barre de contrôles : Filtres Statuts + Recherche -->
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

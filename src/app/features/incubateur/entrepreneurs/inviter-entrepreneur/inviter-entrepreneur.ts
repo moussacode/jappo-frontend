@@ -1,5 +1,4 @@
-import { Component, inject, signal, OnInit, DestroyRef } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, inject, signal, output, OnInit, DestroyRef } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
@@ -10,55 +9,33 @@ import { Cohorte } from '../../../../core/models';
 
 // Design System Partagé
 import { Icon } from '../../../../shared/components/icon/icon';
-import { BadgeComponent } from '../../../../shared/components/badge/badge';
-import { CardComponent } from '../../../../shared/components/card/card.component';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 import { FormFieldComponent } from '../../../../shared/components/input/form-field.component';
+import { ModalComponent } from '../../../../shared/components/modal/modal.component';
 
 @Component({
-  selector: 'app-inviter-entrepreneur',
+  selector: 'app-inviter-entrepreneur-modal',
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    RouterLink,
     Icon,
-    BadgeComponent,
-    CardComponent,
     ButtonComponent,
     FormFieldComponent,
-  ],
+    ModalComponent
+],
   template: `
-    <div class="mx-auto flex min-h-[calc(100vh-6rem)] w-full max-w-xl min-w-0 flex-col items-center justify-center p-4 sm:p-6 lg:p-8">
-      
-      <!-- Carte SaaS / Notion Design System -->
-      <app-card padding="lg" class="w-full shadow-xs">
-        <div class="flex flex-col gap-6">
-          
-          <!-- En-tête de la Carte -->
-          <div class="flex items-start justify-between gap-4">
-            <div class="flex flex-col gap-0.5">
-              <h1 class="text-base font-bold text-ink">Inviter des entrepreneurs</h1>
-              <p class="text-xs text-ink-muted">
-                Validez un email avec <kbd class="rounded border border-line bg-surface-muted px-1 py-0.2 text-[10px] font-mono text-ink">Entrée</kbd> ou <kbd class="rounded border border-line bg-surface-muted px-1 py-0.2 text-[10px] font-mono text-ink">,</kbd>
-              </p>
-            </div>
-
-            <a routerLink="/incubateur/entrepreneurs">
-              <app-button variant="ghost" size="xs">
-                <app-icon name="arrow-left" class="size-3.5" />
-                <span>Retour</span>
-              </app-button>
-            </a>
-          </div>
-
-          <!-- Formulaire d'invitation -->
-          <form [formGroup]="form" (ngSubmit)="envoyer()" class="flex flex-col gap-5">
+    <!-- Backdrop de la Modale -->
+    <app-modal
+    title="Inviter des entrepreneurs"
+  subtitle="Ajoutez une ou plusieurs adresses email pour envoyer les invitations."
+  maxWidth="lg"
+  (close)="closeModal()">
+      <form [formGroup]="form" (ngSubmit)="envoyer()" class="flex flex-col gap-5">
             
             <!-- Zone Multi-Emails (Chip Input) -->
             <app-form-field [label]="'Adresses Email (' + emails().length + ')'">
               <div class="flex min-h-[42px] w-full flex-wrap items-center gap-1.5 rounded-xl border border-line bg-surface p-2 transition-all focus-within:border-accent">
                 
-                <!-- Badges (Double-clic pour éditer) -->
                 @for (email of emails(); track email) {
                   <span 
                     (dblclick)="editerEmail(email)"
@@ -77,7 +54,6 @@ import { FormFieldComponent } from '../../../../shared/components/input/form-fie
                   </span>
                 }
 
-                <!-- Champ de Saisie Compact -->
                 <input
                   type="email"
                   [formControl]="emailInputControl"
@@ -101,16 +77,14 @@ import { FormFieldComponent } from '../../../../shared/components/input/form-fie
               </select>
             </app-form-field>
 
-            <!-- Pied de Formulaire : Rôle + Boutons Alignés à Droite (Notion Style) -->
-            <div class="flex items-center justify-between border-t border-line pt-4 mt-1">
+            <!-- Pied de Formulaire : Rôle + Boutons -->
+            <div class="flex items-center justify-between  pt-4 mt-1">
               <span class="text-xs text-ink-muted">Rôle : <strong class="text-ink font-medium">Entrepreneur</strong></span>
 
               <div class="flex items-center gap-2">
-                <a routerLink="/incubateur/entrepreneurs">
-                  <app-button type="button" variant="ghost" size="sm">
-                    Annuler
-                  </app-button>
-                </a>
+                <app-button type="button" variant="ghost" size="sm" (click)="closeModal()">
+                  Annuler
+                </app-button>
 
                 <app-button
                   type="submit"
@@ -120,7 +94,7 @@ import { FormFieldComponent } from '../../../../shared/components/input/form-fie
                   @if (envoi()) {
                     <span class="animate-pulse">Envoi...</span>
                   } @else {
-                    <app-icon name="plus" class="size-3.5" />
+                    <app-icon name="plus" class="size-3.5 mr-1" />
                     <span>Envoyer ({{ totalInvitations() }})</span>
                   }
                 </app-button>
@@ -129,29 +103,22 @@ import { FormFieldComponent } from '../../../../shared/components/input/form-fie
 
             <!-- RETOURS & FEEDBACKS D'ENVOI -->
             @if (resultat(); as res) {
-              
-              <!-- Succès -->
               @if (res.invites.length > 0) {
                 <div class="flex flex-col gap-1 rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-3 text-xs text-emerald-700 dark:text-emerald-400">
                   <div class="flex items-center gap-2 font-semibold">
                     <app-icon name="check" class="size-4 shrink-0" />
-                    <span>{{ res.invites.length }} invitation(s) transmise(s) avec succès :</span>
+                    <span>{{ res.invites.length }} invitation(s) transmise(s) avec succès !</span>
                   </div>
-                  <p class="text-[11px] opacity-80 pl-6">{{ res.invites.join(', ') }}</p>
                 </div>
               }
-
-              <!-- Déjà membres -->
               @if (res.dejaMembres.length > 0) {
                 <div class="flex flex-col gap-1 rounded-xl bg-amber-500/10 border border-amber-500/20 p-3 text-xs text-amber-700 dark:text-amber-400">
                   <div class="flex items-center gap-2 font-semibold">
                     <app-icon name="warning" class="size-4 shrink-0 text-amber-600" />
-                    <span>{{ res.dejaMembres.length }} utilisateur(s) font déjà partie de votre incubateur :</span>
+                    <span>{{ res.dejaMembres.length }} utilisateur(s) font déjà partie de l'incubateur.</span>
                   </div>
-                  <p class="text-[11px] opacity-90 pl-6">{{ res.dejaMembres.join(', ') }}</p>
                 </div>
               }
-
             }
 
             @if (errorMessage()) {
@@ -161,17 +128,18 @@ import { FormFieldComponent } from '../../../../shared/components/input/form-fie
               </div>
             }
           </form>
-
-        </div>
-      </app-card>
-    </div>
+    </app-modal>
   `,
 })
-export class InviterEntrepreneur implements OnInit {
+export class InviterEntrepreneurModalComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly cohorteService = inject(CohorteService);
   private readonly entrepreneurService = inject(EntrepreneurService);
   private readonly destroyRef = inject(DestroyRef);
+
+  // Outputs pour communiquer avec la liste parente
+  readonly close = output<void>();
+  readonly invited = output<void>();
 
   protected readonly cohortes = signal<Cohorte[]>([]);
   protected readonly emails = signal<string[]>([]);
@@ -180,7 +148,6 @@ export class InviterEntrepreneur implements OnInit {
   protected readonly errorMessage = signal<string | null>(null);
 
   protected readonly emailInputControl = this.fb.control('');
-
   protected readonly form = this.fb.nonNullable.group({
     cohorteId: [''],
   });
@@ -193,6 +160,10 @@ export class InviterEntrepreneur implements OnInit {
         next: (c) => this.cohortes.set(c),
         error: (err) => console.error('Erreur chargement cohortes:', err),
       });
+  }
+
+  protected closeModal(): void {
+    this.close.emit();
   }
 
   protected onKeyDown(event: KeyboardEvent): void {
@@ -226,7 +197,6 @@ export class InviterEntrepreneur implements OnInit {
 
   protected envoyer(): void {
     this.ajouterEmailCourant();
-
     const listeEmails = this.emails();
     if (listeEmails.length === 0) return;
 
@@ -246,8 +216,8 @@ export class InviterEntrepreneur implements OnInit {
         next: (res) => {
           this.envoi.set(false);
           this.resultat.set(res);
-          this.emails.set([]);
-          this.form.reset();
+          this.invited.emit(); // Notifie le parent pour rafraîchir la liste
+          setTimeout(() => this.closeModal(), 1200); // Fermeture auto après succès
         },
         error: (err) => {
           console.error('Erreur envoi invitations:', err);

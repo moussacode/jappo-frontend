@@ -1,0 +1,693 @@
+<app-modal
+  title="Paramètres"
+  subtitle="Gérez votre structure, votre équipe et vos préférences."
+  maxWidth="4xl"
+  (close)="closeModal()"
+>
+  <div class="flex h-[75vh] min-h-0">
+    <!-- ================================================================ -->
+    <!-- NAVIGATION -->
+    <!-- ================================================================ -->
+
+    <aside
+      class="hidden w-60 shrink-0 border-r border-line bg-surface-muted/30 p-3 md:flex md:flex-col"
+    >
+      <div class="flex flex-col gap-1">
+        <!-- Section -->
+        <div class="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+          Réglages
+        </div>
+
+        <!-- Général -->
+        <button
+          type="button"
+          (click)="switchTab('general')"
+          class="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium transition-colors"
+          [class]="
+            activeTab() === 'general'
+              ? 'bg-surface-muted text-ink font-semibold'
+              : 'text-ink-muted hover:text-ink'
+          "
+        >
+          <app-icon name="settings" class="size-4" />
+          <span>Général</span>
+        </button>
+
+        <!-- Structure -->
+        <button
+          type="button"
+          (click)="switchTab('compte')"
+          class="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium transition-colors"
+          [class]="
+            activeTab() === 'compte'
+              ? 'bg-surface-muted text-ink font-semibold'
+              : 'text-ink-muted hover:text-ink'
+          "
+        >
+          <app-icon name="users" class="size-4" />
+          <span>Organisation & Structure</span>
+        </button>
+
+        <!-- Équipe -->
+        <button
+          type="button"
+          (click)="switchTab('equipe')"
+          class="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium transition-colors"
+          [class]="
+            activeTab() === 'equipe'
+              ? 'bg-surface-muted text-ink font-semibold'
+              : 'text-ink-muted hover:text-ink'
+          "
+        >
+          <app-icon name="users" class="size-4" />
+          <span>Membres de l'équipe</span>
+        </button>
+
+        <!-- Préférences -->
+        <button
+          type="button"
+          (click)="switchTab('preferences')"
+          class="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium transition-colors"
+          [class]="
+            activeTab() === 'preferences'
+              ? 'bg-surface-muted text-ink font-semibold'
+              : 'text-ink-muted hover:text-ink'
+          "
+        >
+          <app-icon name="bell" class="size-4" />
+          <span>Apparence & Langue</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ================================================================ -->
+    <!-- CONTENU -->
+    <!-- ================================================================ -->
+
+    <main class="min-w-0 flex-1 overflow-y-auto">
+      <!-- ============================================================ -->
+      <!-- MESSAGES -->
+      <!-- ============================================================ -->
+
+      <!-- ============================================================ -->
+      <!-- GÉNÉRAL -->
+      <!-- ============================================================ -->
+
+      @if (activeTab() === 'general') {
+        <section class="p-6 sm:p-8">
+          <!-- En-tête -->
+          <div class="mb-8">
+            <h2 class="text-base font-semibold text-ink">Profil</h2>
+            <p class="mt-1 text-xs text-ink-muted">
+              Gérez les informations associées à votre profil.
+            </p>
+          </div>
+          @if (structure(); as s) {
+            <div class="space-y-6">
+              <!-- Photo de profil -->
+              <section
+                class="flex items-center justify-between gap-4 rounded-xl border border-line bg-surface p-4"
+              >
+                <div class="flex min-w-0 items-center gap-3">
+                  <!-- Avatar -->
+                  <div
+                    class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-sm font-semibold text-accent"
+                  >
+                    {{ getInitiales(s.nom) }}
+                  </div>
+                  <!-- Informations -->
+                  <div class="min-w-0">
+                    <p class="text-sm font-semibold text-ink">Photo de profil</p>
+                    <p class="mt-0.5 text-xs text-ink-muted">
+                      Votre photo ou vos initiales sont affichées dans l'application.
+                    </p>
+                  </div>
+                </div>
+                <!-- Action -->
+                <app-button type="button" size="sm" variant="secondary" [disabled]="true">
+                  <!-- <app-icon name="image" class="size-3.5" /> -->
+                   <span>Modifier</span>
+                </app-button>
+              </section>
+              <!-- Informations du profil -->
+              <section class="rounded-xl border border-line bg-surface">
+                <!-- En-tête -->
+                <div class="border-b border-line px-4 py-3">
+                  <h3 class="text-sm font-semibold text-ink">Informations du profil</h3>
+                  <p class="mt-0.5 text-xs text-ink-muted">
+                    Ces informations permettent d'identifier votre compte.
+                  </p>
+                </div>
+                <!-- Champs -->
+                <div class="grid gap-4 p-4 sm:grid-cols-2">
+                  <!-- Nom -->
+                  <app-form-field label="Nom" inputId="profileName">
+                    <app-input id="profileName" placeholder="Moussa"  />
+                  </app-form-field>
+                  <!-- Email -->
+                  <app-form-field label="Adresse email" inputId="profileEmail">
+                    <app-input id="profileEmail" type="email" placeholder="moussa@gmail.com" value="À définir" />
+                  </app-form-field>
+                </div>
+              </section>
+            </div>
+          }
+        </section>
+      }
+
+      <!-- ============================================================ -->
+      <!-- COMPTE / STRUCTURE -->
+      <!-- ============================================================ -->
+
+      @if (activeTab() === 'compte') {
+        <section class="p-6">
+          <!-- En-tête -->
+          <div class="mb-8">
+            <h2 class="text-base font-semibold text-ink">Informations de la structure</h2>
+
+            <p class="mt-1 text-xs text-ink-muted">
+              Modifiez les informations générales de votre structure.
+            </p>
+          </div>
+
+          <form
+            [formGroup]="structureForm"
+            (ngSubmit)="sauvegarderStructure()"
+            class="max-w-2xl space-y-6"
+          >
+            <!-- Nom de la structure -->
+            <app-form-field
+              label="Nom de la structure"
+              inputId="structure-nom"
+              [error]="
+                structureForm.controls.nom.touched &&
+                structureForm.controls.nom.hasError('required')
+                  ? 'Le nom de la structure est obligatoire.'
+                  : ''
+              "
+            >
+              <app-input
+                id="structure-nom"
+                type="text"
+                formControlName="nom"
+                autocomplete="organization"
+                placeholder="Ex. Fabrique 360"
+              />
+            </app-form-field>
+            <br />
+
+            <!-- Email de contact -->
+            <app-form-field
+              label="Email de contact"
+              inputId="structure-email"
+              [error]="
+                structureForm.controls.email.touched &&
+                structureForm.controls.email.hasError('email')
+                  ? 'Veuillez saisir une adresse email valide.'
+                  : ''
+              "
+            >
+              <app-input
+                id="structure-email"
+                type="email"
+                formControlName="email"
+                autocomplete="email"
+                placeholder="contact@structure.com"
+              />
+            </app-form-field>
+
+            <!-- Actions -->
+            <div class="flex justify-end  pt-5">
+              <app-button
+                type="submit"
+                size="sm"
+                [disabled]="structureForm.invalid || isSavingStructure()"
+              >
+                @if (isSavingStructure()) {
+                  <span
+                    class="size-3.5 animate-spin rounded-full border-2 border-surface/30 border-t-surface"
+                  ></span>
+
+                  <span>Enregistrement...</span>
+                } @else {
+                  <!-- <app-icon name="save" class="size-3.5" /> -->
+                  <span>Enregistrer</span>
+                }
+              </app-button>
+            </div>
+          </form>
+        </section>
+      }
+
+      <!-- ============================================================ -->
+      <!-- ÉQUIPE -->
+      <!-- ============================================================ -->
+
+      @if (activeTab() === 'equipe') {
+        <div
+          class="mx-auto flex p-6 w-full max-w-2xl flex-col gap-7 animate-in fade-in duration-150"
+        >
+          <!-- Header -->
+          <div class="flex flex-col gap-1">
+            <h2 class="text-lg font-bold tracking-tight text-ink">Membres de l'équipe</h2>
+
+            <p class="max-w-lg text-xs leading-relaxed text-ink-muted">
+              Invitez les personnes qui participent à l'accompagnement des entrepreneurs de votre
+              structure.
+            </p>
+          </div>
+
+          <!-- Invitation -->
+
+          <section class="rounded-2xl border border-line bg-surface p-4">
+            <!-- En-tête -->
+            <div class="mb-5 flex items-start gap-3">
+              <div
+                class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent-strong"
+              >
+                <app-icon name="users" class="size-4" />
+              </div>
+
+              <div>
+                <h3 class="text-xs font-semibold text-ink">Inviter un membre</h3>
+
+                <p class="mt-0.5 text-[11px] leading-relaxed text-ink-muted">
+                  Ajoutez un coach ou un administrateur à votre équipe.
+                </p>
+              </div>
+            </div>
+
+            <!-- Formulaire -->
+            <div class="flex flex-col gap-3.5">
+              <!-- Email -->
+              <app-form-field label="Adresse email" inputId="inviteEmail">
+                <app-input
+                  id="inviteEmail"
+                  type="email"
+                  [ngModel]="inviteEmail()"
+                  (ngModelChange)="inviteEmail.set($event)"
+                  placeholder="contact@exemple.com"
+                />
+              </app-form-field>
+
+              <!-- Rôle + bouton -->
+              <div class="grid grid-cols-[1fr_auto] items-end gap-2">
+                <!-- Rôle -->
+                <app-form-field label="Rôle" inputId="inviteRole">
+                  <select
+                    id="inviteRole"
+                    [ngModel]="selectedRole()"
+                    (ngModelChange)="selectedRole.set($event)"
+                    class="h-9 w-full cursor-pointer rounded-xl border border-line bg-surface-muted/30 px-3 text-xs font-medium text-ink transition-colors focus:border-accent focus:bg-surface focus:outline-none focus:ring-2 focus:ring-accent/10"
+                  >
+                    <option value="COACH">Coach</option>
+
+                    <option value="ADMIN_STRUCTURE">Administrateur</option>
+                  </select>
+                </app-form-field>
+
+                <!-- Bouton -->
+                <app-button
+                  type="button"
+                  size="sm"
+                  [disabled]="isSendingInvitation()"
+                  (click)="envoyerInvitation()"
+                >
+                  @if (isSendingInvitation()) {
+                    <span
+                      class="size-3.5 animate-spin rounded-full border-2 border-surface/30 border-t-surface"
+                    ></span>
+
+                    <span>Envoi...</span>
+                  } @else {
+                    <!-- <app-icon
+            name="send"
+            class="size-3.5"
+          /> -->
+
+                    <span>Inviter</span>
+                  }
+                </app-button>
+              </div>
+            </div>
+          </section>
+
+          <!-- Messages -->
+          @if (successMessage()) {
+            <div
+              class="flex items-start gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-3 text-emerald-700"
+            >
+              <app-icon name="check" class="mt-0.5 size-4 shrink-0" />
+
+              <p class="text-[11px] leading-relaxed">
+                {{ successMessage() }}
+              </p>
+            </div>
+          }
+
+          @if (errorMessage()) {
+            <div
+              class="flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-rose-700"
+            >
+              <!-- <app-icon name="alert-circle" class="mt-0.5 size-4 shrink-0" /> -->
+
+              <p class="text-[11px] leading-relaxed">
+                {{ errorMessage() }}
+              </p>
+            </div>
+          }
+
+          <!-- Membres -->
+          <section class="flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-xs font-semibold text-ink">Équipe</h3>
+
+                <p class="mt-0.5 text-[11px] text-ink-muted">
+                  {{ membres().length }}
+                  {{ membres().length > 1 ? 'membres' : 'membre' }}
+                </p>
+              </div>
+            </div>
+
+            <div class="overflow-hidden rounded-2xl border border-line bg-surface">
+              @for (m of membres(); track m.id) {
+                <div
+                  class="flex items-center justify-between gap-4 border-b border-line/70 p-3.5 last:border-b-0 transition-colors hover:bg-surface-muted/30"
+                >
+                  <!-- Identity -->
+                  <div class="flex min-w-0 items-center gap-3">
+                    <div
+                      class="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent-soft text-[11px] font-bold uppercase text-accent-strong"
+                    >
+                      {{ getInitiales(m.prenom, m.nom) }}
+                    </div>
+
+                    <div class="min-w-0">
+                      <div class="flex items-center gap-2">
+                        <span class="truncate text-xs font-semibold text-ink">
+                          {{ m.prenom || 'Utilisateur' }}
+                          {{ m.nom || 'Invité' }}
+                        </span>
+
+                        @if (m.estProprietaire) {
+                          <span
+                            class="shrink-0 rounded-md bg-surface-muted px-1.5 py-0.5 text-[9px] font-medium text-ink-muted"
+                          >
+                            Propriétaire
+                          </span>
+                        }
+                      </div>
+
+                      <span class="mt-0.5 block truncate text-[10px] text-ink-muted">
+                        {{ m.email }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Actions -->
+                  <div class="flex shrink-0 items-center gap-2">
+                    <!-- Status -->
+                    @if (m.statut === 'ACCEPTE') {
+                      <span
+                        class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-1 text-[9px] font-semibold text-emerald-600"
+                      >
+                        <span class="size-1.5 rounded-full bg-emerald-500"></span>
+                        Actif
+                      </span>
+                    } @else if (m.statut === 'EN_ATTENTE') {
+                      <button
+                        type="button"
+                        (click)="renvoyerInvitation(m)"
+                        class="group flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[9px] font-semibold text-amber-700 transition-colors hover:bg-amber-100 cursor-pointer"
+                      >
+                        <span class="size-1.5 rounded-full bg-amber-500"></span>
+                        En attente
+
+                        <span class="ml-0.5 opacity-60 group-hover:opacity-100"> · Renvoyer </span>
+                      </button>
+                    }
+
+                    <!-- Role -->
+                    @if (m.estProprietaire) {
+                      <span
+                        class="rounded-lg border border-line bg-surface-muted/50 px-2.5 py-1.5 text-[10px] font-medium text-ink-muted"
+                      >
+                        Propriétaire
+                      </span>
+                    } @else {
+                      <select
+                        [value]="m.role"
+                        (change)="changerRole(m, $any($event.target).value)"
+                        [disabled]="isChangingRole()"
+                        class="rounded-lg border border-line bg-surface-muted/40 px-2.5 py-1.5 text-[10px] font-medium text-ink transition-colors focus:border-accent focus:outline-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <option value="ADMIN_STRUCTURE">Administrateur</option>
+
+                        <option value="COACH">Coach</option>
+                      </select>
+                    }
+                  </div>
+                </div>
+              } @empty {
+                <div class="flex flex-col items-center justify-center px-6 py-10 text-center">
+                  <div
+                    class="mb-3 flex size-10 items-center justify-center rounded-xl bg-surface-muted text-ink-muted"
+                  >
+                    <app-icon name="users" class="size-5" />
+                  </div>
+
+                  <p class="text-xs font-medium text-ink">Aucun membre</p>
+
+                  <p class="mt-1 max-w-xs text-[10px] leading-relaxed text-ink-muted">
+                    Invitez votre premier coach ou administrateur pour commencer à collaborer.
+                  </p>
+                </div>
+              }
+            </div>
+          </section>
+
+          <!-- Invitation link -->
+          <section class="rounded-2xl border border-line bg-surface p-4">
+            <div class="flex items-start justify-between gap-4">
+              <div class="flex items-start gap-3">
+                <div
+                  class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-surface-muted text-ink-muted"
+                >
+                  <app-icon name="link" class="size-4" />
+                </div>
+
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h3 class="text-xs font-semibold text-ink">Lien d'invitation</h3>
+
+                    @if (inviteShareLink()) {
+                      <span
+                        class="rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-600"
+                      >
+                        Actif
+                      </span>
+                    } @else {
+                      <span
+                        class="rounded-md bg-surface-muted px-1.5 py-0.5 text-[9px] font-medium text-ink-muted"
+                      >
+                        Aucun lien
+                      </span>
+                    }
+                  </div>
+
+                  <p class="mt-0.5 text-[10px] text-ink-muted">
+                    Partagez ce lien pour permettre à un membre de rejoindre l'équipe.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Role -->
+              <select
+                [ngModel]="shareLinkRole()"
+                (ngModelChange)="changerRoleLienPartage($event)"
+                class="shrink-0 rounded-lg border border-line bg-surface-muted/40 px-2 py-1.5 text-[10px] font-medium text-ink focus:border-accent focus:outline-none cursor-pointer"
+              >
+                <option value="COACH">Coach</option>
+
+                <option value="ADMIN_STRUCTURE">Administrateur</option>
+              </select>
+            </div>
+
+            @if (inviteShareLink()) {
+              <div class="mt-4 flex gap-2">
+                <div
+                  class="flex min-w-0 flex-1 items-center rounded-xl border border-line bg-surface-muted/30 px-3"
+                >
+                  <span class="truncate text-[10px] text-ink-muted">
+                    {{ inviteShareLink() }}
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  (click)="copierLien()"
+                  [title]="lienCopie() ? 'Copié !' : 'Copier le lien'"
+                  class="flex size-9 shrink-0 items-center justify-center rounded-xl border border-line bg-surface text-ink transition-colors hover:bg-surface-muted cursor-pointer"
+                >
+                  <app-icon [name]="lienCopie() ? 'check' : 'copie'" class="size-4" />
+                </button>
+
+                <button
+                  type="button"
+                  (click)="regenererLien()"
+                  [disabled]="isRegeneratingLink()"
+                  title="Régénérer le lien"
+                  class="flex size-9 shrink-0 items-center justify-center rounded-xl border border-line bg-surface text-ink-muted transition-colors hover:bg-surface-muted hover:text-ink disabled:opacity-50 cursor-pointer"
+                >
+                  @if (isRegeneratingLink()) {
+                    <span
+                      class="size-3.5 animate-spin rounded-full border-2 border-ink-muted/30 border-t-ink-muted"
+                    ></span>
+                  } @else {
+                    <app-icon name="copie" class="size-4" />
+                  }
+                </button>
+
+                <button
+                  type="button"
+                  (click)="revoquerLien()"
+                  [disabled]="isRevokingLink()"
+                  title="Révoquer le lien"
+                  class="flex size-9 shrink-0 items-center justify-center rounded-xl border border-line bg-surface text-rose-600 transition-colors hover:bg-rose-500/10 disabled:opacity-50 cursor-pointer"
+                >
+                  @if (isRevokingLink()) {
+                    <span
+                      class="size-3.5 animate-spin rounded-full border-2 border-rose-500/30 border-t-rose-500"
+                    ></span>
+                  } @else {
+                    <app-icon name="trash" class="size-4" />
+                  }
+                </button>
+              </div>
+            } @else {
+              <div
+                class="mt-4 flex items-center justify-between rounded-xl border border-dashed border-line bg-surface-muted/20 px-3.5 py-3"
+              >
+                <div class="flex items-center gap-2">
+                  <!-- <app-icon name="info" class="size-3.5 text-ink-muted" /> -->
+
+                  <span class="text-[10px] text-ink-muted"> Aucun lien actif pour ce rôle. </span>
+                </div>
+
+                <button
+                  type="button"
+                  (click)="regenererLien()"
+                  [disabled]="isRegeneratingLink()"
+                  class="flex items-center gap-1.5 rounded-lg bg-ink px-3 py-1.5 text-[10px] font-semibold text-surface transition-colors hover:bg-ink/90 disabled:opacity-50 cursor-pointer"
+                >
+                  @if (isRegeneratingLink()) {
+                    <span
+                      class="size-3 animate-spin rounded-full border-2 border-surface/30 border-t-surface"
+                    ></span>
+                    Génération...
+                  } @else {
+                    <app-icon name="plus" class="size-3" />
+                    Générer un lien
+                  }
+                </button>
+              </div>
+            }
+          </section>
+        </div>
+      }
+      <!-- ============================================================ -->
+      <!-- PRÉFÉRENCES -->
+      <!-- ============================================================ -->
+
+      @if (activeTab() === 'preferences') {
+        <section class="p-6">
+          <div class="flex max-w-xl flex-col gap-6 animate-in fade-in duration-150">
+            <!-- En-tête -->
+            <h2 class="text-lg font-bold text-ink">{{ 'parametres.preferences.titre' | translate }}</h2>
+<p class="mt-1 text-xs text-ink-muted">
+  {{ 'parametres.preferences.sousTitre' | translate }}
+</p>
+            <!-- Apparence -->
+            <section class="border-b border-line pb-5">
+              <div class="flex items-center justify-between gap-6">
+                <div class="min-w-0">
+                  <p class="text-xs font-semibold text-ink">{{ 'parametres.apparence.titre' | translate }}</p>
+<p class="mt-1 text-[11px] text-ink-muted">
+  {{ 'parametres.apparence.description' | translate }}
+</p>
+                </div>
+                <div
+                  class="inline-flex shrink-0 rounded-xl border border-line bg-surface-muted/40 p-1"
+                >
+                  <!-- Système -->
+                  <button
+                    type="button"
+                    (click)="changerTheme('system')"
+                    class="flex cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors"
+                    [class]="
+                      selectedTheme() === 'system'
+                        ? 'bg-surface text-ink shadow-xs'
+                        : 'text-ink-muted hover:text-ink'
+                    "
+                  >
+                    <!-- <app-icon name="monitor" class="size-3.5" /> -->
+                    <span>{{ 'parametres.apparence.systeme' | translate }}</span>
+                  </button>
+                  <!-- Clair -->
+                  <button
+                    type="button"
+                    (click)="changerTheme('light')"
+                    class="flex cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors"
+                    [class]="
+                      selectedTheme() === 'light'
+                        ? 'bg-surface text-ink shadow-xs'
+                        : 'text-ink-muted hover:text-ink'
+                    "
+                  >
+                    <!-- <app-icon name="sun" class="size-3.5" />  -->
+                    <span>{{ 'parametres.apparence.clair' | translate }}</span>
+                  </button>
+                  <!-- Sombre -->
+                  <button
+                    type="button"
+                    (click)="changerTheme('dark')"
+                    class="flex cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors"
+                    [class]="
+                      selectedTheme() === 'dark'
+                        ? 'bg-surface text-ink shadow-xs'
+                        : 'text-ink-muted hover:text-ink'
+                    "
+                  >
+                    <!-- <app-icon name="moon" class="size-3.5" />  -->
+                    <span>{{ 'parametres.apparence.sombre' | translate }}</span>
+                  </button>
+                </div>
+              </div>
+            </section>
+            <!-- Langue -->
+            <section>
+              <div class="flex items-center justify-between gap-6">
+                <div class="min-w-0">
+                  <p class="text-xs font-semibold text-ink">{{ 'parametres.langue.titre' | translate }}</p>
+<p class="mt-1 text-[11px] text-ink-muted">
+  {{ 'parametres.langue.description' | translate }}
+</p>
+                </div>
+                <select
+                  [value]="selectedLanguage()"
+                  (change)="changerLangue($any($event.target).value)"
+                  class="shrink-0 cursor-pointer rounded-xl border border-line bg-surface px-3 py-2 text-xs font-medium text-ink outline-none transition-colors hover:border-line-strong focus:border-accent focus:ring-2 focus:ring-accent/10"
+                >
+                  <option value="fr">Français</option>
+                  <option value="en">English</option>
+                  <option value="wo">Wolof (À venir)</option>
+                </select>
+              </div>
+            </section>
+          </div>
+        </section>
+      }
+    </main>
+  </div>
+</app-modal>
