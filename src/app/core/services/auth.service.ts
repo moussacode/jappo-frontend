@@ -292,4 +292,18 @@ export class AuthService {
         )
       );
   }
+
+
+
+  loginGoogle(idToken: string): Observable<AuthResponse> {
+  return this.http
+    .post<AuthResponse>(`${this.apiUrl}/google`, { idToken })
+    .pipe(tap((response) => this.handleAuthSuccess(response)));
+}
+
+inscriptionGoogle(idToken: string): Observable<AuthResponse> {
+  return this.http
+    .post<AuthResponse>(`${this.apiUrl}/google/inscription`, { idToken })
+    .pipe(tap((response) => this.handleAuthSuccess(response)));
+}
 }
