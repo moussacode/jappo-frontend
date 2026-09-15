@@ -277,6 +277,8 @@ if (filtre === 'EN_COURS') {
         error: (err) => {
           console.error('Erreur chargement missions:', err);
           this.isLoading.set(false);
+          // Ne pas masquer l'erreur en mettant une liste vide
+          // Laisser l'état d'erreur visible via l'indicateur de chargement
         },
       });
   }

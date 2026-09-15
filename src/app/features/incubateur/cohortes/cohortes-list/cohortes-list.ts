@@ -10,7 +10,8 @@ import { CohorteService } from '../../../../core/services/cohorte.service';
 import { ProjetService } from '../../../../core/services/projet.service';
 import { StructureContextService } from '../../../../core/services/structure-context.service';
 import { Cohorte, Projet, PhaseParcours } from '../../../../core/models';
-
+import { MissionService } from '../../../../core/services/mission.service';
+import { Mission } from '../../../../core/models/mission.model';
 // Design System Partagé
 import { Icon } from '../../../../shared/components/icon/icon';
 import { BadgeComponent } from '../../../../shared/components/badge/badge';
@@ -569,7 +570,9 @@ export class CohortesList {
   protected readonly cohorteOrder = signal<string[]>([]);
   protected readonly draggedId = signal<string | null>(null);
   protected readonly dragOverId = signal<string | null>(null);
+private readonly missionService = inject(MissionService);
 
+protected readonly missionsParCohorte = signal<Record<string, Mission[]>>({});
   // Tris & Recherche
   protected readonly globalSortBy = signal<SortField>('progression');
   protected readonly globalSortDir = signal<SortDir>('desc');
@@ -642,7 +645,14 @@ protected readonly projetForm = new FormGroup({
     const enRetard = projets.filter((p) => (p.scoreMaturite || 0) <= 30);
     const aJour = projets.filter((p) => (p.scoreMaturite || 0) > 70).length;
 
-    return { cohorte, projets, scoreMoyen, enRetard, aJour };
+    return {
+  cohorte,
+  projets,
+  missions: this.missionsParCohorte()[cohorte.id] ?? [],
+  scoreMoyen,
+  enRetard,
+  aJour,
+};
   });
 
   protected readonly filteredSortedProjets = computed(() => {
@@ -789,45 +799,92 @@ protected readonly projetForm = new FormGroup({
     }
   }
 
-  protected loadData(): void {
-    this.isLoading.set(true);
-    this.cohorteService.getActiveCohortes().subscribe({
-      next: (cohortes) => {
-        this.cohortes.set(cohortes);
-        this.cohorteOrder.set(this.loadOrder(cohortes.map((c) => c.id)));
+ protected loadData(): void {
+  this.isLoading.set(true);
 
-        // Vérifier si un ID a été passé en paramètre d'URL
-        const targetId = this.queryCohorteIdToSelect();
-        if (targetId && cohortes.some((c) => c.id === targetId)) {
-          this.activeContextId.set(targetId);
-          this.queryCohorteIdToSelect.set(null); // Consommé
-        }
+  this.cohorteService.getActiveCohortes().subscribe({
+    next: (cohortes) => {
+      this.cohortes.set(cohortes);
+      this.cohorteOrder.set(
+        this.loadOrder(cohortes.map((c) => c.id))
+      );
 
-        if (!cohortes || cohortes.length === 0) {
-          this.isLoading.set(false);
-          return;
-        }
+      const targetId = this.queryCohorteIdToSelect();
 
-        const requests = cohortes.map((c) => this.projetService.getByCohorte(c.id).pipe(catchError(() => of([]))));
+      if (targetId && cohortes.some((c) => c.id === targetId)) {
+        this.activeContextId.set(targetId);
+        this.queryCohorteIdToSelect.set(null);
+      }
 
-        forkJoin(requests).subscribe({
-          next: (results) => {
-            const map: Record<string, Projet[]> = {};
-            cohortes.forEach((cohorte, index) => {
-              map[cohorte.id] = results[index] ?? [];
-            });
-            this.projetsParCohorte.set(map);
-            this.isLoading.set(false);
-          },
-          error: () => this.isLoading.set(false),
-        });
-      },
-      error: (err) => {
-        console.error('Erreur:', err);
+      if (!cohortes || cohortes.length === 0) {
         this.isLoading.set(false);
-      },
-    });
-  }
+        return;
+      }
+
+      const projetsRequests = cohortes.map((cohorte) =>
+        this.projetService
+          .getByCohorte(cohorte.id)
+          .pipe(catchError(() => of([])))
+      );
+
+      forkJoin({
+        projets: forkJoin(projetsRequests),
+        missions: this.missionService
+          .getMissions()
+          .pipe(catchError(() => of([]))),
+      }).subscribe({
+        next: ({ projets, missions }) => {
+
+          // -------------------------
+          // Projets par cohorte
+          // -------------------------
+
+          const projetsMap: Record<string, Projet[]> = {};
+
+          cohortes.forEach((cohorte, index) => {
+            projetsMap[cohorte.id] = projets[index] ?? [];
+          });
+
+          this.projetsParCohorte.set(projetsMap);
+
+          // -------------------------
+          // Missions par cohorte
+          // -------------------------
+
+          const missionsMap: Record<string, Mission[]> = {};
+
+          missions.forEach((mission) => {
+            if (!mission.cohorteId) {
+              // Logger les missions sans cohorteId pour débogage
+              console.warn('Mission sans cohorteId détectée:', mission);
+              return;
+            }
+
+            if (!missionsMap[mission.cohorteId]) {
+              missionsMap[mission.cohorteId] = [];
+            }
+
+            missionsMap[mission.cohorteId].push(mission);
+          });
+
+          this.missionsParCohorte.set(missionsMap);
+
+          this.isLoading.set(false);
+        },
+
+        error: (err) => {
+          console.error('Erreur chargement des données:', err);
+          this.isLoading.set(false);
+        },
+      });
+    },
+
+    error: (err) => {
+      console.error('Erreur chargement cohortes:', err);
+      this.isLoading.set(false);
+    },
+  });
+}
   protected formatDate(dateString: string | undefined): string {
     if (!dateString) return '—';
     try {

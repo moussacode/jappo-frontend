@@ -77,7 +77,7 @@ import { InviterEntrepreneurModalComponent } from '../../entrepreneurs/inviter-e
           />
           <app-kpi-card 
             label="Cohortes actives" 
-            [value]="stats()?.totalCohortes || 0" 
+            [value]="cohortesActives().length  || 0" 
             note="Programmes en cours"
             noteVariant="brand"
           />
