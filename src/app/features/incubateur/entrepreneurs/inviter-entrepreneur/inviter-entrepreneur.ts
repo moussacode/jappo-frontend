@@ -1,4 +1,4 @@
-import { Component, inject, signal, output, OnInit, DestroyRef } from '@angular/core';
+import { Component, inject, signal, input, output, OnInit, DestroyRef } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
@@ -65,20 +65,30 @@ import { ModalComponent } from '../../../../shared/components/modal/modal.compon
             </app-form-field>
 
             <!-- Choix Cohorte -->
-            <app-form-field label="Cohorte de destination (Optionnel)">
-              <select
-                formControlName="cohorteId"
-                class="w-full rounded-xl border border-line bg-surface px-3 py-2 text-xs text-ink focus:border-accent focus:outline-none transition-colors"
-              >
-                <option value="">Aucune cohorte (Assignation ultérieure)</option>
-                @for (c of cohortes(); track c.id) {
-                  <option [value]="c.id">{{ c.nom }}</option>
-                }
-              </select>
-            </app-form-field>
+            @if (fixedCohorteId()) {
+              <div class="flex flex-col gap-1.5">
+                <label class="text-xs font-semibold text-ink-muted">Cohorte de destination</label>
+                <div class="flex items-center justify-between rounded-xl border border-line bg-surface-muted/40 px-3 py-2.5 text-xs text-ink">
+                  <span class="font-bold text-ink">{{ fixedCohorteNom() || 'Cohorte sélectionnée' }}</span>
+                  <span class="text-[11px] font-semibold text-accent uppercase tracking-wider">Verrouillé</span>
+                </div>
+              </div>
+            } @else {
+              <app-form-field label="Cohorte de destination (Optionnel)">
+                <select
+                  formControlName="cohorteId"
+                  class="w-full rounded-xl border border-line bg-surface px-3 py-2 text-xs text-ink focus:border-accent focus:outline-none transition-colors"
+                >
+                  <option value="">Aucune cohorte (Assignation ultérieure)</option>
+                  @for (c of cohortes(); track c.id) {
+                    <option [value]="c.id">{{ c.nom }}</option>
+                  }
+                </select>
+              </app-form-field>
+            }
 
             <!-- Pied de Formulaire : Rôle + Boutons -->
-            <div class="flex items-center justify-between  pt-4 mt-1">
+            <div class="flex items-center justify-between pt-4 mt-1">
               <span class="text-xs text-ink-muted">Rôle : <strong class="text-ink font-medium">Entrepreneur</strong></span>
 
               <div class="flex items-center gap-2">
@@ -137,6 +147,10 @@ export class InviterEntrepreneurModalComponent implements OnInit {
   private readonly entrepreneurService = inject(EntrepreneurService);
   private readonly destroyRef = inject(DestroyRef);
 
+  // Inputs optionnels pour contextes verrouillés
+  readonly fixedCohorteId = input<string | undefined>(undefined);
+  readonly fixedCohorteNom = input<string | undefined>(undefined);
+
   // Outputs pour communiquer avec la liste parente
   readonly close = output<void>();
   readonly invited = output<void>();
@@ -153,8 +167,12 @@ export class InviterEntrepreneurModalComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    if (this.fixedCohorteId()) {
+      this.form.controls.cohorteId.setValue(this.fixedCohorteId()!);
+    }
+
     this.cohorteService
-      .getCohortes()
+      .getActiveCohortes()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (c) => this.cohortes.set(c),
@@ -204,7 +222,7 @@ export class InviterEntrepreneurModalComponent implements OnInit {
     this.resultat.set(null);
     this.errorMessage.set(null);
 
-    const { cohorteId } = this.form.getRawValue();
+    const cohorteId = this.fixedCohorteId() || this.form.getRawValue().cohorteId;
 
     this.entrepreneurService
       .inviterMultiple({

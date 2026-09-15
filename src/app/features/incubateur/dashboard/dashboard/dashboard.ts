@@ -9,10 +9,11 @@ import { DatePipe } from '@angular/common';
 import {
   DashboardService,
   DashboardStatsResponse,
-  AlerteProjetResponse,
   LivrableRecentResponse,
 } from '../../../../core/services/dashboard.service';
+import { CohorteService } from '../../../../core/services/cohorte.service';
 import { StructureContextService } from '../../../../core/services/structure-context.service';
+import { Cohorte } from '../../../../core/models';
 
 // Design System Partagé
 import { KpiCardComponent } from '../../../../shared/components/kpi-card/kpi-card';
@@ -22,6 +23,7 @@ import { CardComponent } from '../../../../shared/components/card/card.component
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state';
+import { InviterEntrepreneurModalComponent } from '../../entrepreneurs/inviter-entrepreneur/inviter-entrepreneur';
 
 @Component({
   selector: 'app-dashboard',
@@ -36,6 +38,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
     PageHeaderComponent,
     ButtonComponent,
     EmptyStateComponent,
+    InviterEntrepreneurModalComponent,
   ],
   template: `
     <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-8 p-4 sm:p-6 lg:p-8">
@@ -45,12 +48,10 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
         title="Vue d'ensemble"
         [subtitle]="'Espace Incubateur / ' + nomStructure()"
       >
-        <a routerLink="/incubateur/entrepreneurs/inviter">
-          <app-button size="sm">
-            <app-icon name="plus" class="size-3.5" />
-            <span>Inviter des entrepreneurs</span>
-          </app-button>
-        </a>
+        <app-button size="sm" (click)="showInviteModal.set(true)">
+          <app-icon name="plus" class="size-3.5" />
+          <span>Inviter des entrepreneurs</span>
+        </app-button>
       </app-page-header>
 
       <!-- SKELETON LOADER -->
@@ -94,27 +95,31 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
           />
         </div>
 
-        <!-- 2. BLOC PROJETS À SURVEILLER (ALERTES) -->
-        @if (alertes().length > 0) {
-          <div class="flex flex-col gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5 shadow-xs">
+        <!-- 2. BLOC COHORTES ACTIVES (CLICABLES) -->
+        @if (cohortesActives().length > 0) {
+          <div class="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-5 shadow-xs">
             <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2 text-amber-700 font-bold text-xs uppercase tracking-wider">
-                <app-icon name="warning" class="size-4 text-amber-600" />
-                <span>Attention requise ({{ alertes().length }} projet(s) avec une maturité < 40%)</span>
+              <div class="flex items-center gap-2 text-ink font-bold text-xs uppercase tracking-wider">
+                <app-icon name="cohortes" class="size-4 text-accent" />
+                <span>Cohortes Actives ({{ cohortesActives().length }})</span>
               </div>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-1">
-              @for (a of alertes(); track a.projetId) {
+              @for (c of cohortesActives(); track c.id) {
                 <a
-                  [routerLink]="['/incubateur/entrepreneurs', a.entrepreneurId || a.projetId]"
-                  class="flex items-center justify-between rounded-xl border border-line bg-surface p-3.5 hover:border-amber-500/40 transition-colors cursor-pointer shadow-2xs"
+                  [routerLink]="['/incubateur/cohortes']"
+                  [queryParams]="{ cohorteId: c.id }"
+                  class="group flex items-center justify-between rounded-xl border border-line bg-surface-muted/30 p-3.5 transition-all hover:border-accent hover:bg-accent/5 cursor-pointer shadow-2xs"
                 >
                   <div class="flex flex-col min-w-0">
-                    <span class="text-xs font-bold text-ink truncate">{{ a.nomProjet }}</span>
-                    <span class="text-[11px] text-ink-muted truncate">{{ a.nomEntrepreneur }}</span>
+                    <span class="text-xs font-bold text-ink truncate transition-colors group-hover:text-accent">{{ c.nom }}</span>
+                    <span class="text-[11px] text-ink-muted truncate">{{ c.description || 'Aucune description' }}</span>
                   </div>
-                  <app-badge status="warning" size="sm">{{ a.scoreMaturite }}%</app-badge>
+                  <div class="flex items-center gap-2 shrink-0">
+                   
+                    <app-icon name="chevron-right" class="size-3.5 text-ink-muted transition-transform group-hover:translate-x-0.5 group-hover:text-accent" />
+                  </div>
                 </a>
               }
             </div>
@@ -132,13 +137,16 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
 
           <div class="divide-y divide-line">
             @for (l of livrablesRecents(); track l.livrableId) {
-              <div class="flex items-center justify-between px-6 py-4 hover:bg-surface-muted/30 transition-colors gap-4">
+              <a
+                [routerLink]="l.missionId ? ['/incubateur/missions', l.missionId] : null"
+                class="flex items-center justify-between px-6 py-4 hover:bg-surface-muted/40 transition-colors gap-4 group cursor-pointer"
+              >
                 <div class="flex items-center gap-3 min-w-0">
-                  <div class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-surface-muted border border-line text-ink-muted">
+                  <div class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-surface-muted border border-line text-ink-muted group-hover:border-accent/40 group-hover:text-accent transition-colors">
                     <app-icon name="missions" class="size-4" />
                   </div>
                   <div class="flex flex-col min-w-0">
-                    <span class="text-xs font-bold text-ink truncate">{{ l.nomLivrable }}</span>
+                    <span class="text-xs font-bold text-ink truncate group-hover:text-accent transition-colors">{{ l.nomLivrable }}</span>
                     <span class="text-[11px] text-ink-muted truncate">
                       Par <strong>{{ l.nomEntrepreneur }}</strong> ({{ l.nomProjet }})
                     </span>
@@ -152,8 +160,9 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
                   <app-badge [status]="badgeLivrableStatus(l.statut)" size="sm">
                     {{ formaterStatutLivrable(l.statut) }}
                   </app-badge>
+                  <app-icon name="chevron-right" class="size-3.5 text-ink-muted transition-transform group-hover:translate-x-0.5 group-hover:text-accent" />
                 </div>
-              </div>
+              </a>
             } @empty {
               <div class="p-8">
                 <app-empty-state
@@ -168,19 +177,28 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
 
       }
 
+      @if (showInviteModal()) {
+        <app-inviter-entrepreneur-modal
+          (close)="showInviteModal.set(false)"
+          (invited)="chargerDonneesDashboard()"
+        />
+      }
+
     </div>
   `,
 })
 export class Dashboard implements OnInit {
   private readonly dashboardService = inject(DashboardService);
+  private readonly cohorteService = inject(CohorteService);
   private readonly structureContext = inject(StructureContextService);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly isLoading = signal<boolean>(true);
   protected readonly nomStructure = signal<string>('Incubateur');
+  protected readonly showInviteModal = signal<boolean>(false);
 
   protected readonly stats = signal<DashboardStatsResponse | undefined>(undefined);
-  protected readonly alertes = signal<AlerteProjetResponse[]>([]);
+  protected readonly cohortesActives = signal<Cohorte[]>([]);
   protected readonly livrablesRecents = signal<LivrableRecentResponse[]>([]);
 
   ngOnInit(): void {
@@ -192,19 +210,19 @@ export class Dashboard implements OnInit {
     this.chargerDonneesDashboard();
   }
 
-  private chargerDonneesDashboard(): void {
+  protected chargerDonneesDashboard(): void {
     this.isLoading.set(true);
 
     forkJoin({
       stats: this.dashboardService.getStats().pipe(catchError(() => of(undefined))),
-      alertes: this.dashboardService.getAlertes().pipe(catchError(() => of([]))),
+      cohortes: this.cohorteService.getActiveCohortes().pipe(catchError(() => of([]))),
       livrablesRecents: this.dashboardService.getLivrablesRecents(5).pipe(catchError(() => of([]))),
     })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: ({ stats, alertes, livrablesRecents }) => {
+        next: ({ stats, cohortes, livrablesRecents }) => {
           this.stats.set(stats);
-          this.alertes.set(alertes);
+          this.cohortesActives.set(cohortes);
           this.livrablesRecents.set(livrablesRecents);
           this.isLoading.set(false);
         },

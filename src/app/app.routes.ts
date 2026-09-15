@@ -86,6 +86,11 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/entrepreneur/missions/mission-detail/mission-detail').then((m) => m.MissionDetail),
       },
+      {
+  path: 'documents',
+  loadComponent: () =>
+    import('./features/entrepreneur/documents/mes-documents/mes-documents').then((m) => m.MesDocuments),
+},
      
      
       {
@@ -136,7 +141,7 @@ export const routes: Routes = [
             {
         path: 'cohortes/:id',
         loadComponent: () =>
-          import('./features/incubateur/cohortes/cohorte-detail/cohorte-detail').then((m) => m.CohorteDetail),
+          import('./features/incubateur/cohortes/cohortes-list/cohortes-list').then((m) => m.CohortesList),
       },
       {
         path: 'entrepreneurs',

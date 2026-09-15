@@ -9,6 +9,8 @@ export interface Structure {
   type: TypeStructure;
   pays: string;
   ville: string;
+  adresse?: string;
+  siteWeb?: string;
   description?: string;
   logo?: string | null;
   statut: 'active';

@@ -183,38 +183,66 @@ export class MissionsList implements OnInit {
   protected readonly searchControl = new FormControl('', { nonNullable: true });
   protected readonly searchTerm = signal('');
 
-  protected readonly compteEnCours = computed(() =>
-    this.missions().filter((m) => m.statut === 'EN_COURS' || m.statut === 'A_FAIRE').length
-  );
+protected readonly compteEnCours = computed(() =>
+  this.missions().filter(
+    (m) => m.statut === 'A_FAIRE' || m.statut === 'EN_COURS'
+  ).length
+);
 
-  protected readonly compteARevoir = computed(() =>
-    this.missions().filter((m) => m.statut === 'SOUMIS' || m.statut === 'A_CORRIGER').length
-  );
+protected readonly compteARevoir = computed(() =>
+  this.missions().filter(
+    (m) => m.statut === 'SOUMIS' || m.statut === 'A_REVOIR'
+  ).length
+);
 
-  protected readonly compteValidees = computed(() =>
-    this.missions().filter((m) => m.statut === 'VALIDEE' || (m.statut as string) === 'VALIDE').length
-  );
+protected readonly compteValidees = computed(() =>
+  this.missions().filter(
+    (m) => m.statut === 'VALIDE' || m.statut === 'VALIDEE'
+  ).length
+);
 
-  protected readonly optionsFiltreStatut = computed<TabOption<FiltreStatutMission>[]>(() => [
-    { value: 'TOUTES', label: 'Toutes', count: this.missions().length },
-    { value: 'EN_COURS', label: 'En cours', count: this.compteEnCours() },
-    { value: 'A_REVOIR', label: 'À réviser', count: this.compteARevoir() },
-    { value: 'VALIDEE', label: 'Validées', count: this.compteValidees() },
+protected readonly optionsFiltreStatut =
+  computed<TabOption<FiltreStatutMission>[]>(() => [
+    {
+      value: 'TOUTES',
+      label: 'Toutes',
+      count: this.missions().length,
+    },
+    {
+      value: 'EN_COURS',
+      label: 'En cours',
+      count: this.compteEnCours(),
+    },
+    {
+      value: 'A_REVOIR',
+      label: 'À revoir',
+      count: this.compteARevoir(),
+    },
+    {
+      value: 'VALIDEE',
+      label: 'Validées',
+      count: this.compteValidees(),
+    },
   ]);
+
 
   protected readonly missionsFiltrees = computed(() => {
     const term = this.searchTerm().toLowerCase().trim();
     const filtre = this.filtreStatut();
     let liste = this.missions();
-
-    if (filtre === 'EN_COURS') {
-      liste = liste.filter((m) => m.statut === 'EN_COURS' || m.statut === 'A_FAIRE');
-    } else if (filtre === 'A_REVOIR') {
-      liste = liste.filter((m) => m.statut === 'SOUMIS' || m.statut === 'A_CORRIGER');
-    } else if (filtre === 'VALIDEE') {
-      liste = liste.filter((m) => m.statut === 'VALIDEE' || (m.statut as string) === 'VALIDE');
-    }
-
+if (filtre === 'EN_COURS') {
+  liste = liste.filter(
+    (m) => m.statut === 'A_FAIRE' || m.statut === 'EN_COURS'
+  );
+} else if (filtre === 'A_REVOIR') {
+  liste = liste.filter(
+    (m) => m.statut === 'SOUMIS' || m.statut === 'A_REVOIR'
+  );
+} else if (filtre === 'VALIDEE') {
+  liste = liste.filter(
+    (m) => m.statut === 'VALIDE' || m.statut === 'VALIDEE'
+  );
+}
     if (term) {
       liste = liste.filter(
         (m) =>
@@ -253,39 +281,46 @@ export class MissionsList implements OnInit {
       });
   }
 
-  protected badgeStatus(statut: StatutMission): BadgeStatus {
-    switch (statut) {
-      case 'VALIDEE':
-      case 'VALIDE' as any:
-        return 'success';
-      case 'SOUMIS':
-      case 'EN_COURS':
-        return 'primary';
-      case 'A_CORRIGER':
-      case 'EN_RETARD':
-        return 'danger';
-      default:
-        return 'neutral';
-    }
-  }
+protected badgeStatus(statut: StatutMission): BadgeStatus {
+  switch (statut) {
+    case 'VALIDEE':
+    case 'VALIDE':
+      return 'success';
 
-  protected formaterStatut(statut: StatutMission): string {
-    switch (statut) {
-      case 'VALIDEE':
-      case 'VALIDE' as any:
-        return 'Validée';
-      case 'SOUMIS':
-        return 'En revue';
-      case 'EN_COURS':
-        return 'En cours';
-      case 'A_CORRIGER':
-        return 'À corriger';
-      case 'EN_RETARD':
-        return 'En retard';
-      default:
-        return 'À faire';
-    }
+    case 'SOUMIS':
+    case 'A_REVOIR':
+      return 'warning';
+
+    case 'EN_COURS':
+      return 'primary';
+
+    case 'A_FAIRE':
+    default:
+      return 'neutral';
   }
+}
+
+protected formaterStatut(statut: StatutMission): string {
+  switch (statut) {
+    case 'VALIDEE':
+    case 'VALIDE':
+      return 'Validée';
+
+    case 'SOUMIS':
+      return 'Soumise';
+
+    case 'A_REVOIR':
+      return 'À revoir';
+
+    case 'EN_COURS':
+      return 'En cours';
+
+    case 'A_FAIRE':
+    default:
+      return 'À faire';
+  }
+}
+ 
 
   protected badgePrioriteStatus(priorite?: PrioriteMission): BadgeStatus {
     switch (priorite) {

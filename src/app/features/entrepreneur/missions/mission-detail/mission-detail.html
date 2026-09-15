@@ -1,4 +1,4 @@
-<div class="flex flex-col gap-6 p-8">
+<div class="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
   <a routerLink="/entrepreneur/missions" class="text-xs flex items-center gap-2 font-medium text-neutral-500 hover:text-neutral-700 transition-colors">
     <app-icon name="arrow-left" class="size-3 flex items-center justify-center text-neutral-700" />
     Mes missions
@@ -14,11 +14,14 @@
             {{ statutBadge(m.statut).label }}
           </app-badge>
         </div>
-        <p class="mt-1.5 text-xs text-ink-muted flex items-center gap-2">
+        <p class="mt-1.5 text-xs text-ink-muted flex items-center gap-2 flex-wrap">
           <span>{{ m.nomProjet || 'Projet principal' }}</span>
           @if (m.dateEcheance) {
             <span>•</span>
-            <span>Échéance : {{ m.dateEcheance }}</span>
+            <span class="flex items-center gap-1">
+              <app-icon name="calendar" class="size-3.5" />
+              <span>Échéance : {{ m.dateEcheance }}</span>
+            </span>
           }
         </p>
       </div>
@@ -33,7 +36,7 @@
     <!-- Grille principale -->
     <div class="grid grid-cols-1 gap-6 md:grid-cols-[1.6fr_1fr]">
       
-      <!-- Colonne gauche : Consignes & Soumissions multiples -->
+      <!-- Colonne gauche : Consignes, Livrables actuels, Cycle de révision -->
       <div class="flex flex-col gap-6">
         
         <!-- Carte Consignes -->
@@ -44,178 +47,539 @@
           </p>
         </div>
 
-        <!-- Carte Soumission de livrable -->
-        <div class="rounded-[var(--radius-card-lg)] border border-line bg-surface p-6 shadow-[var(--shadow-subtle)]">
-          <div class="flex items-center justify-between pb-4 border-b border-line">
-            <div>
-              <h2 class="text-base font-semibold text-ink">Soumettre mon livrable</h2>
-              <p class="text-xs text-ink-muted mt-0.5">Ajoute tes fichiers, liens de projet et une note pour ton coach.</p>
-            </div>
-          </div>
+        <!-- Section Livrables Existants & Cycle de Révision -->
+        @if (livrablesExistants().length > 0) {
+          <div class="flex flex-col gap-4">
+            <h2 class="text-base font-semibold text-ink">Mon travail pour cette mission</h2>
 
-          @if (submitted()) {
-            <!-- Message de succès -->
-            <div class="mt-6 rounded-xl bg-vivid-green/10 border border-vivid-green/20 p-5 flex items-start gap-3 text-xs font-medium text-vivid-green">
-              <div>
-                <p class="font-semibold text-sm">Livrables soumis avec succès !</p>
-                <p class="mt-1 text-ink-muted font-normal">
-                  Ton coach a été notifié et évaluera ton travail sous peu.
-                </p>
-              </div>
-            </div>
-          } @else {
-            
-            <div class="mt-6 flex flex-col gap-5">
-              
-              <!-- 1. Note / Explication -->
-              <div class="flex flex-col gap-1.5">
-                <label class="text-xs font-semibold text-ink">
-                  Note ou message pour le coach <span class="text-ink-muted font-normal">(Optionnel)</span>
-                </label>
-                <textarea
-                  [(ngModel)]="noteEntrepreneur"
-                  rows="3"
-                  placeholder="Explique brièvement ta démarche, les difficultés rencontrées ou les points clés..."
-                  class="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs text-ink placeholder:text-ink-muted/60 focus:border-accent focus:outline-none transition-colors resize-none"
-                ></textarea>
-              </div>
+            @for (l of livrablesExistants(); track l.id) {
+              <div class="rounded-xl border border-line bg-surface overflow-hidden shadow-xs">
+                
+                <!-- Carte du livrable actuel -->
+                <div class="p-5 flex flex-col gap-4">
+                  
+                  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-line/60">
+                    <div class="flex items-center gap-3 min-w-0">
+                      <div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent/10 border border-accent/20 text-accent">
+                        @if (l.typePiece === 'LIEN') {
+                          <app-icon name="link" class="size-4" />
+                        } @else {
+                          <app-icon name="missions" class="size-4" />
+                        }
+                      </div>
 
-              <!-- 2. Boutons d'ajout (Fichier vs Lien) -->
-              <div class="flex items-center gap-3">
-                <!-- Trigger Input File -->
-                <label class="cursor-pointer inline-flex items-center gap-2 rounded-lg border border-line bg-surface px-3.5 py-2 text-xs font-medium text-ink hover:bg-surface-muted transition-colors">
-                  <app-icon name="File-Text" class="size-3.5 text-accent" />
-                  <span>Joindre un fichier</span>
-                  <input type="file" multiple class="hidden" (change)="onFileSelected($event)" />
-                </label>
+                      <div class="flex flex-col min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                          <p class="text-sm font-bold text-ink truncate">{{ l.nom || 'Livrable' }}</p>
+                          <span class="inline-flex items-center rounded-md bg-surface-muted px-2 py-0.5 text-[11px] font-semibold text-ink-muted border border-line">
+                            Version {{ l.numeroVersion || 1 }}
+                          </span>
+                        </div>
+                        <p class="text-[11px] text-ink-muted mt-0.5">
+                          Déposé le {{ l.dateDepot ? (l.dateDepot | date:'dd MMMM yyyy à HH:mm') : 'Récemment' }}
+                        </p>
+                      </div>
+                    </div>
 
-                <!-- Trigger Formulaire Lien -->
-                <button
-                  type="button"
-                  (click)="showLinkForm.set(!showLinkForm())"
-                  class="inline-flex items-center gap-2 rounded-lg border border-line bg-surface px-3.5 py-2 text-xs font-medium text-ink hover:bg-surface-muted transition-colors"
-                >
-                  <app-icon name="link" class="size-3.5 text-accent" />
-                  <span>Ajouter un lien Web</span>
-                </button>
-              </div>
+                    <div class="flex items-center gap-2.5 self-start sm:self-auto">
+                      <app-badge [status]="statutBadgeLivrable(l.statut).status">
+                        {{ statutBadgeLivrable(l.statut).label }}
+                      </app-badge>
 
-              <!-- Formulaire inline pour lien -->
-              @if (showLinkForm()) {
-                <div class="p-4 rounded-xl border border-line bg-surface-muted/40 flex flex-col gap-3">
-                  <p class="text-xs font-semibold text-ink">Ajouter un lien externe (Figma, GitHub, Drive, Loom...)</p>
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <input
-                      type="text"
-                      [(ngModel)]="newLinkTitle"
-                      placeholder="Titre du lien (ex: Maquette Figma)"
-                      class="rounded-lg border border-line bg-surface px-3 py-2 text-xs text-ink focus:border-accent focus:outline-none"
-                    />
-                    <input
-                      type="url"
-                      [(ngModel)]="newLinkUrl"
-                      placeholder="https://..."
-                      class="rounded-lg border border-line bg-surface px-3 py-2 text-xs text-ink focus:border-accent focus:outline-none"
-                    />
+                      <button
+                        type="button"
+                        (click)="ouvrirFichier(l.url)"
+                        class="text-xs font-semibold text-accent hover:underline flex items-center gap-1 cursor-pointer"
+                        title="Consulter le fichier ou le lien"
+                      >
+                        <span>Ouvrir</span>
+                        <app-icon name="arrow-right" class="size-3" />
+                      </button>
+                    </div>
                   </div>
-                  <div class="flex justify-end gap-2 mt-1">
-                    <button
-                      type="button"
-                      (click)="showLinkForm.set(false)"
-                      class="px-3 py-1.5 text-xs font-medium text-ink-muted hover:text-ink transition-colors"
-                    >
-                      Annuler
-                    </button>
-                    <app-button size="xs" (click)="ajouterLien()" [disabled]="!newLinkUrl().trim()">
-                      Ajouter
-                    </app-button>
-                  </div>
-                </div>
-              }
 
-              <!-- 3. Zone Dropzone Drag & Drop neutre s'il n'y a aucun fichier -->
-              @if (items().length === 0) {
-                <label class="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line bg-surface-muted/20 p-6 text-center cursor-pointer hover:border-accent/40 transition-colors">
-                  <div class="h-9 w-9 rounded-full bg-surface border border-line flex items-center justify-center text-ink-muted">
-                    <app-icon name="File-Text" class="size-4" />
-                  </div>
-                  <div>
-                    <p class="text-xs font-semibold text-ink">Aucun livrable ajouté pour le moment</p>
-                    <p class="mt-0.5 text-[11px] text-ink-muted">Glisse tes fichiers ici ou ajoute des liens ci-dessus</p>
-                  </div>
-                  <input type="file" multiple class="hidden" (change)="onFileSelected($event)" />
-                </label>
-              }
+                  <!-- CAS 1 : CORRECTION DEMANDÉE (RETOUR STRUCTURÉ DU COACH) -->
+                  @if (l.statut === 'A_CORRIGER') {
+                    <div class="rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50/60 dark:bg-amber-950/20 p-5 flex flex-col gap-4">
+                      
+                      <div class="flex items-start gap-3">
+                        <div class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-300">
+                          <app-icon name="warning" class="size-4" />
+                        </div>
+                        <div class="flex flex-col gap-1 flex-1">
+                          <h3 class="text-sm font-bold text-amber-900 dark:text-amber-200">
+                            Votre coach demande des modifications sur la Version {{ l.numeroVersion || 1 }}
+                          </h3>
+                          <p class="text-xs text-amber-800/80 dark:text-amber-300/80">
+                            Consultez attentivement les points ci-dessous pour préparer et déposer votre nouvelle version (V{{ (l.numeroVersion || 1) + 1 }}).
+                          </p>
+                        </div>
+                      </div>
 
-              <!-- 4. Liste des éléments ajoutés -->
-              @if (items().length > 0) {
-                <div class="flex flex-col gap-2">
-                  <p class="text-xs font-semibold text-ink">Livrables rattachés ({{ items().length }})</p>
-                  <div class="divide-y divide-line rounded-xl border border-line bg-surface overflow-hidden">
-                    @for (item of items(); track item.id) {
-                      <div class="flex items-center justify-between px-4 py-3 hover:bg-surface-muted/30 transition-colors">
-                        <div class="flex items-center gap-3 min-w-0">
-                          <div class="h-8 w-8 rounded-lg bg-surface-muted border border-line flex items-center justify-center text-accent shrink-0">
-                            @if (item.type === 'fichier') {
-                              <app-icon name="File-Text" class="size-4" />
-                            } @else {
-                              <app-icon name="link" class="size-4" />
-                            }
-                          </div>
-                          <div class="flex flex-col min-w-0">
-                            <span class="text-xs font-semibold text-ink truncate">{{ item.titre }}</span>
-                            <span class="text-[10px] text-ink-muted truncate font-mono">
-                              {{ item.valeur }} @if (item.taille) { • {{ item.taille }} }
-                            </span>
+                      <!-- Motif -->
+                      @if (l.motifRefus || l.commentaireCoach) {
+                        <div class="rounded-lg bg-surface p-3.5 border border-line flex flex-col gap-1 text-xs">
+                          <span class="font-bold text-ink-muted uppercase tracking-wider text-[10px]">Motif de la correction :</span>
+                          <p class="text-ink font-medium leading-relaxed">
+                            {{ l.motifRefus || l.commentaireCoach }}
+                          </p>
+                        </div>
+                      }
+
+                      <!-- Points à corriger (Checklist) -->
+                      @if (l.pointsACorriger) {
+                        <div class="rounded-lg bg-surface p-4 border border-line flex flex-col gap-2.5">
+                          <span class="font-bold text-ink-muted uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+                            <app-icon name="check" class="size-3 text-amber-600" />
+                            <span>À corriger pour la prochaine version :</span>
+                          </span>
+
+                          <div class="text-xs text-ink leading-relaxed whitespace-pre-line pl-1">
+                            {{ l.pointsACorriger }}
                           </div>
                         </div>
+                      }
 
+                      <!-- Grille : Ressource recommandée & Date d'échéance -->
+                      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        @if (l.ressourceRecommandee) {
+                          <div class="rounded-lg bg-surface p-3 border border-line text-xs flex flex-col gap-1">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-ink-muted">Ressource conseillée :</span>
+                            <span class="text-accent font-semibold flex items-center gap-1">
+                              <app-icon name="document-text" class="size-3.5" />
+                              <span>{{ l.ressourceRecommandee }}</span>
+                            </span>
+                          </div>
+                        }
+
+                        @if (l.dateEcheanceCorrection) {
+                          <div class="rounded-lg bg-surface p-3 border border-line text-xs flex flex-col gap-1">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-ink-muted">Échéance de retour :</span>
+                            <span class="text-ink font-semibold flex items-center gap-1">
+                              <app-icon name="calendar" class="size-3.5 text-amber-600" />
+                              <span>{{ l.dateEcheanceCorrection }}</span>
+                            </span>
+                          </div>
+                        }
+                      </div>
+
+                      <!-- CTA Principal pour redéposer -->
+                      @if (activeRedepositId() !== l.id) {
+                        <div class="pt-2 flex justify-end">
+                          <app-button
+                            size="sm"
+                            (click)="ouvrirRedepot(l.id)"
+                          >
+                            <app-icon name="File-Text-Add" class="size-4 mr-1.5" />
+                            <span>Déposer la Version {{ (l.numeroVersion || 1) + 1 }}</span>
+                          </app-button>
+                        </div>
+                      }
+
+                    </div>
+                  }
+
+                  <!-- CAS 2 : EN ATTENTE DE RÉVISION -->
+                  @else if (l.statut === 'EN_ATTENTE') {
+                    <div class="rounded-xl border border-amber-200 dark:border-amber-800/40 bg-amber-50/40 dark:bg-amber-950/20 p-4 flex items-center gap-3 text-xs text-amber-900 dark:text-amber-200">
+                      <app-icon name="clock" class="size-5 shrink-0 text-amber-600" />
+                      <div>
+                        <p class="font-semibold text-sm">Version {{ l.numeroVersion || 1 }} en cours d'analyse</p>
+                        <p class="mt-0.5 text-ink-muted">
+                          Votre coach examine actuellement votre travail. Vous serez averti dès que l'évaluation sera effectuée.
+                        </p>
+                      </div>
+                    </div>
+                  }
+
+                  <!-- CAS 3 : VALIDÉ -->
+                  @else if (l.statut === 'VALIDE') {
+                    <div class="rounded-xl border border-emerald-200 dark:border-emerald-800/40 bg-emerald-50/40 dark:bg-emerald-950/20 p-4 flex items-center justify-between gap-3 text-xs text-emerald-900 dark:text-emerald-200">
+                      <div class="flex items-center gap-3">
+                        <app-icon name="check" class="size-5 shrink-0 text-emerald-600" />
+                        <div>
+                          <p class="font-semibold text-sm">Livrable validé par le coach !</p>
+                          <p class="mt-0.5 text-ink-muted">
+                            Cette étape est complétée avec succès.
+                          </p>
+                        </div>
+                      </div>
+
+                      @if (l.note !== undefined && l.note !== null) {
+                        <div class="rounded-lg bg-surface px-3 py-1.5 border border-line text-xs font-bold text-ink">
+                          Note : {{ l.note }}/20
+                        </div>
+                      }
+                    </div>
+                  }
+
+                  <!-- CAS 4 : FORMULAIRE DE REDÉPÔT DE VERSION (V{n+1}) -->
+                  @if (activeRedepositId() === l.id) {
+                    <div class="rounded-xl border border-accent/40 bg-surface-muted/30 p-5 flex flex-col gap-4 animate-in fade-in duration-200">
+                      
+                      <div class="flex items-center justify-between border-b border-line pb-3">
+                        <div>
+                          <h4 class="text-sm font-bold text-ink">
+                            Déposer la Version {{ (l.numeroVersion || 1) + 1 }}
+                          </h4>
+                          <p class="text-xs text-ink-muted mt-0.5">
+                            Cette nouvelle version remplacera la version actuelle et passera en révision auprès du coach.
+                          </p>
+                        </div>
                         <button
                           type="button"
-                          (click)="supprimerItem(item.id)"
-                          class="p-1.5 text-ink-muted hover:text-red-500 transition-colors rounded-md"
-                          title="Supprimer"
+                          (click)="fermerRedepot()"
+                          class="text-xs text-ink-muted hover:text-ink cursor-pointer"
                         >
-                          <app-icon name="x" class="size-4" />
+                          Annuler
                         </button>
                       </div>
-                    }
-                  </div>
-                </div>
-              }
 
-              @if (errorMessage()) {
-                <div class="rounded-lg border border-danger-100 bg-danger-50 p-3 text-xs text-danger-600">
-                  {{ errorMessage() }}
-                </div>
-              }
+                      <!-- Type : Fichier ou Lien -->
+                      <div class="flex items-center gap-3">
+                        <button
+                          type="button"
+                          (click)="redepositType.set('FICHIER')"
+                          class="px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors"
+                          [class]="redepositType() === 'FICHIER' ? 'border-accent bg-accent/10 text-accent font-semibold' : 'border-line bg-surface text-ink hover:bg-surface-muted'"
+                        >
+                          Joindre un nouveau fichier
+                        </button>
+                        <button
+                          type="button"
+                          (click)="redepositType.set('LIEN')"
+                          class="px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors"
+                          [class]="redepositType() === 'LIEN' ? 'border-accent bg-accent/10 text-accent font-semibold' : 'border-line bg-surface text-ink hover:bg-surface-muted'"
+                        >
+                          Renseigner un lien web
+                        </button>
+                      </div>
 
-              <!-- 5. Bouton de soumission globale -->
-              <div class="mt-2">
-                <app-button
-                  [fullWidth]="true"
-                  size="md"
-                  [disabled]="submitting() || items().length === 0"
-                  (click)="soumettre()"
-                >
-                  {{ submitting() ? 'Envoi en cours…' : 'Soumettre mes livrables' }}
-                </app-button>
+                      <!-- Champ Fichier -->
+                      @if (redepositType() === 'FICHIER') {
+                        <div class="flex flex-col gap-2">
+                          <label class="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line bg-surface p-5 text-center cursor-pointer hover:border-accent transition-colors">
+                            <app-icon name="File-Text" class="size-6 text-accent" />
+                            <div>
+                              <p class="text-xs font-semibold text-ink">
+                                {{ redepositFile() ? redepositFile()?.name : 'Sélectionner le document corrigé' }}
+                              </p>
+                              <p class="text-[11px] text-ink-muted mt-0.5">
+                                {{ redepositFile() ? ((redepositFile()!.size / (1024*1024)).toFixed(1) + ' Mo') : 'Glisser ou cliquer pour parcourir (PDF, DOCX, PPTX...)' }}
+                              </p>
+                            </div>
+                            <input type="file" class="hidden" (change)="onRedepositFileSelected($event)" />
+                          </label>
+                        </div>
+                      }
+
+                      <!-- Champ Lien -->
+                      @if (redepositType() === 'LIEN') {
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div class="flex flex-col gap-1">
+                            <label class="text-xs font-semibold text-ink">Titre du lien</label>
+                            <input
+                              type="text"
+                              [ngModel]="redepositLinkTitle()"
+                              (ngModelChange)="redepositLinkTitle.set($event)"
+                              placeholder="Ex: Maquette v2 (Figma)"
+                              class="rounded-lg border border-line bg-surface px-3 py-2 text-xs text-ink focus:border-accent focus:outline-none"
+                            />
+                          </div>
+                          <div class="flex flex-col gap-1">
+                            <label class="text-xs font-semibold text-ink">URL du lien *</label>
+                            <input
+                              type="url"
+                              [ngModel]="redepositLinkUrl()"
+                              (ngModelChange)="redepositLinkUrl.set($event)"
+                              placeholder="https://..."
+                              class="rounded-lg border border-line bg-surface px-3 py-2 text-xs text-ink focus:border-accent focus:outline-none"
+                            />
+                          </div>
+                        </div>
+                      }
+
+                      <!-- Note explicative pour le coach -->
+                      <div class="flex flex-col gap-1">
+                        <label class="text-xs font-semibold text-ink">
+                          Note sur les modifications apportées <span class="text-ink-muted font-normal">(Optionnel)</span>
+                        </label>
+                        <textarea
+                          [ngModel]="redepositComment()"
+                          (ngModelChange)="redepositComment.set($event)"
+                          rows="2"
+                          placeholder="Expliquez brièvement ce qui a été modifié selon les consignes du coach..."
+                          class="rounded-lg border border-line bg-surface p-3 text-xs text-ink placeholder:text-ink-muted/50 focus:border-accent focus:outline-none resize-none"
+                        ></textarea>
+                      </div>
+
+                      @if (redepositError()) {
+                        <div class="rounded-lg bg-danger-50 border border-danger-200 p-3 text-xs text-danger-600">
+                          {{ redepositError() }}
+                        </div>
+                      }
+
+                      <!-- Actions du formulaire -->
+                      <div class="flex items-center justify-end gap-2 pt-2 border-t border-line">
+                        <button
+                          type="button"
+                          (click)="fermerRedepot()"
+                          class="px-3 py-1.5 text-xs font-medium text-ink-muted hover:text-ink transition-colors"
+                        >
+                          Annuler
+                        </button>
+
+                        <app-button
+                          size="sm"
+                          [disabled]="submittingRedeposit() || (redepositType() === 'FICHIER' && !redepositFile()) || (redepositType() === 'LIEN' && !redepositLinkUrl().trim())"
+                          (click)="soumettreNouvelleVersion(l)"
+                        >
+                          {{ submittingRedeposit() ? 'Dépôt en cours...' : ('Déposer la Version ' + ((l.numeroVersion || 1) + 1)) }}
+                        </app-button>
+                      </div>
+
+                    </div>
+                  }
+
+                  <!-- Message de succès temporaire -->
+                  @if (redepositSuccessId() === l.id) {
+                    <div class="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-xs font-semibold text-emerald-700 flex items-center gap-2">
+                      <app-icon name="check" class="size-4" />
+                      <span>Nouvelle version déposée avec succès ! Votre coach a été prévenu.</span>
+                    </div>
+                  }
+
+                  <!-- Bouton et Tiroir de l'historique des versions -->
+                  @if (l.historique && l.historique.length > 1) {
+                    <div class="pt-2 border-t border-line/60">
+                      <button
+                        type="button"
+                        (click)="toggleHistorique(l.id)"
+                        class="text-xs font-semibold text-ink-muted hover:text-ink flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <app-icon name="clock" class="size-3.5" />
+                        <span>Historique des versions ({{ l.historique.length }})</span>
+                        <app-icon [name]="isHistoriqueOpen(l.id) ? 'chevron-up' : 'chevron-down'" class="size-3" />
+                      </button>
+
+                      @if (isHistoriqueOpen(l.id)) {
+                        <div class="mt-3 divide-y divide-line rounded-xl border border-line bg-surface-muted/30 overflow-hidden">
+                          @for (v of l.historique; track v.id) {
+                            <div class="p-3.5 flex flex-col gap-2">
+                              <div class="flex items-center justify-between gap-2">
+                                <div class="flex items-center gap-2">
+                                  <span class="text-xs font-bold px-2 py-0.5 rounded bg-surface border border-line text-ink">
+                                    V{{ v.numeroVersion }}
+                                  </span>
+                                  <span class="text-xs font-medium text-ink truncate">{{ v.nom }}</span>
+                                  <span class="text-[10px] text-ink-muted">· {{ v.dateDepot | date:'dd/MM/yyyy' }}</span>
+                                </div>
+
+                                <div class="flex items-center gap-2">
+                                  <app-badge [status]="statutBadgeLivrable(v.statut).status" size="sm">
+                                    {{ statutBadgeLivrable(v.statut).label }}
+                                  </app-badge>
+                                  <button
+                                    type="button"
+                                    (click)="ouvrirFichier(v.url)"
+                                    class="text-xs text-accent font-semibold hover:underline"
+                                  >
+                                    Ouvrir ↗
+                                  </button>
+                                </div>
+                              </div>
+
+                              @if (v.motifRefus || v.commentaireCoach) {
+                                <div class="text-xs text-ink-muted bg-surface p-2 rounded border border-line text-[11px] leading-relaxed">
+                                  <strong class="text-ink">Remarque coach : </strong>
+                                  <span>{{ v.motifRefus || v.commentaireCoach }}</span>
+                                </div>
+                              }
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+
+                </div>
+
               </div>
+            }
 
+          </div>
+        }
+
+        <!-- Carte Soumission de nouveau livrable (si aucun livrable encore déposé) -->
+        @if (livrablesExistants().length === 0) {
+          <div class="rounded-[var(--radius-card-lg)] border border-line bg-surface p-6 shadow-[var(--shadow-subtle)]">
+            <div class="flex items-center justify-between pb-4 border-b border-line">
+              <div>
+                <h2 class="text-base font-semibold text-ink">Déposer mon livrable</h2>
+                <p class="text-xs text-ink-muted mt-0.5">Ajoutez vos fichiers ou liens pour soumettre votre premier travail.</p>
+              </div>
             </div>
-          }
-        </div>
+
+            @if (submitted()) {
+              <div class="mt-6 rounded-xl bg-vivid-green/10 border border-vivid-green/20 p-5 flex items-start gap-3 text-xs font-medium text-vivid-green">
+                <div>
+                  <p class="font-semibold text-sm">Livrables soumis avec succès !</p>
+                  <p class="mt-1 text-ink-muted font-normal">
+                    Votre coach a été notifié et examinera votre travail sous peu.
+                  </p>
+                </div>
+              </div>
+            } @else {
+              <div class="mt-6 flex flex-col gap-5">
+                
+                <!-- 1. Note / Explication -->
+                <div class="flex flex-col gap-1.5">
+                  <label class="text-xs font-semibold text-ink">
+                    Note ou message pour le coach <span class="text-ink-muted font-normal">(Optionnel)</span>
+                  </label>
+                  <textarea
+                    [(ngModel)]="noteEntrepreneur"
+                    rows="3"
+                    placeholder="Expliquez brièvement votre démarche ou les points clés..."
+                    class="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs text-ink placeholder:text-ink-muted/60 focus:border-accent focus:outline-none transition-colors resize-none"
+                  ></textarea>
+                </div>
+
+                <!-- 2. Boutons d'ajout (Fichier vs Lien) -->
+                <div class="flex items-center gap-3">
+                  <label class="cursor-pointer inline-flex items-center gap-2 rounded-lg border border-line bg-surface px-3.5 py-2 text-xs font-medium text-ink hover:bg-surface-muted transition-colors">
+                    <app-icon name="File-Text" class="size-3.5 text-accent" />
+                    <span>Joindre un fichier</span>
+                    <input type="file" multiple class="hidden" (change)="onFileSelected($event)" />
+                  </label>
+
+                  <button
+                    type="button"
+                    (click)="showLinkForm.set(!showLinkForm())"
+                    class="inline-flex items-center gap-2 rounded-lg border border-line bg-surface px-3.5 py-2 text-xs font-medium text-ink hover:bg-surface-muted transition-colors"
+                  >
+                    <app-icon name="link" class="size-3.5 text-accent" />
+                    <span>Ajouter un lien Web</span>
+                  </button>
+                </div>
+
+                <!-- Formulaire inline pour lien -->
+                @if (showLinkForm()) {
+                  <div class="p-4 rounded-xl border border-line bg-surface-muted/40 flex flex-col gap-3">
+                    <p class="text-xs font-semibold text-ink">Ajouter un lien externe (Figma, GitHub, Drive, Loom...)</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <input
+                        type="text"
+                        [(ngModel)]="newLinkTitle"
+                        placeholder="Titre du lien (ex: Maquette Figma)"
+                        class="rounded-lg border border-line bg-surface px-3 py-2 text-xs text-ink focus:border-accent focus:outline-none"
+                      />
+                      <input
+                        type="url"
+                        [(ngModel)]="newLinkUrl"
+                        placeholder="https://..."
+                        class="rounded-lg border border-line bg-surface px-3 py-2 text-xs text-ink focus:border-accent focus:outline-none"
+                      />
+                    </div>
+                    <div class="flex justify-end gap-2 mt-1">
+                      <button
+                        type="button"
+                        (click)="showLinkForm.set(false)"
+                        class="px-3 py-1.5 text-xs font-medium text-ink-muted hover:text-ink transition-colors"
+                      >
+                        Annuler
+                      </button>
+                      <app-button size="xs" (click)="ajouterLien()" [disabled]="!newLinkUrl().trim()">
+                        Ajouter
+                      </app-button>
+                    </div>
+                  </div>
+                }
+
+                <!-- Dropzone neutre s'il n'y a aucun élément -->
+                @if (items().length === 0) {
+                  <label class="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line bg-surface-muted/20 p-6 text-center cursor-pointer hover:border-accent/40 transition-colors">
+                    <div class="h-9 w-9 rounded-full bg-surface border border-line flex items-center justify-center text-ink-muted">
+                      <app-icon name="File-Text" class="size-4" />
+                    </div>
+                    <div>
+                      <p class="text-xs font-semibold text-ink">Aucun document ajouté pour le moment</p>
+                      <p class="mt-0.5 text-[11px] text-ink-muted">Glissez vos fichiers ici ou ajoutez un lien ci-dessus</p>
+                    </div>
+                    <input type="file" multiple class="hidden" (change)="onFileSelected($event)" />
+                  </label>
+                }
+
+                <!-- Liste des éléments ajoutés -->
+                @if (items().length > 0) {
+                  <div class="flex flex-col gap-2">
+                    <p class="text-xs font-semibold text-ink">Éléments rattachés ({{ items().length }})</p>
+                    <div class="divide-y divide-line rounded-xl border border-line bg-surface overflow-hidden">
+                      @for (item of items(); track item.id) {
+                        <div class="flex items-center justify-between px-4 py-3 hover:bg-surface-muted/30 transition-colors">
+                          <div class="flex items-center gap-3 min-w-0">
+                            <div class="h-8 w-8 rounded-lg bg-surface-muted border border-line flex items-center justify-center text-accent shrink-0">
+                              @if (item.type === 'fichier') {
+                                <app-icon name="File-Text" class="size-4" />
+                              } @else {
+                                <app-icon name="link" class="size-4" />
+                              }
+                            </div>
+                            <div class="flex flex-col min-w-0">
+                              <span class="text-xs font-semibold text-ink truncate">{{ item.titre }}</span>
+                              <span class="text-[10px] text-ink-muted truncate font-mono">
+                                {{ item.valeur }} @if (item.taille) { • {{ item.taille }} }
+                              </span>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            (click)="supprimerItem(item.id)"
+                            class="p-1.5 text-ink-muted hover:text-red-500 transition-colors rounded-md cursor-pointer"
+                            title="Supprimer"
+                          >
+                            <app-icon name="x" class="size-4" />
+                          </button>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+
+                @if (errorMessage()) {
+                  <div class="rounded-lg border border-danger-100 bg-danger-50 p-3 text-xs text-danger-600">
+                    {{ errorMessage() }}
+                  </div>
+                }
+
+                <!-- Bouton de soumission -->
+                <div class="mt-2">
+                  <app-button
+                    [fullWidth]="true"
+                    size="md"
+                    [disabled]="submitting() || items().length === 0"
+                    (click)="soumettre()"
+                  >
+                    {{ submitting() ? 'Envoi en cours…' : 'Soumettre mon travail' }}
+                  </app-button>
+                </div>
+
+              </div>
+            }
+          </div>
+        }
 
       </div>
 
-      <!-- Colonne droite : Métadonnées / À propos -->
+      <!-- Colonne droite : À propos de la mission -->
       <div class="flex flex-col gap-6">
         <div class="rounded-[var(--radius-card-lg)] border border-line bg-surface p-6 shadow-[var(--shadow-subtle)]">
           <h2 class="text-base font-semibold text-ink border-b border-line pb-3 mb-4">À propos</h2>
           
           <div class="space-y-4">
             <div>
-              <p class="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Assignée à / Responsable</p>
+              <p class="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Responsable / Coach</p>
               <div class="mt-1.5 flex items-center gap-2.5">
                 <div class="h-7 w-7 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center text-accent text-xs font-bold">
                   {{ (m.nomAssigneA || 'C').charAt(0) }}

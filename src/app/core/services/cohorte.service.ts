@@ -2,70 +2,59 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from './../../environments/environment';
-import { Cohorte, CreateCohorteRequest } from '../models/cohorte.model';
+import { Cohorte, CreateCohorteRequest, UpdateCohorteRequest, PhaseParcours } from '../models/cohorte.model';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class CohorteService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = `${environment.apiUrl}/cohortes`;
 
-  /**
-   * Récupère toutes les cohortes de la structure active (via en-tête X-Structure-Id)
-   */
   getCohortes(): Observable<Cohorte[]> {
     return this.http.get<Cohorte[]>(this.apiUrl);
   }
 
-  /**
-   * Alias rétrocompatible pour dashboard.ts et entrepreneurs-list.ts
-   */
+    getActiveCohortes(): Observable<Cohorte[]> {
+    return this.http.get<Cohorte[]>(`${this.apiUrl}/cohorte-active`);
+  }
+
+  /** Alias rétrocompatible pour dashboard.ts et entrepreneurs-list.ts */
   getByStructure(structureId?: string): Observable<Cohorte[]> {
     return this.getCohortes();
   }
 
-  /**
-   * Récupère une cohorte par son ID
-   */
   getCohorteById(id: string): Observable<Cohorte> {
     return this.http.get<Cohorte>(`${this.apiUrl}/${id}`);
   }
 
-  /**
-   * Alias rétrocompatible pour cohorte-detail.ts
-   */
+  /** Alias rétrocompatible pour cohorte-detail.ts */
   getById(id: string): Observable<Cohorte> {
     return this.getCohorteById(id);
   }
 
-  /**
-   * Crée une cohorte
-   */
   createCohorte(request: CreateCohorteRequest): Observable<Cohorte> {
     return this.http.post<Cohorte>(this.apiUrl, request);
   }
 
-  /**
-   * Alias rétrocompatible de création
-   */
-  create(nom: string, secteur?: string, dateDemarrage?: string): Observable<Cohorte> {
-    return this.createCohorte({
-      nom,
-      description: secteur,
-      dateDebut: dateDemarrage,
-    });
+  updateCohorte(id: string, changements: UpdateCohorteRequest): Observable<Cohorte> {
+    return this.http.patch<Cohorte>(`${this.apiUrl}/${id}`, changements);
   }
 
+  archiverCohorte(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
 
-  updateCohorte(
-  id: string,
-  changements: Partial<Pick<Cohorte, 'nom' | 'description' | 'dateDebut' | 'dateFin' | 'statut'>>,
-): Observable<Cohorte> {
-  return this.http.patch<Cohorte>(`${this.apiUrl}/${id}`, changements);
-}
-
-archiverCohorte(id: string): Observable<void> {
-  return this.http.delete<void>(`${this.apiUrl}/${id}`);
-}
+  /** Cohortes de la structure dont la phase est postérieure à celle donnée (pour la promotion de projets) */
+  getCohortesPhaseSuivante(phaseActuelle: PhaseParcours): Observable<Cohorte[]> {
+    const ordre: PhaseParcours[] = ['PRE_INCUBATION', 'INCUBATION', 'POST_INCUBATION'];
+    const indexActuel = ordre.indexOf(phaseActuelle);
+    return new Observable<Cohorte[]>((subscriber) => {
+      this.getActiveCohortes().subscribe({
+        next: (cohortes) => {
+          subscriber.next(cohortes.filter((c) => ordre.indexOf(c.phase) > indexActuel));
+          subscriber.complete();
+        },
+        error: (err) => subscriber.error(err),
+      });
+    });
+  }
 }

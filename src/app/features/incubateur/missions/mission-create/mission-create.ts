@@ -3,7 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-
+import { ActivatedRoute } from '@angular/router';
 import { MissionService } from '../../../../core/services/mission.service';
 import { CohorteService } from '../../../../core/services/cohorte.service';
 import { ProjetService } from '../../../../core/services/projet.service';
@@ -169,7 +169,7 @@ import { ModalComponent } from '../../../../shared/components/modal/modal.compon
 export class MissionCreateModalComponent implements OnInit {
   readonly close = output<void>();
   readonly created = output<void>();
-
+private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
   private readonly missionService = inject(MissionService);
   private readonly cohorteService = inject(CohorteService);
@@ -195,6 +195,16 @@ export class MissionCreateModalComponent implements OnInit {
   ngOnInit(): void {
     this.chargerDonneesContextuelles();
 
+   
+
+  const cohorteIdPreselectionnee = this.route.snapshot.queryParamMap.get('cohorteId');
+  if (cohorteIdPreselectionnee) {
+    this.missionForm.patchValue({
+      cibleType: 'cohorte',
+      cohorteId: cohorteIdPreselectionnee,
+    });
+  }
+
     // Gestion dynamique des validateurs selon le type de cible
     this.missionForm.get('cibleType')?.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -218,7 +228,7 @@ export class MissionCreateModalComponent implements OnInit {
 
   private chargerDonneesContextuelles(): void {
     forkJoin({
-      cohortes: this.cohorteService.getCohortes().pipe(catchError(() => of([]))),
+      cohortes: this.cohorteService.getActiveCohortes().pipe(catchError(() => of([]))),
       projets: this.projetService.getProjets().pipe(catchError(() => of([]))),
     })
       .pipe(takeUntilDestroyed(this.destroyRef))

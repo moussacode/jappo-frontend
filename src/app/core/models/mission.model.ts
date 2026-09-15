@@ -1,4 +1,4 @@
-export type StatutMission = 'A_FAIRE' | 'EN_COURS' | 'SOUMIS' | 'A_CORRIGER' | 'VALIDEE' | 'EN_RETARD';
+export type StatutMission = 'A_FAIRE' | 'EN_COURS' | 'SOUMIS' | 'VALIDE' | 'VALIDEE' | 'A_REVOIR';
 export type PrioriteMission = 'BASSE' | 'MOYENNE' | 'HAUTE' | 'URGENTE';
 
 export interface Mission {
@@ -14,7 +14,9 @@ export interface Mission {
   projetId?: string;
   nomProjet?: string;
   cohorteId?: string;
-  nomCohorte?: string; // <--- C'EST CE CHAMP QUI MANQUE
+  nomCohorte?: string;
+  entrepreneurId?: string;
+  nomEntrepreneur?: string;
   
   // Assignation & Créateur
   assigneAId?: string;
@@ -39,4 +41,6 @@ export interface CreateMissionRequest {
   cohorteId?: string;
   projetId?: string;
   assigneAId?: string;
+  modeleId?: string;
+  enregistrerCommeModele?: boolean;
 }

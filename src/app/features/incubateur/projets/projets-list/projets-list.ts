@@ -6,7 +6,8 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
 
 // Services & Modèles
 import { ProjetService } from '../../../../core/services/projet.service';
-import { Projet, StatutProjet } from '../../../../core/models';
+import { CohorteService } from '../../../../core/services/cohorte.service';
+import { Projet, StatutProjet, Cohorte } from '../../../../core/models';
 
 // Design System Partagé
 import { BadgeComponent, BadgeStatus } from '../../../../shared/components/badge/badge';
@@ -18,6 +19,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
 import { ViewSwitcherComponent } from '../../../../shared/components/view-switcher/view-switcher.component';
 import { TabFilterComponent, TabOption } from '../../../../shared/components/tab-filter/tab-filter.component';
 import { EntityCardComponent } from "../../../../shared/components/entity-card/entity-card.component";
+import { NouveauProjetModal } from '../nouveau-projet-modal/nouveau-projet-modal';
 
 export type VueMode = 'grid' | 'table';
 export type FiltreStatutProjet = 'TOUS' | 'EN_INCUBATION' | 'DIAGNOSTIC' | 'IDEE' | 'DIPLOME';
@@ -36,37 +38,35 @@ export type FiltreStatutProjet = 'TOUS' | 'EN_INCUBATION' | 'DIAGNOSTIC' | 'IDEE
     EmptyStateComponent,
     ViewSwitcherComponent,
     TabFilterComponent,
-    EntityCardComponent
+    EntityCardComponent,
+    NouveauProjetModal
 ],
   template: `
     <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
       
       <!-- En-tête Page Unifié -->
-    <!-- En-tête Page Unifié -->
-<app-page-header
-  title="Projets"
-  [subtitle]="
-    loading()
-      ? 'Chargement des projets en cours...'
-      : projetsFiltrees().length + ' projet(s) affiché(s) sur ' + allProjets().length
-  "
-  breadcrumb="Incubateur > Suivi des projets"
->
-  <!-- Switcher Grille / Tableau -->
-  <app-view-switcher
-    [mode]="vueMode()"
-    tableIcon="missions"
-    (modeChange)="vueMode.set($event)"
-  />
+      <app-page-header
+        title="Projets"
+        [subtitle]="
+          loading()
+            ? 'Chargement des projets en cours...'
+            : projetsFiltrees().length + ' projet(s) affiché(s) sur ' + allProjets().length
+        "
+        breadcrumb="Incubateur > Suivi des projets"
+      >
+        <!-- Switcher Grille / Tableau -->
+        <app-view-switcher
+          [mode]="vueMode()"
+          tableIcon="missions"
+          (modeChange)="vueMode.set($event)"
+        />
 
-  <!-- Bouton de création -->
-  <a routerLink="/incubateur/projets/nouveau">
-    <app-button size="sm">
-      <app-icon name="plus" class="size-4 mr-1.5" />
-      <span class="hidden sm:inline">Nouveau projet</span>
-    </app-button>
-  </a>
-</app-page-header>
+        <!-- Bouton de création déclenchant la modale -->
+        <app-button size="sm" (click)="showCreateModal.set(true)">
+          <app-icon name="plus" class="size-4 mr-1.5" />
+          <span class="hidden sm:inline">Nouveau projet</span>
+        </app-button>
+      </app-page-header>
 
       <!-- Barre de contrôles : Onglets + Recherche -->
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -113,35 +113,35 @@ export type FiltreStatutProjet = 'TOUS' | 'EN_INCUBATION' | 'DIAGNOSTIC' | 'IDEE
           <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             @for (p of projetsFiltrees(); track p.id) {
               <app-entity-card
-  [title]="p.nom"
-  [subtitle]="p.secteur"
-  [routerLink]="['/incubateur/projets', p.id]"
-  [badgeLabel]="statutBadge(p.statut).label"
-  [badgeStatus]="statutBadge(p.statut).status"
->
-  <!-- Corps spécifique au projet -->
-  <div card-body class="flex flex-col gap-1.5">
-    <div class="flex items-center justify-between gap-2">
-      <span class="text-ink-muted">Porteur :</span>
-      <span class="font-semibold text-ink truncate">{{ p.nomEntrepreneur || '—' }}</span>
-    </div>
-    <div class="flex items-center justify-between gap-2">
-      <span class="text-ink-muted">Cohorte :</span>
-      <span class="font-medium text-ink truncate">{{ p.nomCohorte || 'Hors cohorte' }}</span>
-    </div>
-  </div>
+                [title]="p.nom"
+                [subtitle]="p.secteur"
+                [routerLink]="['/incubateur/projets', p.id]"
+                [badgeLabel]="statutBadge(p.statut).label"
+                [badgeStatus]="statutBadge(p.statut).status"
+              >
+                <!-- Corps spécifique au projet -->
+                <div card-body class="flex flex-col gap-1.5">
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="text-ink-muted">Porteur :</span>
+                    <span class="font-semibold text-ink truncate">{{ p.nomEntrepreneur || '—' }}</span>
+                  </div>
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="text-ink-muted">Cohorte :</span>
+                    <span class="font-medium text-ink truncate">{{ p.nomCohorte || 'Hors cohorte' }}</span>
+                  </div>
+                </div>
 
-  <!-- Pied de carte spécifique (Score de maturité) -->
-  <div card-footer class="w-full flex items-center justify-between">
-    <span class="font-medium text-ink-muted">Score de maturité</span>
-    <div class="flex items-center gap-2">
-      <div class="h-1.5 w-14 overflow-hidden rounded-full bg-line">
-        <div class="h-full rounded-full bg-accent" [style.width.%]="p.scoreMaturite || 0"></div>
-      </div>
-      <span class="font-bold text-ink">{{ p.scoreMaturite || 0 }}%</span>
-    </div>
-  </div>
-</app-entity-card>
+                <!-- Pied de carte spécifique (Score de maturité) -->
+                <div card-footer class="w-full flex items-center justify-between">
+                  <span class="font-medium text-ink-muted">Score de maturité</span>
+                  <div class="flex items-center gap-2">
+                    <div class="h-1.5 w-14 overflow-hidden rounded-full bg-line">
+                      <div class="h-full rounded-full bg-accent" [style.width.%]="p.scoreMaturite || 0"></div>
+                    </div>
+                    <span class="font-bold text-ink">{{ p.scoreMaturite || 0 }}%</span>
+                  </div>
+                </div>
+              </app-entity-card>
             } @empty {
               <div class="col-span-full">
                 <app-empty-state
@@ -149,12 +149,10 @@ export type FiltreStatutProjet = 'TOUS' | 'EN_INCUBATION' | 'DIAGNOSTIC' | 'IDEE
                   description="Ajustez vos filtres de recherche ou créez un nouveau projet d'entreprise."
                   iconName="dashboard"
                 >
-                  <a routerLink="/incubateur/projets/nouveau">
-                    <app-button size="xs">
-                      <app-icon name="plus" class="size-3.5" />
-                      <span>Nouveau projet</span>
-                    </app-button>
-                  </a>
+                  <app-button size="xs" (click)="showCreateModal.set(true)">
+                    <app-icon name="plus" class="size-3.5 mr-1" />
+                    <span>Nouveau projet</span>
+                  </app-button>
                 </app-empty-state>
               </div>
             }
@@ -243,6 +241,16 @@ export type FiltreStatutProjet = 'TOUS' | 'EN_INCUBATION' | 'DIAGNOSTIC' | 'IDEE
       }
 
     </div>
+
+    <!-- MODALE DE CRÉATION DE PROJET -->
+    @if (showCreateModal()) {
+      <app-nouveau-projet-modal
+        [submitting]="creationEnCours()"
+        [errorMessage]="erreurCreation()"
+        (close)="showCreateModal.set(false)"
+        (created)="creerProjet($event)"
+      />
+    }
   `,
 })
 export class ProjetsList implements OnInit {
@@ -253,6 +261,11 @@ export class ProjetsList implements OnInit {
   protected readonly loading = signal<boolean>(true);
   protected readonly allProjets = signal<Projet[]>([]);
   protected readonly filtreStatutActif = signal<FiltreStatutProjet>('TOUS');
+
+  // Gestion de la modale de création
+  protected readonly showCreateModal = signal(false);
+  protected readonly creationEnCours = signal(false);
+  protected readonly erreurCreation = signal<string | null>(null);
 
   protected readonly searchControl = new FormControl('', { nonNullable: true });
   protected readonly searchTerms = signal('');
@@ -317,6 +330,11 @@ export class ProjetsList implements OnInit {
       .pipe(debounceTime(200), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
       .subscribe((val) => this.searchTerms.set(val));
 
+    this.chargerProjets();
+  }
+
+  private chargerProjets(): void {
+    this.loading.set(true);
     this.projetService
       .getProjets()
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -328,6 +346,26 @@ export class ProjetsList implements OnInit {
         error: (err) => {
           console.error('Erreur chargement projets :', err);
           this.loading.set(false);
+        },
+      });
+  }
+
+  protected creerProjet(payload: { nom: string; description?: string; secteur?: string; cohorteId?: string; entrepreneurId?: string }): void {
+    this.creationEnCours.set(true);
+    this.erreurCreation.set(null);
+
+    this.projetService
+      .create(payload as any)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.creationEnCours.set(false);
+          this.showCreateModal.set(false);
+          this.chargerProjets(); // Recharge la liste des projets mise à jour
+        },
+        error: (err) => {
+          this.creationEnCours.set(false);
+          this.erreurCreation.set(err?.error?.message ?? 'Erreur lors de la création du projet.');
         },
       });
   }

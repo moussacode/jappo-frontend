@@ -117,4 +117,5 @@ export class StructureContextService {
     structure: { ...current.structure, ...partial },
   });
 }
+
 }

@@ -160,6 +160,23 @@ export class AuthService {
     );
   }
 
+  updateProfile(prenom: string, nom: string): Observable<AuthUser> {
+    return this.http
+      .patch<AuthUser>(`${environment.apiUrl}/users/me`, { prenom, nom })
+      .pipe(
+        tap((updatedUser) => {
+          const current = this._currentUser();
+          if (current) {
+            this._currentUser.set({
+              ...current,
+              prenom: updatedUser.prenom,
+              nom: updatedUser.nom,
+            });
+          }
+        })
+      );
+  }
+
   // --- VÉRIFICATION ET SÉCURITÉ EMAIL / OTP ---
 
   verifyEmail(code: string): Observable<string> {
