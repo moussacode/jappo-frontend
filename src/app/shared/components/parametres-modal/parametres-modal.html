@@ -97,61 +97,104 @@
         <section class="p-6 sm:p-8">
           <!-- En-tête -->
           <div class="mb-8">
-            <h2 class="text-base font-semibold text-ink">Profil</h2>
+            <h2 class="text-base font-semibold text-ink">Profil personnel</h2>
             <p class="mt-1 text-xs text-ink-muted">
-              Gérez les informations associées à votre profil.
+              Gérez les informations associées à votre compte utilisateur.
             </p>
           </div>
-          @if (structure(); as s) {
-            <div class="space-y-6">
-              <!-- Photo de profil -->
-              <section
-                class="flex items-center justify-between gap-4 rounded-xl border border-line bg-surface p-4"
-              >
-                <div class="flex min-w-0 items-center gap-3">
-                  <!-- Avatar -->
-                  <div
-                    class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-sm font-semibold text-accent"
-                  >
-                    {{ getInitiales(s.nom) }}
-                  </div>
-                  <!-- Informations -->
-                  <div class="min-w-0">
-                    <p class="text-sm font-semibold text-ink">Photo de profil</p>
-                    <p class="mt-0.5 text-xs text-ink-muted">
-                      Votre photo ou vos initiales sont affichées dans l'application.
-                    </p>
-                  </div>
+
+          <div class="space-y-6 max-w-2xl">
+            <!-- Photo / Initiales de profil -->
+            <section
+              class="flex items-center justify-between gap-4 rounded-xl border border-line bg-surface p-4 shadow-xs"
+            >
+              <div class="flex min-w-0 items-center gap-3">
+                <!-- Avatar -->
+                <div
+                  class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-accent text-white font-bold text-base shadow-xs"
+                >
+                  {{ getInitiales(currentUser()?.prenom, currentUser()?.nom) || 'U' }}
                 </div>
-                <!-- Action -->
-                <app-button type="button" size="sm" variant="secondary" [disabled]="true">
-                  <!-- <app-icon name="image" class="size-3.5" /> -->
-                   <span>Modifier</span>
-                </app-button>
-              </section>
-              <!-- Informations du profil -->
-              <section class="rounded-xl border border-line bg-surface">
-                <!-- En-tête -->
-                <div class="border-b border-line px-4 py-3">
-                  <h3 class="text-sm font-semibold text-ink">Informations du profil</h3>
+                <!-- Informations -->
+                <div class="min-w-0">
+                  <p class="text-sm font-semibold text-ink">
+                    {{ currentUser()?.prenom }} {{ currentUser()?.nom }}
+                  </p>
                   <p class="mt-0.5 text-xs text-ink-muted">
-                    Ces informations permettent d'identifier votre compte.
+                    {{ currentUser()?.email }}
                   </p>
                 </div>
-                <!-- Champs -->
-                <div class="grid gap-4 p-4 sm:grid-cols-2">
-                  <!-- Nom -->
-                  <app-form-field label="Nom" inputId="profileName">
-                    <app-input id="profileName" placeholder="Moussa"  />
-                  </app-form-field>
-                  <!-- Email -->
-                  <app-form-field label="Adresse email" inputId="profileEmail">
-                    <app-input id="profileEmail" type="email" placeholder="moussa@gmail.com" value="À définir" />
-                  </app-form-field>
+              </div>
+              <div class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                <span class="size-1.5 rounded-full bg-emerald-500"></span>
+                <span>Compte actif</span>
+              </div>
+            </section>
+
+            <!-- Formulaire de modification du profil -->
+            <form [formGroup]="profileForm" (ngSubmit)="sauvegarderProfil()" class="rounded-xl border border-line bg-surface shadow-xs overflow-hidden">
+              <!-- En-tête -->
+              <div class="border-b border-line px-4 py-3">
+                <h3 class="text-sm font-semibold text-ink">Informations du compte</h3>
+                <p class="mt-0.5 text-xs text-ink-muted">
+                  Votre prénom et nom sont visibles par l'incubateur et les membres de l'équipe.
+                </p>
+              </div>
+
+              <!-- Messages -->
+              @if (profileSuccessMessage()) {
+                <div class="m-4 rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-xs font-medium text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300">
+                  {{ profileSuccessMessage() }}
                 </div>
-              </section>
-            </div>
-          }
+              }
+              @if (profileErrorMessage()) {
+                <div class="m-4 rounded-xl bg-rose-50 border border-rose-200 p-3 text-xs font-medium text-rose-800 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-300">
+                  {{ profileErrorMessage() }}
+                </div>
+              }
+
+              <!-- Champs -->
+              <div class="grid gap-4 p-4 sm:grid-cols-2">
+                <!-- Prénom -->
+                <app-form-field
+                  label="Prénom *"
+                  inputId="profilePrenom"
+                  [error]="profileForm.controls.prenom.touched && profileForm.controls.prenom.invalid ? 'Le prénom est requis (min. 2 car.)' : ''"
+                >
+                  <app-input id="profilePrenom" formControlName="prenom" placeholder="Votre prénom" />
+                </app-form-field>
+
+                <!-- Nom -->
+                <app-form-field
+                  label="Nom *"
+                  inputId="profileNom"
+                  [error]="profileForm.controls.nom.touched && profileForm.controls.nom.invalid ? 'Le nom est requis (min. 2 car.)' : ''"
+                >
+                  <app-input id="profileNom" formControlName="nom" placeholder="Votre nom" />
+                </app-form-field>
+
+                <!-- Email (Read-only) -->
+                <div class="sm:col-span-2 flex flex-col gap-1.5">
+                  <label class="text-xs font-semibold text-ink-muted">Adresse email de connexion</label>
+                  <div class="rounded-xl border border-line bg-surface-muted/50 px-3 py-2.5 text-sm text-ink-muted flex items-center justify-between">
+                    <span>{{ currentUser()?.email }}</span>
+                    <span class="text-[11px] text-ink-muted/80">Identifiant principal (non modifiable)</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Actions -->
+              <div class="flex justify-end border-t border-line px-4 py-3 bg-surface-muted/20">
+                <app-button
+                  type="submit"
+                  size="sm"
+                  [disabled]="profileForm.invalid || isSavingProfile()"
+                >
+                  {{ isSavingProfile() ? 'Enregistrement…' : 'Enregistrer le profil' }}
+                </app-button>
+              </div>
+            </form>
+          </div>
         </section>
       }
 
@@ -215,6 +258,42 @@
                 placeholder="contact@structure.com"
               />
             </app-form-field>
+            <div class="grid grid-cols-2 gap-3">
+  <div>
+    <label class="text-xs font-medium text-ink-muted">Téléphone</label>
+    <input type="tel" formControlName="telephone" class="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm" />
+  </div>
+  <div>
+    <label class="text-xs font-medium text-ink-muted">Ville</label>
+    <input type="text" formControlName="ville" class="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm" />
+  </div>
+</div>
+
+<div>
+  <label class="text-xs font-medium text-ink-muted">Type de structure</label>
+  <select formControlName="type" class="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm">
+    <option value="incubateur">Incubateur</option>
+    <option value="accelerateur">Accélérateur</option>
+    <option value="coworking">Coworking</option>
+    <option value="association">Association</option>
+    <option value="autre">Autre</option>
+  </select>
+</div>
+
+<div>
+  <label class="text-xs font-medium text-ink-muted">Pays</label>
+  <input type="text" formControlName="pays" class="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm" />
+</div>
+
+<div>
+  <label class="text-xs font-medium text-ink-muted">Adresse</label>
+  <input type="text" formControlName="adresse" class="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm" />
+</div>
+
+<div>
+  <label class="text-xs font-medium text-ink-muted">Site web</label>
+  <input type="url" formControlName="siteWeb" placeholder="https://..." class="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm" />
+</div>
 
             <!-- Actions -->
             <div class="flex justify-end  pt-5">
@@ -372,98 +451,130 @@
 
             <div class="overflow-hidden rounded-2xl border border-line bg-surface">
               @for (m of membres(); track m.id) {
-                <div
-                  class="flex items-center justify-between gap-4 border-b border-line/70 p-3.5 last:border-b-0 transition-colors hover:bg-surface-muted/30"
-                >
-                  <!-- Identity -->
-                  <div class="flex min-w-0 items-center gap-3">
-                    <div
-                      class="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent-soft text-[11px] font-bold uppercase text-accent-strong"
-                    >
-                      {{ getInitiales(m.prenom, m.nom) }}
-                    </div>
+  <div
+    class="flex items-center justify-between gap-4 border-b border-line/70 p-3.5 last:border-b-0 transition-colors hover:bg-surface-muted/30"
+  >
+    <!-- Identity -->
+    <div class="flex min-w-0 items-center gap-3">
+      <div
+        class="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent-soft text-[11px] font-bold uppercase text-accent-strong"
+      >
+        {{ getInitiales(m.prenom, m.nom) }}
+      </div>
 
-                    <div class="min-w-0">
-                      <div class="flex items-center gap-2">
-                        <span class="truncate text-xs font-semibold text-ink">
-                          {{ m.prenom || 'Utilisateur' }}
-                          {{ m.nom || 'Invité' }}
-                        </span>
+      <div class="min-w-0">
+        <div class="flex items-center gap-2">
+          <span class="truncate text-xs font-semibold text-ink">
+            {{ m.prenom || 'Utilisateur' }}
+            {{ m.nom || 'Invité' }}
+          </span>
 
-                        @if (m.estProprietaire) {
-                          <span
-                            class="shrink-0 rounded-md bg-surface-muted px-1.5 py-0.5 text-[9px] font-medium text-ink-muted"
-                          >
-                            Propriétaire
-                          </span>
-                        }
-                      </div>
+          @if (m.estProprietaire) {
+            <span
+              class="shrink-0 rounded-md bg-surface-muted px-1.5 py-0.5 text-[9px] font-medium text-ink-muted"
+            >
+              Propriétaire
+            </span>
+          }
+        </div>
 
-                      <span class="mt-0.5 block truncate text-[10px] text-ink-muted">
-                        {{ m.email }}
-                      </span>
-                    </div>
-                  </div>
+        <span class="mt-0.5 block truncate text-[10px] text-ink-muted">
+          {{ m.email }}
+        </span>
+      </div>
+    </div>
 
-                  <!-- Actions -->
-                  <div class="flex shrink-0 items-center gap-2">
-                    <!-- Status -->
-                    @if (m.statut === 'ACCEPTE') {
-                      <span
-                        class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-1 text-[9px] font-semibold text-emerald-600"
-                      >
-                        <span class="size-1.5 rounded-full bg-emerald-500"></span>
-                        Actif
-                      </span>
-                    } @else if (m.statut === 'EN_ATTENTE') {
-                      <button
-                        type="button"
-                        (click)="renvoyerInvitation(m)"
-                        class="group flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[9px] font-semibold text-amber-700 transition-colors hover:bg-amber-100 cursor-pointer"
-                      >
-                        <span class="size-1.5 rounded-full bg-amber-500"></span>
-                        En attente
+    <!-- Actions -->
+    <div class="flex shrink-0 items-center gap-2">
+      <!-- Status -->
+      @if (m.statut === 'ACCEPTE') {
+        <span
+          class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
+        >
+          <span class="size-1.5 rounded-full bg-emerald-500"></span>
+          Actif
+        </span>
+      } @else if (m.statut === 'EN_ATTENTE') {
+        <span
+          class="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800"
+        >
+          <span class="size-1.5 rounded-full bg-amber-500"></span>
+          En attente
+        </span>
+      } @else if (m.statut === 'EXPIRE') {
+        <span
+          class="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-1 text-[10px] font-semibold text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-800"
+        >
+          <span class="size-1.5 rounded-full bg-rose-500"></span>
+          Expiré
+        </span>
+      }
 
-                        <span class="ml-0.5 opacity-60 group-hover:opacity-100"> · Renvoyer </span>
-                      </button>
-                    }
+      <!-- Role -->
+      @if (m.estProprietaire) {
+        <span
+          class="rounded-lg border border-line bg-surface-muted/50 px-2.5 py-1.5 text-[10px] font-medium text-ink-muted"
+        >
+          Propriétaire
+        </span>
+      } @else {
+        <select
+          [value]="m.role"
+          (change)="changerRole(m, $any($event.target).value)"
+          [disabled]="isChangingRole()"
+          class="rounded-lg border border-line bg-surface-muted/40 px-2.5 py-1.5 text-[10px] font-medium text-ink transition-colors focus:border-accent focus:outline-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <option value="ADMIN_STRUCTURE">Administrateur</option>
+          <option value="COACH">Coach</option>
+        </select>
+      }
 
-                    <!-- Role -->
-                    @if (m.estProprietaire) {
-                      <span
-                        class="rounded-lg border border-line bg-surface-muted/50 px-2.5 py-1.5 text-[10px] font-medium text-ink-muted"
-                      >
-                        Propriétaire
-                      </span>
-                    } @else {
-                      <select
-                        [value]="m.role"
-                        (change)="changerRole(m, $any($event.target).value)"
-                        [disabled]="isChangingRole()"
-                        class="rounded-lg border border-line bg-surface-muted/40 px-2.5 py-1.5 text-[10px] font-medium text-ink transition-colors focus:border-accent focus:outline-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <option value="ADMIN_STRUCTURE">Administrateur</option>
+      <!-- Actions contextuelles -->
+      @if (m.statut === 'EN_ATTENTE' || m.statut === 'EXPIRE') {
+        <button
+          type="button"
+          (click)="renvoyerInvitation(m)"
+          title="Renvoyer l'invitation par email"
+          class="inline-flex items-center gap-1 rounded-lg border border-line bg-surface px-2 py-1 text-[10px] font-semibold text-ink-muted hover:text-accent hover:border-accent transition-colors cursor-pointer"
+        >
+          <app-icon name="sparkles" class="size-3" />
+          <span>Renvoyer</span>
+        </button>
+        <button
+          type="button"
+          (click)="annulerInvitation(m)"
+          title="Annuler l'invitation"
+          class="inline-flex items-center rounded-lg border border-line bg-surface p-1.5 text-ink-muted hover:text-rose-600 hover:border-rose-200 transition-colors cursor-pointer"
+        >
+          <app-icon name="close" class="size-3" />
+        </button>
+      } @else if (!m.estProprietaire) {
+        <button
+          type="button"
+          (click)="retirerMembre(m)"
+          title="Retirer de l'équipe"
+          class="inline-flex items-center rounded-lg border border-line bg-surface p-1.5 text-ink-muted hover:text-rose-600 hover:border-rose-200 transition-colors cursor-pointer"
+        >
+          <app-icon name="trash" class="size-3" />
+        </button>
+      }
+    </div>
+  </div>
+} @empty {
+  <div class="flex flex-col items-center justify-center px-6 py-10 text-center">
+    <div
+      class="mb-3 flex size-10 items-center justify-center rounded-xl bg-surface-muted text-ink-muted"
+    >
+      <app-icon name="users" class="size-5" />
+    </div>
 
-                        <option value="COACH">Coach</option>
-                      </select>
-                    }
-                  </div>
-                </div>
-              } @empty {
-                <div class="flex flex-col items-center justify-center px-6 py-10 text-center">
-                  <div
-                    class="mb-3 flex size-10 items-center justify-center rounded-xl bg-surface-muted text-ink-muted"
-                  >
-                    <app-icon name="users" class="size-5" />
-                  </div>
+    <p class="text-xs font-medium text-ink">Aucun membre</p>
 
-                  <p class="text-xs font-medium text-ink">Aucun membre</p>
-
-                  <p class="mt-1 max-w-xs text-[10px] leading-relaxed text-ink-muted">
-                    Invitez votre premier coach ou administrateur pour commencer à collaborer.
-                  </p>
-                </div>
-              }
+    <p class="mt-1 max-w-xs text-[10px] leading-relaxed text-ink-muted">
+      Invitez votre premier coach ou administrateur pour commencer à collaborer.
+    </p>
+  </div>
+}
             </div>
           </section>
 

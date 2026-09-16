@@ -49,7 +49,7 @@ import { Icon } from '../../../../shared/components/icon/icon';
 
         <app-kpi-card
           label="Missions validées"
-          [value]="missionsTermineesCount() + ' / ' + missions().length"
+          [value]="missionsTermineesCount() + ' / ' + missionsTotalCount()"
           note="Taux de complétion"
           noteVariant="brand"
         />
@@ -127,11 +127,13 @@ export class Dashboard implements OnInit {
     return u.prenom || u.nom?.split(' ')[0] || 'Entrepreneur';
   });
 
-  // Calcul dynamique du nombre de missions terminées pour les KPIs
+  // Utiliser les statistiques calculées côté backend
   protected readonly missionsTermineesCount = computed(() => {
-    return this.missions().filter(
-      (m) => m.statut?.toUpperCase() === 'TERMINEE' || m.statut?.toUpperCase() === 'VALIDE'
-    ).length;
+    return this.projet()?.nombreMissionsValidees ?? 0;
+  });
+
+  protected readonly missionsTotalCount = computed(() => {
+    return this.projet()?.nombreMissionsTotal ?? 0;
   });
 
   ngOnInit(): void {

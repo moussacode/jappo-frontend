@@ -66,4 +66,28 @@ updateProjet(
 archiverProjet(id: string): Observable<void> {
   return this.http.delete<void>(`${this.apiUrl}/${id}`);
 }
+
+restaurerProjet(id: string): Observable<void> {
+  return this.http.patch<void>(`${this.apiUrl}/${id}/restaurer`, {});
+}
+
+
+/**
+ * Créer un projet (avec ou sans cohorte)
+ * POST /api/projets
+ */
+create(payload: {
+  nom: string;
+  description?: string;
+  secteur?: string;
+  cohorteId?: string | null;
+  entrepreneurId?: string | null;
+}): Observable<Projet> {
+  return this.http.post<Projet>(this.apiUrl, payload);
+}
+
+
+promouvoirProjet(projetId: string, nouvelleCohorteId: string | null): Observable<Projet> {
+  return this.http.post<Projet>(`${this.apiUrl}/${projetId}/promouvoir`, { nouvelleCohorteId });
+}
 }

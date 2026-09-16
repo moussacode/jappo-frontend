@@ -1,16 +1,17 @@
 import { Component, inject, signal, computed, effect, DestroyRef } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { FormControl, ReactiveFormsModule, FormsModule, FormGroup, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { forkJoin, of } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged } from 'rxjs/operators';
-
+import { ActivatedRoute } from '@angular/router';
 // Services & Modèles
 import { CohorteService } from '../../../../core/services/cohorte.service';
 import { ProjetService } from '../../../../core/services/projet.service';
 import { StructureContextService } from '../../../../core/services/structure-context.service';
-import { Cohorte, Projet } from '../../../../core/models';
-
+import { Cohorte, Projet, PhaseParcours } from '../../../../core/models';
+import { MissionService } from '../../../../core/services/mission.service';
+import { Mission } from '../../../../core/models/mission.model';
 // Design System Partagé
 import { Icon } from '../../../../shared/components/icon/icon';
 import { BadgeComponent } from '../../../../shared/components/badge/badge';
@@ -20,6 +21,15 @@ import { ButtonComponent } from '../../../../shared/components/button/button.com
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state';
 import { AvatarComponent } from '../../../../shared/components/avatar/avatar.component';
 import { NouvelleCohorte } from '../nouvelle-cohorte/nouvelle-cohorte';
+import { ModalComponent } from '../../../../shared/components/modal/modal.component';
+import { EditCohorteComponent } from '../edit-cohorte/edit-cohorte';
+import { InviterEntrepreneurModalComponent } from '../../entrepreneurs/inviter-entrepreneur/inviter-entrepreneur';
+
+const LABEL_PHASE: Record<PhaseParcours, string> = {
+  PRE_INCUBATION: 'Pré-incubation',
+  INCUBATION: 'Incubation',
+  POST_INCUBATION: 'Post-incubation / Accélération',
+};
 
 interface CohorteAffichee {
   cohorte: Cohorte;
@@ -29,6 +39,7 @@ interface CohorteAffichee {
 
 type SortField = 'nom' | 'progression';
 type SortDir = 'asc' | 'desc';
+type CohorteFilter = 'ACTIVES' | 'ARCHIVEES' | 'TOUTES';
 
 @Component({
   selector: 'app-cohortes-dashboard',
@@ -37,31 +48,35 @@ type SortDir = 'asc' | 'desc';
     RouterLink,
     ReactiveFormsModule,
     Icon,
-    BadgeComponent,
-    CardComponent,
-    PageHeaderComponent,
+    FormsModule,
+    NouvelleCohorte,
     ButtonComponent,
-    EmptyStateComponent,
+    PageHeaderComponent,
+    CardComponent,
     AvatarComponent,
-    NouvelleCohorte
+    BadgeComponent,
+    EmptyStateComponent,
+    ModalComponent,
+    EditCohorteComponent,
+    InviterEntrepreneurModalComponent
 ],
   template: `
-    <div class="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden bg-surface-muted/10">
+    <div class="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden bg-surface-muted/5 font-sans">
 
-      <!-- SÉLECTEUR DE CONTEXTE (onglets) -->
-   <div
-  role="tablist"
-  aria-label="Cohortes"
-  class="shrink-0 flex w-full items-end gap-1 overflow-x-auto border-b border-line bg-surface px-4 pt-4 sm:px-6 lg:px-8 custom-scrollbar cohort-tabs"
->
+      <!-- SÉLECTEUR DE CONTEXTE (Onglets Fabrique 360) -->
+      <div
+        role="tablist"
+        aria-label="Cohortes Fabrique 360"
+        class="shrink-0 flex w-full items-end gap-2 overflow-x-auto border-b border-line/60 bg-surface px-4 pt-4 sm:px-6 lg:px-8 custom-scrollbar sticky top-0 z-10 shadow-sm"
+      >
         <button
           role="tab"
           id="tab-global"
           [attr.aria-selected]="activeContextId() === 'GLOBAL'"
           aria-controls="panel-cohortes"
           (click)="activeContextId.set('GLOBAL')"
-          [class]="activeContextId() === 'GLOBAL' ? 'border-accent text-accent bg-accent-soft/20' : 'border-transparent text-ink-muted hover:text-ink hover:bg-surface-muted'"
-          class="relative flex items-center gap-2 rounded-t-xl border-b-2 px-4 py-2.5 text-sm font-bold transition-colors cursor-pointer whitespace-nowrap focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-[-2px]"
+          [class]="activeContextId() === 'GLOBAL' ? 'border-accent text-accent' : 'border-transparent text-ink-muted hover:text-ink hover:bg-surface-muted/50'"
+          class="relative flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-bold transition-all duration-200 cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-t-lg"
         >
           <app-icon name="dashboard" class="size-4" />
           Vue globale
@@ -74,397 +89,415 @@ type SortDir = 'asc' | 'desc';
             (drop)="onTabDrop($event, item.cohorte.id)"
           >
             @if (dragOverId() === item.cohorte.id && draggedId() !== item.cohorte.id) {
-              <div class="absolute -left-0.5 top-1.5 bottom-1.5 w-0.5 rounded-full bg-accent"></div>
+              <div class="absolute -left-1 top-2 bottom-2 w-0.5 rounded-full bg-accent"></div>
             }
             <button
               role="tab"
               [id]="'tab-' + item.cohorte.id"
               draggable="true"
-              title="Glisser pour réorganiser les onglets"
+              title="Glisser pour réorganiser"
               [attr.aria-selected]="activeContextId() === item.cohorte.id"
               aria-controls="panel-cohortes"
               (click)="activeContextId.set(item.cohorte.id)"
               (dragstart)="onTabDragStart($event, item.cohorte.id)"
               (dragend)="onTabDragEnd()"
-              [class]="(activeContextId() === item.cohorte.id ? 'border-accent text-accent bg-accent-soft/20' : 'border-transparent text-ink-muted hover:text-ink hover:bg-surface-muted') + (draggedId() === item.cohorte.id ? ' opacity-40' : '')"
-              class="relative flex items-center gap-2 rounded-t-xl border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-[-2px]"
+              [class]="(activeContextId() === item.cohorte.id ? 'border-accent text-accent bg-accent/5' : 'border-transparent text-ink-muted hover:text-ink hover:bg-surface-muted/50') + (draggedId() === item.cohorte.id ? ' opacity-40' : '')"
+              class="relative flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-all duration-200 cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-t-lg"
             >
               <app-icon name="cohortes" class="size-4" />
               {{ item.cohorte.nom }}
-              <span class="rounded-full bg-surface-muted px-1.5 py-0.5 text-[10px] font-bold text-ink-muted">{{ item.nbProjets }}</span>
+              <span 
+                [class]="activeContextId() === item.cohorte.id ? 'bg-accent/10 text-accent' : 'bg-surface-muted text-ink-muted'"
+                class="ml-1 rounded-full px-2 py-0.5 text-[10px] font-bold transition-colors"
+              >
+                {{ item.nbProjets }}
+              </span>
             </button>
           </div>
         }
 
-       
-         <button
-  size="sm"
-  (click)="nouvelleCohorteOuverte.set(true)"
-   aria-label="Créer une nouvelle cohorte"
-          class="flex items-center rounded-t-xl border-b-2 border-transparent px-3 py-3 cursor-pointer text-ink-muted hover:text-ink hover:bg-surface-muted"
-        
->
-  <app-icon name="plus" class="size-4" />
- 
-</button>
+        <button
+          (click)="nouvelleCohorteOuverte.set(true)"
+          aria-label="Créer une nouvelle cohorte"
+          class="flex items-center rounded-t-lg border-b-2 border-transparent px-3 py-3 cursor-pointer text-ink-muted hover:text-ink hover:bg-surface-muted/50 transition-colors"
+        >
+          <app-icon name="plus" class="size-4" />
+        </button>
       </div>
 
-      <div
-  id="panel-cohortes"
-  role="tabpanel"
-  class="min-h-0 flex-1 overflow-y-auto"
->
-<div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
-        <!-- CHARGEMENT -->
-        @if (isLoading()) {
-          <div class="flex flex-col gap-6" aria-live="polite" aria-busy="true">
-            <span class="sr-only">Chargement des cohortes…</span>
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              @for (i of [1, 2, 3]; track i) {
-                <div class="h-[74px] animate-pulse rounded-xl border border-line bg-surface-muted/60"></div>
-              }
+      <div id="panel-cohortes" role="tabpanel" class="min-h-0 flex-1 overflow-y-auto">
+        <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-8 p-4 sm:p-6 lg:p-8">
+          
+          <!-- CHARGEMENT -->
+          @if (isLoading()) {
+            <div class="flex flex-col gap-8" aria-live="polite" aria-busy="true">
+              <span class="sr-only">Chargement de l'espace Fabrique 360…</span>
+              <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                @for (i of [1, 2, 3]; track i) {
+                  <div class="h-24 animate-pulse rounded-2xl border border-line bg-surface-muted/40"></div>
+                }
+              </div>
+              <div class="h-96 animate-pulse rounded-2xl  bg-surface-muted/40"></div>
             </div>
-            <div class="h-64 animate-pulse rounded-xl border border-line bg-surface-muted/60"></div>
-          </div>
-        }
+          }
 
-        <!-- ÉTAT 1 : VUE GLOBALE -->
-        @else if (activeContextId() === 'GLOBAL') {
-          <app-page-header title="Toutes les cohortes" subtitle="Pilotez et comparez l'avancement de vos différents programmes.">
-            <app-button
-  size="sm"
-  (click)="nouvelleCohorteOuverte.set(true)"
->
-  <app-icon name="plus" class="size-4" />
-  <span>Nouvelle cohorte</span>
-</app-button>
-          </app-page-header>
+          <!-- ÉTAT 1 : VUE GLOBALE  -->
+          @else if (activeContextId() === 'GLOBAL') {
+            <app-page-header title="Gestion des Cohortes" subtitle="Supervisez la performance globale de l'incubateur.">
+              <app-button size="sm" (click)="nouvelleCohorteOuverte.set(true)">
+                <app-icon name="plus" class="size-4 " />
+                <span>Nouvelle Cohorte</span>
+              </app-button>
+            </app-page-header>
 
-          @if (cohortes().length === 0) {
-            <app-empty-state title="">
-              <h3 class="text-sm font-bold text-ink">Aucune cohorte pour l'instant</h3>
-              <p class="mt-1 text-sm text-ink-muted">Créez votre première cohorte pour commencer à suivre des startups.</p>
-              <a routerLink="/incubateur/cohortes/nouvelle" class="mt-4 inline-block">
-                <app-button size="sm">
-                  <app-icon name="plus" class="size-4 mr-1.5" />
-                  <span>Créer une cohorte</span>
+            @if (cohortes().length === 0) {
+              <app-empty-state title="L'incubateur est prêt">
+                <div class="flex size-12 items-center justify-center rounded-full bg-accent/10 text-accent mb-4 mx-auto">
+                  <app-icon name="cohortes" class="size-6" />
+                </div>
+         
+                <p class="mt-1 text-sm text-ink-muted max-w-sm mx-auto">Créez votre première cohorte Fabrique 360 pour commencer à suivre vos startups.</p>
+                <button (click)="nouvelleCohorteOuverte.set(true)" class="mt-6 inline-block">
+                  <app-button size="sm">
+                    <app-icon name="plus" class="size-4 mr-1.5" />
+                    <span>Initier une cohorte</span>
+                  </app-button>
+                </button>
+              </app-empty-state>
+            } @else {
+              <!-- KPI Globaux -->
+              <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <app-card padding="lg" >
+                  <div class="flex items-center gap-3 mb-2">
+                   
+                    <span class="text-xs font-semibold uppercase tracking-wider text-ink-muted">Cohortes Actives</span>
+                  </div>
+                  <div class="mt-2 text-3xl font-extrabold text-ink tracking-tight">{{ cohortes().length }}</div>
+                </app-card>
+                
+                <app-card padding="lg" class=" ">
+                  <div class="flex items-center gap-3 mb-2">
+                    
+                    <span class="text-xs font-semibold uppercase tracking-wider text-ink-muted">Startups Accompagnées</span>
+                  </div>
+                  <div class="mt-2 text-3xl font-extrabold text-ink tracking-tight">{{ totalStartupsActives() }}</div>
+                </app-card>
+                
+                <app-card padding="lg" >
+                  <div class="flex items-center gap-3 mb-2">
+                    
+                    <span class="text-xs font-semibold uppercase tracking-wider text-ink-muted">Maturité Globale</span>
+                  </div>
+                  <div class="mt-2 flex items-baseline gap-2">
+                    <span class="text-3xl font-extrabold text-ink tracking-tight">{{ progressionGlobaleMoyenne() }}%</span>
+                  </div>
+                </app-card>
+              </div>
+
+              <!-- Filtre de statut -->
+              <div class="flex items-center gap-3 mb-4">
+                <button
+                  type="button"
+                  (click)="filtreStatut.set('ACTIVES')"
+                  [class]="filtreStatut() === 'ACTIVES' ? 'bg-accent text-white' : 'bg-surface-muted text-ink-muted hover:bg-surface-muted/70'"
+                  class="px-4 py-2 rounded-lg text-xs font-semibold transition-colors"
+                >
+                  Actives
+                </button>
+                <button
+                  type="button"
+                  (click)="filtreStatut.set('ARCHIVEES')"
+                  [class]="filtreStatut() === 'ARCHIVEES' ? 'bg-accent text-white' : 'bg-surface-muted text-ink-muted hover:bg-surface-muted/70'"
+                  class="px-4 py-2 rounded-lg text-xs font-semibold transition-colors"
+                >
+                  Archivées
+                </button>
+                <button
+                  type="button"
+                  (click)="filtreStatut.set('TOUTES')"
+                  [class]="filtreStatut() === 'TOUTES' ? 'bg-accent text-white' : 'bg-surface-muted text-ink-muted hover:bg-surface-muted/70'"
+                  class="px-4 py-2 rounded-lg text-xs font-semibold transition-colors"
+                >
+                  Toutes
+                </button>
+              </div>
+
+              <!-- Tableau (desktop) -->
+              <app-card padding="none" class="hidden w-full min-w-0 overflow-hidden border border-line/60 shadow-xs sm:block rounded-2xl">
+                <table class="w-full min-w-[650px] border-collapse text-left text-sm">
+                  <thead>
+                    <tr class="border-b border-line bg-surface-muted/30 text-xs font-bold uppercase tracking-wider text-ink-muted">
+                      <th class="w-4/12 px-6 py-4">
+                        <button (click)="toggleGlobalSort('nom')" class="flex items-center gap-1.5 hover:text-ink transition-colors">
+                          Programme
+                          @if (globalSortBy() === 'nom') {
+                            <app-icon [name]="globalSortDir() === 'asc' ? 'chevron-up' : 'chevron-down'" class="size-3.5 text-accent" />
+                          }
+                        </button>
+                      </th>
+                      <th class="w-3/12 px-6 py-4">Période</th>
+                      <th class="w-2/12 px-6 py-4 text-center">Startups</th>
+                      <th class="w-2/12 px-6 py-4 text-center">Maturité</th>
+                      <th class="w-1/12 px-6 py-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-line/60 bg-surface">
+                    @for (item of sortedCohortesAffichees(); track item.cohorte.id) {
+                      <tr class="group transition-all duration-200 hover:bg-surface-muted/30">
+                        <td class="px-6 py-4 cursor-pointer" (click)="activeContextId.set(item.cohorte.id)">
+                          <span class="font-bold text-ink transition-colors group-hover:text-accent">{{ item.cohorte.nom }}</span>
+                        </td>
+                        <td class="px-6 py-4 font-medium text-ink-muted text-xs cursor-pointer" (click)="activeContextId.set(item.cohorte.id)">
+                          <div class="flex items-center gap-2">
+                            <span>{{ formatDate(item.cohorte.dateDebut) }}</span>
+                            <app-icon name="arrow-right" class="size-3 text-line" />
+                            <span>{{ formatDate(item.cohorte.dateFin) }}</span>
+                          </div>
+                        </td>
+                        <td class="px-6 py-4 text-center font-bold text-ink cursor-pointer" (click)="activeContextId.set(item.cohorte.id)">{{ item.nbProjets }}</td>
+                        <td class="px-6 py-4 text-center cursor-pointer" (click)="activeContextId.set(item.cohorte.id)">
+                          <div class="flex items-center justify-center gap-3">
+                            <div class="h-2.5 w-20 overflow-hidden rounded-full bg-line/60">
+                              <div class="h-full rounded-full bg-gradient-to-r from-accent to-orange-400 transition-all duration-500 ease-out" [style.width.%]="item.scoreMoyen"></div>
+                            </div>
+                            <span class="w-9 text-right text-xs font-bold text-ink">{{ item.scoreMoyen }}%</span>
+                          </div>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                          @if (item.cohorte.statut === 'ARCHIVEE') {
+                            <button
+                              type="button"
+                              (click)="restaurerCohorte(item.cohorte, $event)"
+                              class="text-xs font-semibold text-emerald-600 hover:text-emerald-800 hover:underline transition-colors p-1"
+                              title="Restaurer le programme"
+                            >
+                              Restaurer
+                            </button>
+                          } @else {
+                            <button
+                              type="button"
+                              (click)="archiverCohorte(item.cohorte, $event)"
+                              class="text-xs font-semibold text-rose-600 hover:text-rose-800 hover:underline transition-colors p-1"
+                              title="Archiver le programme"
+                            >
+                              Archiver
+                            </button>
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </app-card>
+            }
+          }
+
+          <!-- ÉTAT 2 : VUE SPÉCIFIQUE D'UNE COHORTE -->
+          @else if (activeCohorteData(); as data) {
+            <app-page-header
+              [title]="data.cohorte.nom"
+              [subtitle]="formatDate(data.cohorte.dateDebut) + ' au ' + formatDate(data.cohorte.dateFin) + ' · ' + data.projets.length + ' startups accompagnées'"
+            >
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="rounded-full bg-accent/10 border border-accent/20 px-3 py-1 text-xs font-bold text-accent-strong hidden sm:inline-block">
+                  {{ labelPhase[data.cohorte.phase] }}
+                </span>
+                
+                <app-button size="sm" class="border-line/60 hover:bg-surface-muted/30" (click)="ouvrirEdition()">
+                  <app-icon name="edit" class="size-4 mr-1.5" /> Modifier
                 </app-button>
-              </a>
-            </app-empty-state>
-          } @else {
-            <!-- KPI Globaux -->
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+
+                <app-button size="sm" class="border-line/60 hover:bg-surface-muted/30" (click)="showInviteEntrepreneurModal.set(true)">
+                  <app-icon name="plus" class="size-4 mr-1.5" /> Ajouter entrepreneur
+                </app-button>
+
+                <a [routerLink]="['/incubateur/missions/attribuer']" [queryParams]="{ cohorteId: data.cohorte.id }">
+                  <app-button size="sm" class="border-line/60 hover:bg-surface-muted/30">
+                    <app-icon name="missions" class="size-4 mr-1.5" /> Attribuer mission
+                  </app-button>
+                </a>
+         
+              </div>
+            </app-page-header>
+
+            <!-- KPI Cohorte -->
+            <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
               <app-card padding="md" >
-                <span class="text-xs font-medium text-ink-muted">Cohortes actives</span>
-                <div class="mt-2 text-2xl font-bold text-ink">{{ cohortes().length }}</div>
+                <span class="text-xs font-semibold uppercase tracking-wider text-ink-muted">Startups Suivies</span>
+                <div class="mt-2 text-2xl font-extrabold text-ink">{{ data.projets.length }}</div>
               </app-card>
               <app-card padding="md" >
-                <span class="text-xs font-medium text-ink-muted">Startups accompagnées</span>
-                <div class="mt-2 text-2xl font-bold text-ink">{{ totalStartupsActives() }}</div>
+                <span class="text-xs font-semibold uppercase tracking-wider text-ink-muted">Maturité Moyenne</span>
+                <div class="mt-2 text-2xl font-extrabold text-emerald-600">{{ data.scoreMoyen }}%</div>
               </app-card>
               <app-card padding="md" >
-                <span class="text-xs font-medium text-ink-muted">Progression moyenne</span>
-                <div class="mt-2 text-2xl font-bold text-ink">{{ progressionGlobaleMoyenne() }}%</div>
+                <span class="text-xs font-semibold uppercase tracking-wider text-ink-muted">Startups À Jour</span>
+                <div class="mt-2 text-2xl font-extrabold text-ink">{{ data.aJour }}</div>
+              </app-card>
+              <app-card padding="md" >
+                <span class="text-xs font-semibold uppercase tracking-wider text-ink-muted">En retard</span>
+                <div class="mt-2 text-2xl font-extrabold" [class]="data.enRetard.length > 0 ? 'text-rose-600' : 'text-ink'">{{ data.enRetard.length }}</div>
               </app-card>
             </div>
 
-            <!-- Tableau (desktop) -->
-            <app-card padding="none" class="hidden w-full min-w-0 overflow-hidden shadow-xs sm:block">
-              <table class="w-full min-w-[650px] border-collapse text-left text-xs">
+           
+           
+
+            <!-- Barre d'outils Portefeuille -->
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mt-2">
+              <h3 class="text-base font-bold text-ink flex items-center gap-2">
+                Portefeuille d'incubation
+                <span class="flex h-5 items-center rounded-full bg-surface-muted px-2 text-[11px] font-bold text-ink-muted border border-line/60">{{ data.projets.length }}</span>
+              </h3>
+              <div class="relative w-full sm:w-72">
+                <app-icon name="search" class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-muted" />
+                <input
+                  type="search"
+                  [formControl]="searchControl"
+                  placeholder="Chercher une startup..."
+                  class="w-full rounded-xl border border-line/60 bg-surface py-2.5 pl-9 pr-3 text-sm text-ink placeholder:text-ink-muted focus:border-accent focus:ring-1 focus:ring-accent focus:outline-none shadow-xs transition-all"
+                />
+              </div>
+            </div>
+
+            <!-- Tableau Portefeuille (desktop) -->
+            <app-card padding="none" class="hidden w-full min-w-0 overflow-hidden border border-line/60 shadow-xs sm:block rounded-2xl">
+              <table class="w-full min-w-[800px] border-collapse text-left text-sm">
                 <thead>
-                  <tr class="border-b border-line bg-surface-muted/60 font-semibold text-ink-muted">
-                    <th class="w-4/12 px-5 py-3.5">
-                      <button (click)="toggleGlobalSort('nom')" class="flex items-center gap-1 hover:text-ink">
-                        Cohorte
-                        @if (globalSortBy() === 'nom') {
-                          <app-icon [name]="globalSortDir() === 'asc' ? 'chevron-up' : 'chevron-down'" class="size-3" />
+                  <tr class="border-b border-line bg-surface-muted/30 text-xs font-bold uppercase tracking-wider text-ink-muted">
+                    <th class="w-3/12 px-6 py-4">
+                      <button (click)="toggleProjetSort('nom')" class="flex items-center gap-1.5 hover:text-ink transition-colors">
+                        Startup & Porteur
+                        @if (projetSortBy() === 'nom') {
+                          <app-icon [name]="projetSortDir() === 'asc' ? 'chevron-up' : 'chevron-down'" class="size-3.5 text-accent" />
                         }
                       </button>
                     </th>
-                    <th class="w-3/12 px-5 py-3.5">Période</th>
-                    <th class="w-2/12 px-5 py-3.5 text-center">Startups</th>
-                    <th class="w-3/12 px-5 py-3.5 text-right">
-                      <button (click)="toggleGlobalSort('progression')" class="ml-auto flex items-center gap-1 hover:text-ink">
-                        Progression
-                        @if (globalSortBy() === 'progression') {
-                          <app-icon [name]="globalSortDir() === 'asc' ? 'chevron-up' : 'chevron-down'" class="size-3" />
+                    <th class="w-3/12 px-6 py-4 text-center">
+                      <button (click)="toggleProjetSort('progression')" class="mx-auto flex items-center gap-1.5 hover:text-ink transition-colors">
+                        Avancement
+                        @if (projetSortBy() === 'progression') {
+                          <app-icon [name]="projetSortDir() === 'asc' ? 'chevron-up' : 'chevron-down'" class="size-3.5 text-accent" />
                         }
                       </button>
                     </th>
-                    <th class="w-2/12 px-5 py-3.5 text-right">
-  Action
-</th>
+                    <th class="w-2/12 px-6 py-4 text-center">Statut</th>
+                    <th class="w-4/12 px-6 py-4 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody class="divide-y divide-line bg-surface">
-                  @for (item of sortedCohortesAffichees(); track item.cohorte.id) {
-                    <tr
-                      tabindex="0"
-                      role="button"
-                      [attr.aria-label]="'Ouvrir ' + item.cohorte.nom"
-                      (click)="activeContextId.set(item.cohorte.id)"
-                      (keydown.enter)="activeContextId.set(item.cohorte.id)"
-                      class="group cursor-pointer transition-colors hover:bg-surface-muted/40 focus-visible:bg-surface-muted/60 focus-visible:outline-none"
-                    >
-                      <td class="px-5 py-3.5">
-                        <span class="truncate text-sm font-bold text-ink transition-colors group-hover:text-accent">{{ item.cohorte.nom }}</span>
-                      </td>
-                      <td class="px-5 py-3.5 font-medium text-ink-muted">{{ formatDate(item.cohorte.dateDebut) }} → {{ formatDate(item.cohorte.dateFin) }}</td>
-                      <td class="px-5 py-3.5 text-center font-semibold text-ink">{{ item.nbProjets }}</td>
-                      <td class="px-5 py-3.5 text-right">
-                        <div class="flex items-center justify-end gap-2.5">
-                          <div class="h-2 w-16 overflow-hidden rounded-full bg-line">
-                            <div class="h-full rounded-full bg-accent" [style.width.%]="item.scoreMoyen"></div>
+                <tbody class="divide-y divide-line/60 bg-surface">
+                  @for (p of filteredSortedProjets(); track p.id) {
+                    <tr class="group transition-all duration-200 hover:bg-surface-muted/30">
+                      <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                          <app-avatar [initials]="p.nom ? p.nom.substring(0, 2).toUpperCase() : 'PR'" size="md"  />
+                          <div class="flex flex-col">
+                            <span class="font-bold text-ink">{{ p.nom }}</span>
+                            <span class="text-xs text-ink-muted mt-0.5">{{ p.nomEntrepreneur || 'Équipe à définir' }}</span>
                           </div>
-                          <span class="w-8 text-right text-xs font-bold text-ink">{{ item.scoreMoyen }}%</span>
                         </div>
                       </td>
-                      <td class="px-5 py-3.5 text-right">
-  <button
-    type="button"
-    (click)="archiverCohorte(item.cohorte, $event)"
-    class="text-xs font-medium text-danger hover:underline"
-    title="Archiver"
-  >
-    Archiver
-  </button>
-</td>
+                      <td class="px-6 py-4 text-center">
+                        <div class="flex items-center justify-center gap-3">
+                          <div class="flex h-2 w-32 overflow-hidden rounded-full bg-line/60">
+                            <div class="bg-gradient-to-r from-accent to-orange-400 transition-all duration-500 ease-out" [style.width.%]="p.scoreMaturite || 0"></div>
+                          </div>
+                          <span class="w-9 font-mono text-xs font-bold text-ink">{{ p.scoreMaturite || 0 }}%</span>
+                        </div>
+                      </td>
+                      <td class="px-6 py-4 text-center">
+                        @if ((p.scoreMaturite || 0) > 70) {
+                          <app-badge status="success" size="sm" class="font-bold">À jour</app-badge>
+                        } @else if ((p.scoreMaturite || 0) > 30) {
+                          <app-badge status="warning" size="sm" class="font-bold">En cours</app-badge>
+                        } @else {
+                          <app-badge status="danger" size="sm" class="font-bold">En retard</app-badge>
+                        }
+                      </td>
+                      <td class="px-6 py-4 text-right">
+                        <div class="flex items-center justify-end gap-3">
+                          @if (cohortesPhaseSuivante().length > 0) {
+                            <div class="flex items-center gap-2">
+                              <select
+                                [ngModel]="cohorteCibleParProjet()[p.id] ?? ''"
+                                (ngModelChange)="changerCohorteCible(p.id, $event)"
+                                class="rounded-lg border border-line bg-surface px-2 py-1.5 text-xs text-ink focus:border-accent focus:outline-none"
+                              >
+                                <option value="">Sans cohorte</option>
+                                @for (cible of cohortesPhaseSuivante(); track cible.id) {
+                                  <option [value]="cible.id">{{ cible.nom }}</option>
+                                }
+                              </select>
+                              <button
+                                type="button"
+                                (click)="promouvoirProjet(p.id)"
+                                [disabled]="promotionEnCoursParProjet()[p.id]"
+                                class="rounded-lg border border-accent/20 bg-accent/10 px-3 py-1.5 text-xs font-bold text-accent transition-colors hover:bg-accent/20 disabled:opacity-50"
+                              >
+                                {{ promotionEnCoursParProjet()[p.id] ? '...' : 'Promouvoir' }}
+                              </button>
+                            </div>
+                          }
+                          <a
+                            [routerLink]="['/incubateur/projets', p.id]"
+                            class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold text-ink-muted transition-all hover:bg-surface-muted hover:text-accent border border-transparent hover:border-line"
+                          >
+                            Détails <app-icon name="chevron-right" class="size-3.5" />
+                          </a>
+                        </div>
+                        @if (erreurPromotionParProjet()[p.id]) {
+                          <p class="mt-1.5 text-right text-[10px] text-rose-600">{{ erreurPromotionParProjet()[p.id] }}</p>
+                        }
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="4" class="p-10 text-center text-sm text-ink-muted bg-surface-muted/10">
+                        @if (searchControl.value) {
+                          Aucune startup ne correspond à « <strong class="text-ink">{{ searchControl.value }}</strong> ».
+                        } @else {
+                          Le portefeuille de cette cohorte est vide.
+                        }
+                      </td>
                     </tr>
                   }
                 </tbody>
               </table>
             </app-card>
-
-            <!-- Cartes (mobile) -->
-            <div class="flex flex-col gap-3 sm:hidden">
-              @for (item of sortedCohortesAffichees(); track item.cohorte.id) {
-                <app-card
-                  padding="md"
-                  tabindex="0"
-                  role="button"
-                  [attr.aria-label]="'Ouvrir ' + item.cohorte.nom"
-                  (click)="activeContextId.set(item.cohorte.id)"
-                  (keydown.enter)="activeContextId.set(item.cohorte.id)"
-                  class="border border-line bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
-                >
-                  <div class="flex items-center justify-between">
-                    <span class="text-sm font-bold text-ink">{{ item.cohorte.nom }}</span>
-                    <span class="text-xs font-bold text-ink">{{ item.scoreMoyen }}%</span>
-                  </div>
-                  <div class="mt-1 text-[11px] text-ink-muted">{{ formatDate(item.cohorte.dateDebut) }} → {{ formatDate(item.cohorte.dateFin) }} · {{ item.nbProjets }} startups</div>
-                  <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-line">
-                    <div class="h-full rounded-full bg-accent" [style.width.%]="item.scoreMoyen"></div>
-                  </div>
-                  
-                </app-card>
-              }
-            </div>
           }
-        }
-
-        <!-- ÉTAT 2 : VUE SPÉCIFIQUE D'UNE COHORTE -->
-        @else if (activeCohorteData(); as data) {
-          <app-page-header
-            [title]="data.cohorte.nom"
-            [subtitle]="formatDate(data.cohorte.dateDebut) + ' au ' + formatDate(data.cohorte.dateFin) + ' · ' + data.projets.length + ' startups accompagnées'"
-          >
-            <div class="flex gap-2">
-              <a [routerLink]="['/incubateur/cohortes', data.cohorte.id, 'parametres']">
-                <app-button size="sm">
-                  <app-icon name="settings" class="size-4 mr-1.5" /> Paramètres
-                </app-button>
-              </a>
-              <a routerLink="/incubateur/entrepreneurs/inviter">
-                <app-button size="sm">
-                  <app-icon name="plus" class="size-4 mr-1.5" /> Ajouter startup
-                </app-button>
-              </a>
-            </div>
-          </app-page-header>
-
-          <!-- KPI honnêtes, dérivés des données réelles -->
-          <div class="grid grid-cols-1 gap-4 sm:grid-cols-4">
-            <app-card padding="md" >
-              <span class="text-xs font-medium text-ink-muted">Startups suivies</span>
-              <div class="mt-2 text-xl font-bold text-ink">{{ data.projets.length }}</div>
-            </app-card>
-            <app-card padding="md" >
-              <span class="text-xs font-medium text-ink-muted">Progression moyenne</span>
-              <div class="mt-2 text-xl font-bold text-emerald-600">{{ data.scoreMoyen }}%</div>
-            </app-card>
-            <app-card padding="md" >
-              <span class="text-xs font-medium text-ink-muted">À jour</span>
-              <div class="mt-2 text-xl font-bold text-ink">{{ data.aJour }}</div>
-            </app-card>
-            <app-card padding="md" >
-              <span class="text-xs font-medium text-ink-muted">En retard</span>
-              <div class="mt-2 text-xl font-bold" [class]="data.enRetard.length > 0 ? 'text-rose-600' : 'text-ink'">{{ data.enRetard.length }}</div>
-            </app-card>
-          </div>
-
-          <!-- Alerte contextuelle : uniquement si un retard réel existe -->
-          @if (data.enRetard.length > 0) {
-            <div class="flex flex-col gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
-              <h3 class="flex items-center gap-2 text-xs font-bold text-amber-700">
-                <app-icon name="warning" class="size-4" />
-                {{ data.enRetard.length }} startup{{ data.enRetard.length > 1 ? 's' : '' }} en retard
-              </h3>
-              <div class="flex flex-wrap gap-2">
-                @for (p of data.enRetard; track p.id) {
-                  <a
-                    [routerLink]="['/incubateur/projets', p.id]"
-                    class="rounded-full bg-surface px-3 py-1 text-xs font-semibold text-amber-800 hover:underline"
-                  >
-                    {{ p.nom }} · {{ p.scoreMaturite || 0 }}%
-                  </a>
-                }
-              </div>
-            </div>
-          }
-
-          <!-- Barre d'outils : recherche + tri -->
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h3 class="text-sm font-bold text-ink">Portefeuille des startups</h3>
-            <div class="relative w-full sm:w-64">
-              <app-icon name="search" class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-muted" />
-              <input
-                type="search"
-                [formControl]="searchControl"
-                placeholder="Rechercher une startup…"
-                aria-label="Rechercher une startup dans cette cohorte"
-                class="w-full rounded-lg border border-line bg-surface py-2 pl-9 pr-3 text-sm text-ink placeholder:text-ink-muted focus:border-accent focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <!-- Tableau (desktop) -->
-          <app-card padding="none" class="hidden w-full min-w-0 overflow-hiddenshadow-xs sm:block">
-            <table class="w-full min-w-[800px] border-collapse text-left text-xs">
-              <thead>
-                <tr class="border-b border-line bg-surface-muted/60 font-semibold text-ink-muted">
-                  <th class="w-3/12 px-5 py-3.5">
-                    <button (click)="toggleProjetSort('nom')" class="flex items-center gap-1 hover:text-ink">
-                      Startup & porteur
-                      @if (projetSortBy() === 'nom') {
-                        <app-icon [name]="projetSortDir() === 'asc' ? 'chevron-up' : 'chevron-down'" class="size-3" />
-                      }
-                    </button>
-                  </th>
-                  <th class="w-3/12 px-5 py-3.5 text-center">
-                    <button (click)="toggleProjetSort('progression')" class="mx-auto flex items-center gap-1 hover:text-ink">
-                      Avancement
-                      @if (projetSortBy() === 'progression') {
-                        <app-icon [name]="projetSortDir() === 'asc' ? 'chevron-up' : 'chevron-down'" class="size-3" />
-                      }
-                    </button>
-                  </th>
-                  <th class="w-2/12 px-5 py-3.5 text-center">Statut</th>
-                  <th class="w-2/12 px-5 py-3.5 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-line bg-surface">
-                @for (p of filteredSortedProjets(); track p.id) {
-                  <tr class="group transition-colors hover:bg-surface-muted/40">
-                    <td class="px-5 py-3.5">
-                      <div class="flex items-center gap-3">
-                        <app-avatar [initials]="p.nom ? p.nom.substring(0, 2).toUpperCase() : 'PR'" size="sm" />
-                        <div class="flex flex-col">
-                          <span class="text-sm font-bold text-ink">{{ p.nom }}</span>
-                          <span class="text-[11px] text-ink-muted">{{ p.nomEntrepreneur || 'Sans porteur' }}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td class="px-5 py-3.5 text-center">
-                      <div class="flex items-center justify-center gap-2">
-                        <div class="flex h-2 w-32 overflow-hidden rounded-sm bg-line">
-                          <div class="bg-accent transition-all duration-300" [style.width.%]="p.scoreMaturite || 0"></div>
-                        </div>
-                        <span class="w-8 font-mono font-semibold text-ink">{{ p.scoreMaturite || 0 }}%</span>
-                      </div>
-                    </td>
-                    <td class="px-5 py-3.5 text-center">
-                      @if ((p.scoreMaturite || 0) > 70) {
-                        <app-badge status="success" size="sm">À jour</app-badge>
-                      } @else if ((p.scoreMaturite || 0) > 30) {
-                        <app-badge status="warning" size="sm">En cours</app-badge>
-                      } @else {
-                        <app-badge status="danger" size="sm">En retard</app-badge>
-                      }
-                    </td>
-                    <td class="px-5 py-3.5 text-right">
-                      <a
-                        [routerLink]="['/incubateur/projets', p.id]"
-                        class="inline-flex items-center gap-1 text-xs font-semibold text-ink-muted transition-colors hover:text-accent"
-                      >
-                        Détails & suivi <app-icon name="chevron-right" class="size-3.5" />
-                      </a>
-                    </td>
-                  </tr>
-                } @empty {
-                  <tr>
-                    <td colspan="4" class="p-8 text-center text-sm text-ink-muted">
-                      @if (searchControl.value) {
-                        Aucune startup ne correspond à « {{ searchControl.value }} ».
-                      } @else {
-                        Aucun projet dans cette cohorte pour le moment.
-                      }
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </app-card>
-
-          <!-- Cartes (mobile) -->
-          <div class="flex flex-col gap-3 sm:hidden">
-            @for (p of filteredSortedProjets(); track p.id) {
-              <app-card padding="md" class="border border-line bg-surface">
-                <div class="flex items-center gap-3">
-                  <app-avatar [initials]="p.nom ? p.nom.substring(0, 2).toUpperCase() : 'PR'" size="sm" />
-                  <div class="flex min-w-0 flex-1 flex-col">
-                    <span class="truncate text-sm font-bold text-ink">{{ p.nom }}</span>
-                    <span class="truncate text-[11px] text-ink-muted">{{ p.nomEntrepreneur || 'Sans porteur' }}</span>
-                  </div>
-                  @if ((p.scoreMaturite || 0) > 70) {
-                    <app-badge status="success" size="sm">À jour</app-badge>
-                  } @else if ((p.scoreMaturite || 0) > 30) {
-                    <app-badge status="warning" size="sm">En cours</app-badge>
-                  } @else {
-                    <app-badge status="danger" size="sm">En retard</app-badge>
-                  }
-                </div>
-                <div class="mt-3 flex items-center gap-2">
-                  <div class="flex h-1.5 flex-1 overflow-hidden rounded-full bg-line">
-                    <div class="bg-accent" [style.width.%]="p.scoreMaturite || 0"></div>
-                  </div>
-                  <span class="text-xs font-semibold text-ink">{{ p.scoreMaturite || 0 }}%</span>
-                </div>
-                <a [routerLink]="['/incubateur/projets', p.id]" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-accent">
-                  Détails & suivi <app-icon name="chevron-right" class="size-3.5" />
-                </a>
-              </app-card>
-            } @empty {
-              <p class="p-6 text-center text-sm text-ink-muted">
-                @if (searchControl.value) {
-                  Aucune startup ne correspond à « {{ searchControl.value }} ».
-                } @else {
-                  Aucun projet dans cette cohorte pour le moment.
-                }
-              </p>
-            }
-          </div>
-        }
-      </div>
+        </div>
       </div>
     </div>
 
+    <!-- MODALES -->
 
+    <!-- Modale : Nouvelle Cohorte (Composant Existant) -->
     @if (nouvelleCohorteOuverte()) {
-  <app-nouvelle-cohorte
-    (closed)="nouvelleCohorteOuverte.set(false)"
-    (created)="onCohorteCreated()"
-  />
-}
+      <app-nouvelle-cohorte
+        (closed)="nouvelleCohorteOuverte.set(false)"
+        (created)="onCohorteCreated()"
+      />
+    }
+
+    <!-- Modale : Édition Cohorte -->
+    @if (showEditModal() && cohorteEnCoursEdition(); as cohorteActive) {
+      <app-edit-cohorte
+        [cohorte]="cohorteActive"
+        (closed)="showEditModal.set(false)"
+        (updated)="onCohorteUpdated($event)"
+      />
+    }
+
+    
+
+      @if (showInviteEntrepreneurModal() && activeCohorteData(); as data) {
+        <app-inviter-entrepreneur-modal
+          [fixedCohorteId]="data.cohorte.id"
+          [fixedCohorteNom]="data.cohorte.nom"
+          (close)="showInviteEntrepreneurModal.set(false)"
+          (invited)="loadData()"
+        />
+      }
   `,
 })
 export class CohortesList {
@@ -474,32 +507,75 @@ export class CohortesList {
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly nouvelleCohorteOuverte = signal(false);
-
   protected readonly activeContextId = signal<string>('GLOBAL');
   protected readonly isLoading = signal<boolean>(true);
+  protected readonly labelPhase = LABEL_PHASE;
+
+  // -- Contrôle Modales --
+  protected readonly showEditModal = signal(false);
+ 
+  protected readonly showInviteEntrepreneurModal = signal(false);
+
+  // Édition de la cohorte active
+  protected readonly editNom = signal('');
+  protected readonly editDescription = signal('');
+  protected readonly editDateDebut = signal('');
+  protected readonly editDateFin = signal('');
+  protected readonly editPhase = signal<PhaseParcours>('PRE_INCUBATION');
+  protected readonly enregistrementEnCours = signal(false);
+  protected readonly erreurEdition = signal<string | null>(null);
+
+  // Création de projet dans la cohorte active
+  protected readonly nouveauNomProjet = signal('');
+  protected readonly creationProjetEnCours = signal(false);
+  protected readonly erreurCreationProjet = signal<string | null>(null);
+
+  // Promotion
+  protected readonly cohorteCibleParProjet = signal<Record<string, string>>({});
+  protected readonly cohortesPhaseSuivante = signal<Cohorte[]>([]);
+  protected readonly promotionEnCoursParProjet = signal<Record<string, boolean>>({});
+  protected readonly erreurPromotionParProjet = signal<Record<string, string>>({});
 
   protected readonly cohortes = signal<Cohorte[]>([]);
   private readonly projetsParCohorte = signal<Record<string, Projet[]>>({});
 
-  // -- Ordre des onglets (glisser-déposer, persisté par structure) --
+
+
+  private readonly route = inject(ActivatedRoute);
+  private queryCohorteIdToSelect = signal<string | null>(null);
+  // Ordre des onglets
   protected readonly cohorteOrder = signal<string[]>([]);
   protected readonly draggedId = signal<string | null>(null);
   protected readonly dragOverId = signal<string | null>(null);
+private readonly missionService = inject(MissionService);
 
-  // -- Tri (vue globale) --
+protected readonly missionsParCohorte = signal<Record<string, Mission[]>>({});
+  // Tris & Recherche
   protected readonly globalSortBy = signal<SortField>('progression');
   protected readonly globalSortDir = signal<SortDir>('desc');
-
-  // -- Tri + recherche (portefeuille d'une cohorte) --
   protected readonly projetSortBy = signal<SortField>('progression');
   protected readonly projetSortDir = signal<SortDir>('desc');
   protected readonly searchControl = new FormControl<string>('', { nonNullable: true });
   private readonly searchTerm = signal('');
-protected onCohorteCreated(): void {
-  this.nouvelleCohorteOuverte.set(false);
-  this.loadData();
-}
-  // -- Données vue globale --
+  protected readonly filtreStatut = signal<CohorteFilter>('ACTIVES');
+// Ajoute ce signal pour savoir quelle cohorte est modifiée
+  protected readonly cohorteEnCoursEdition = signal<Cohorte | null>(null);
+
+  // Modifie ta méthode ouvrirEdition pour cibler la cohorte active
+
+  // Méthode appelée lorsque l'édition est validée avec succès
+  protected onCohorteUpdated(updatedCohorte: Cohorte): void {
+    this.cohortes.update((liste) => 
+      liste.map((x) => (x.id === updatedCohorte.id ? updatedCohorte : x))
+    );
+    this.showEditModal.set(false);
+    this.cohorteEnCoursEdition.set(null);
+  }
+  protected onCohorteCreated(): void {
+   
+    this.loadData();
+  }
+
   protected readonly cohortesAffichees = computed<CohorteAffichee[]>(() =>
     this.cohortes().map((cohorte) => {
       const projets = this.projetsParCohorte()[cohorte.id] ?? [];
@@ -507,7 +583,12 @@ protected onCohorteCreated(): void {
       return { cohorte, nbProjets: projets.length, scoreMoyen };
     })
   );
-
+protected readonly projetForm = new FormGroup({
+    nom: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    description: new FormControl('', { nonNullable: true }),
+    secteur: new FormControl('', { nonNullable: true }),
+    entrepreneurId: new FormControl('', { nonNullable: true })
+  });
   protected readonly sortedCohortesAffichees = computed(() => {
     const dir = this.globalSortDir() === 'asc' ? 1 : -1;
     const field = this.globalSortBy();
@@ -516,7 +597,6 @@ protected onCohorteCreated(): void {
     );
   });
 
-  // Onglets dans l'ordre choisi par l'utilisateur (les nouvelles cohortes sont ajoutées à la fin)
   protected readonly orderedCohortesAffichees = computed<CohorteAffichee[]>(() => {
     const byId = new Map(this.cohortesAffichees().map((item) => [item.cohorte.id, item]));
     return this.cohorteOrder()
@@ -531,7 +611,6 @@ protected onCohorteCreated(): void {
     return Math.round(arr.reduce((sum, item) => sum + item.scoreMoyen, 0) / arr.length);
   });
 
-  // -- Données vue spécifique (portefeuille) --
   protected readonly activeCohorteData = computed(() => {
     const id = this.activeContextId();
     if (id === 'GLOBAL') return null;
@@ -544,7 +623,14 @@ protected onCohorteCreated(): void {
     const enRetard = projets.filter((p) => (p.scoreMaturite || 0) <= 30);
     const aJour = projets.filter((p) => (p.scoreMaturite || 0) > 70).length;
 
-    return { cohorte, projets, scoreMoyen, enRetard, aJour };
+    return {
+  cohorte,
+  projets,
+  missions: this.missionsParCohorte()[cohorte.id] ?? [],
+  scoreMoyen,
+  enRetard,
+  aJour,
+};
   });
 
   protected readonly filteredSortedProjets = computed(() => {
@@ -565,13 +651,51 @@ protected onCohorteCreated(): void {
   });
 
   constructor() {
+    // Récupérer le paramètre de route ou query param dès le chargement ou lors d'un changement
+    this.route.paramMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((params) => {
+        const id = params.get('id');
+        if (id) {
+          this.queryCohorteIdToSelect.set(id);
+          if (this.cohortes().some((c) => c.id === id)) {
+            this.activeContextId.set(id);
+          }
+        }
+      });
+
+    this.route.queryParamMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((params) => {
+        const id = params.get('cohorteId');
+        if (id) {
+          this.queryCohorteIdToSelect.set(id);
+          if (this.cohortes().some((c) => c.id === id)) {
+            this.activeContextId.set(id);
+          }
+        }
+      });
+
     effect(() => {
-      if (this.structureContext.activeStructureId()) this.loadData();
+      if (this.structureContext.activeStructureId()) {
+        this.loadData();
+      }
     });
 
     this.searchControl.valueChanges
       .pipe(debounceTime(200), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
       .subscribe((value) => this.searchTerm.set(value));
+      
+    effect(() => {
+      const data = this.activeCohorteData();
+      if (data?.cohorte.phase) {
+        this.chargerCohortesPhaseSuivante(data.cohorte.phase);
+      }
+    });
+  }
+
+  protected changerCohorteCible(projetId: string, cohorteId: string): void {
+    this.cohorteCibleParProjet.update((map) => ({ ...map, [projetId]: cohorteId }));
   }
 
   protected toggleGlobalSort(field: SortField): void {
@@ -592,7 +716,6 @@ protected onCohorteCreated(): void {
     }
   }
 
-  // -- Glisser-déposer des onglets (comme les feuilles Excel) --
   protected onTabDragStart(event: DragEvent, id: string): void {
     this.draggedId.set(id);
     event.dataTransfer?.setData('text/plain', id);
@@ -635,9 +758,7 @@ protected onCohorteCreated(): void {
     if (typeof window === 'undefined' || !structureId) return;
     try {
       window.localStorage.setItem(`cohortes-order-${structureId}`, JSON.stringify(order));
-    } catch {
-      // Stockage indisponible (mode privé, quota…) : on continue sans persister l'ordre.
-    }
+    } catch {}
   }
 
   private loadOrder(ids: string[]): string[] {
@@ -656,38 +777,99 @@ protected onCohorteCreated(): void {
     }
   }
 
-  private loadData(): void {
-    this.isLoading.set(true);
-    this.cohorteService.getCohortes().subscribe({
-      next: (cohortes) => {
-        this.cohortes.set(cohortes);
-        this.cohorteOrder.set(this.loadOrder(cohortes.map((c) => c.id)));
-        if (!cohortes || cohortes.length === 0) {
-          this.isLoading.set(false);
-          return;
-        }
+ protected loadData(): void {
+  this.isLoading.set(true);
 
-        const requests = cohortes.map((c) => this.projetService.getByCohorte(c.id).pipe(catchError(() => of([]))));
+  // Charger les cohortes selon le filtre actif
+  const obs$ = this.filtreStatut() === 'ARCHIVEES'
+    ? this.cohorteService.getCohortesByStatut('ARCHIVEE')
+    : this.filtreStatut() === 'TOUTES'
+    ? this.cohorteService.getCohortes()
+    : this.cohorteService.getActiveCohortes();
 
-        forkJoin(requests).subscribe({
-          next: (results) => {
-            const map: Record<string, Projet[]> = {};
-            cohortes.forEach((cohorte, index) => {
-              map[cohorte.id] = results[index] ?? [];
-            });
-            this.projetsParCohorte.set(map);
-            this.isLoading.set(false);
-          },
-          error: () => this.isLoading.set(false),
-        });
-      },
-      error: (err) => {
-        console.error('Erreur:', err);
+  obs$.subscribe({
+    next: (cohortes) => {
+      this.cohortes.set(cohortes);
+      this.cohorteOrder.set(
+        this.loadOrder(cohortes.map((c) => c.id))
+      );
+
+      const targetId = this.queryCohorteIdToSelect();
+
+      if (targetId && cohortes.some((c) => c.id === targetId)) {
+        this.activeContextId.set(targetId);
+        this.queryCohorteIdToSelect.set(null);
+      }
+
+      if (!cohortes || cohortes.length === 0) {
         this.isLoading.set(false);
-      },
-    });
-  }
+        return;
+      }
 
+      const projetsRequests = cohortes.map((cohorte) =>
+        this.projetService
+          .getByCohorte(cohorte.id)
+          .pipe(catchError(() => of([])))
+      );
+
+      forkJoin({
+        projets: forkJoin(projetsRequests),
+        missions: this.missionService
+          .getMissions()
+          .pipe(catchError(() => of([]))),
+      }).subscribe({
+        next: ({ projets, missions }) => {
+
+          // -------------------------
+          // Projets par cohorte
+          // -------------------------
+
+          const projetsMap: Record<string, Projet[]> = {};
+
+          cohortes.forEach((cohorte, index) => {
+            projetsMap[cohorte.id] = projets[index] ?? [];
+          });
+
+          this.projetsParCohorte.set(projetsMap);
+
+          // -------------------------
+          // Missions par cohorte
+          // -------------------------
+
+          const missionsMap: Record<string, Mission[]> = {};
+
+          missions.forEach((mission) => {
+            if (!mission.cohorteId) {
+              // Logger les missions sans cohorteId pour débogage
+              console.warn('Mission sans cohorteId détectée:', mission);
+              return;
+            }
+
+            if (!missionsMap[mission.cohorteId]) {
+              missionsMap[mission.cohorteId] = [];
+            }
+
+            missionsMap[mission.cohorteId].push(mission);
+          });
+
+          this.missionsParCohorte.set(missionsMap);
+
+          this.isLoading.set(false);
+        },
+
+        error: (err) => {
+          console.error('Erreur chargement des données:', err);
+          this.isLoading.set(false);
+        },
+      });
+    },
+
+    error: (err) => {
+      console.error('Erreur chargement cohortes:', err);
+      this.isLoading.set(false);
+    },
+  });
+}
   protected formatDate(dateString: string | undefined): string {
     if (!dateString) return '—';
     try {
@@ -697,19 +879,139 @@ protected onCohorteCreated(): void {
     }
   }
 
-
-
-
   protected archiverCohorte(cohorte: Cohorte, event: Event): void {
-  event.stopPropagation(); // évite de déclencher le clic sur la ligne/carte
-  if (!confirm(`Archiver la cohorte "${cohorte.nom}" ?`)) return;
+    event.stopPropagation();
+    if (!confirm(`Archiver la cohorte "${cohorte.nom}" ?`)) return;
 
-  this.cohorteService.archiverCohorte(cohorte.id).subscribe({
-    next: () => {
-      // Retire la cohorte archivée de la liste affichée
-      this.cohortes.update((liste) => liste.filter((c) => c.id !== cohorte.id));
-    },
-    error: (err) => console.error('Erreur lors de l\'archivage:', err),
-  });
-}
+    this.cohorteService.archiverCohorte(cohorte.id).subscribe({
+      next: () => {
+        this.cohortes.update((liste) => liste.filter((c) => c.id !== cohorte.id));
+        if (this.activeContextId() === cohorte.id) {
+          this.activeContextId.set('GLOBAL');
+        }
+      },
+      error: (err) => console.error('Erreur lors de l\'archivage:', err),
+    });
+  }
+
+  protected restaurerCohorte(cohorte: Cohorte, event: Event): void {
+    event.stopPropagation();
+    if (!confirm(`Restaurer la cohorte "${cohorte.nom}" ?`)) return;
+
+    this.cohorteService.restaurerCohorte(cohorte.id).subscribe({
+      next: () => {
+        // Recharger la liste des cohortes
+        this.loadData();
+      },
+      error: (err) => console.error('Erreur lors de la restauration:', err),
+    });
+  }
+
+  // --- LOGIQUE MODALES ---
+
+protected ouvrirEdition(): void {
+    const data = this.activeCohorteData();
+    if (!data) return;
+    this.cohorteEnCoursEdition.set(data.cohorte);
+    this.showEditModal.set(true);
+  }
+
+  protected fermerEdition(): void {
+    this.showEditModal.set(false);
+    this.erreurEdition.set(null);
+  }
+
+  protected enregistrerModifications(): void {
+    const c = this.activeCohorteData()?.cohorte;
+    if (!c) return;
+
+    this.enregistrementEnCours.set(true);
+    this.erreurEdition.set(null);
+
+    this.cohorteService
+      .updateCohorte(c.id, {
+        nom: this.editNom().trim(),
+        description: this.editDescription().trim() || undefined,
+        dateDebut: this.editDateDebut() || undefined,
+        dateFin: this.editDateFin() || undefined,
+        phase: this.editPhase(),
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (updated) => {
+          this.cohortes.update((liste) => liste.map((x) => (x.id === updated.id ? updated : x)));
+          this.enregistrementEnCours.set(false);
+          this.fermerEdition();
+          this.chargerCohortesPhaseSuivante(updated.phase);
+        },
+        error: (err) => {
+          this.enregistrementEnCours.set(false);
+          this.erreurEdition.set(err?.error?.message ?? 'Erreur lors de la mise à jour.');
+        },
+      });
+  }
+
+  protected fermerCreationProjet(): void {
+    
+    this.nouveauNomProjet.set('');
+    this.erreurCreationProjet.set(null);
+  }
+
+  protected creerProjetDansCohorteActive(): void {
+    const c = this.activeCohorteData()?.cohorte;
+    const nom = this.nouveauNomProjet().trim();
+    if (!c || !nom) return;
+
+    this.creationProjetEnCours.set(true);
+    this.erreurCreationProjet.set(null);
+
+    this.projetService
+      .create({ nom, cohorteId: c.id })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.creationProjetEnCours.set(false);
+          this.fermerCreationProjet();
+          this.loadData();
+        },
+        error: (err) => {
+          this.creationProjetEnCours.set(false);
+          this.erreurCreationProjet.set(err?.error?.message ?? 'Erreur lors de la création du projet.');
+        },
+      });
+  }
+
+  private chargerCohortesPhaseSuivante(phase: PhaseParcours): void {
+    this.cohorteService
+      .getCohortesPhaseSuivante(phase)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (cohortes) => this.cohortesPhaseSuivante.set(cohortes),
+        error: () => this.cohortesPhaseSuivante.set([]),
+      });
+  }
+
+  protected promouvoirProjet(projetId: string): void {
+    const cibleId = this.cohorteCibleParProjet()[projetId] || null;
+
+    this.promotionEnCoursParProjet.update((m) => ({ ...m, [projetId]: true }));
+    this.erreurPromotionParProjet.update((m) => ({ ...m, [projetId]: '' }));
+
+    this.projetService
+      .promouvoirProjet(projetId, cibleId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.promotionEnCoursParProjet.update((m) => ({ ...m, [projetId]: false }));
+          this.loadData();
+        },
+        error: (err) => {
+          this.promotionEnCoursParProjet.update((m) => ({ ...m, [projetId]: false }));
+          this.erreurPromotionParProjet.update((m) => ({
+            ...m,
+            [projetId]: err?.error?.message ?? 'Erreur lors de la promotion.',
+          }));
+        },
+      });
+  }
 }

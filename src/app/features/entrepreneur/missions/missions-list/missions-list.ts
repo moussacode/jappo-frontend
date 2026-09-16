@@ -58,7 +58,7 @@ export class MissionsList implements OnInit {
   );
 
   protected readonly compteARevoir = computed(() =>
-    this.allMissions().filter((m) => m.statut === 'SOUMIS' || m.statut === 'A_CORRIGER' ).length
+    this.allMissions().filter((m) => m.statut === 'SOUMIS' || m.statut === 'EN_COURS' ).length
   );
 
   protected readonly compteValidees = computed(() =>
@@ -82,7 +82,7 @@ export class MissionsList implements OnInit {
     if (filtre === 'EN_COURS') {
       liste = liste.filter((m) => m.statut === 'EN_COURS' || m.statut === 'A_FAIRE');
     } else if (filtre === 'A_REVOIR') {
-      liste = liste.filter((m) => m.statut === 'SOUMIS' || m.statut === 'A_CORRIGER' );
+      liste = liste.filter((m) => m.statut === 'SOUMIS' || m.statut === 'EN_COURS' );
     } else if (filtre === 'VALIDEE') {
       liste = liste.filter((m) => m.statut === 'VALIDEE' || (m.statut as string) === 'VALIDE');
     }

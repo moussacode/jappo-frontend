@@ -32,6 +32,7 @@ export interface LivrableRecentResponse {
   nomEntrepreneur: string;
   statut: 'EN_ATTENTE' | 'VALIDE' | 'A_CORRIGER' | 'REJETE' | string;
   dateDepot?: string;
+  missionId?: string;
 }
 
 @Injectable({ providedIn: 'root' })

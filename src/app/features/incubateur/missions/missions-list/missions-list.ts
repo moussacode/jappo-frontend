@@ -7,10 +7,9 @@ import { DatePipe } from '@angular/common';
 
 // Services & Modèles
 import { MissionService } from '../../../../core/services/mission.service';
-import { Mission, StatutMission, PrioriteMission } from '../../../../core/models/mission.model';
+import { Mission, StatutMission, PrioriteMission, MissionCohorteResponse } from '../../../../core/models/mission.model';
 
 // Design System Partagé
-import { Icon } from '../../../../shared/components/icon/icon';
 import { BadgeComponent, BadgeStatus } from '../../../../shared/components/badge/badge';
 import { CardComponent } from '../../../../shared/components/card/card.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
@@ -19,6 +18,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
 import { TabFilterComponent, TabOption } from '../../../../shared/components/tab-filter/tab-filter.component';
 import { EntityCardComponent } from "../../../../shared/components/entity-card/entity-card.component";
 import { MissionCreateModalComponent } from "../mission-create/mission-create";
+import { Icon } from '../../../../shared/components/icon/icon';
 
 // Modale de création
 
@@ -103,10 +103,10 @@ export type FiltreStatutMission = 'TOUTES' | 'EN_COURS' | 'A_REVOIR' | 'VALIDEE'
           @for (m of missionsFiltrees(); track m.id) {
             <app-entity-card
               [title]="m.titre"
-              [subtitle]="m.nomProjet ? ('Projet : ' + m.nomProjet) : 'Cohorte générale'"
-              [routerLink]="['/incubateur/missions', m.id]"
-              [badgeLabel]="formaterStatut(m.statut)"
-              [badgeStatus]="badgeStatus(m.statut)"
+              [subtitle]="m.nomCohorte ? ('Cohorte : ' + m.nomCohorte) : 'Cohorte générale'"
+              [routerLink]="['/incubateur/missions-cohorte', m.id]"
+              [badgeLabel]="formaterStatutAgrege(m)"
+              [badgeStatus]="badgeStatusAgrege(m)"
             >
               <!-- Corps de la carte -->
               <div card-body class="flex flex-col gap-2">
@@ -118,6 +118,19 @@ export type FiltreStatutMission = 'TOUTES' | 'EN_COURS' | 'A_REVOIR' | 'VALIDEE'
                     </app-badge>
                   </div>
                 }
+
+                <!-- Statistiques agrégées -->
+                <div class="flex items-center gap-2 text-[11px] text-ink-muted">
+                  <span class="flex items-center gap-1">
+                    <app-icon name="users" class="size-3" />
+                    {{ m.nombreProjetsConcernes }} projets
+                  </span>
+                  <span>·</span>
+                  <span class="flex items-center gap-1">
+                    <app-icon name="check" class="size-3" />
+                    {{ calculerProgression(m) }}% complété
+                  </span>
+                </div>
 
                 @if (m.description) {
                   <p class="text-xs text-ink-muted line-clamp-2 leading-relaxed">
@@ -135,11 +148,20 @@ export type FiltreStatutMission = 'TOUTES' | 'EN_COURS' | 'A_REVOIR' | 'VALIDEE'
                   <span>{{ m.dateEcheance ? (m.dateEcheance | date:'dd/MM/yyyy') : 'Aucune' }}</span>
                 </span>
 
-                @if (m.nomAssigneA) {
-                  <span class="font-medium text-ink truncate max-w-[120px]" [title]="m.nomAssigneA">
-                    {{ m.nomAssigneA }}
+                <div class="flex items-center gap-3">
+                  <span class="font-medium text-ink">
+                    {{ m.nombreValides }}/{{ m.nombreProjetsConcernes }} validés
                   </span>
-                }
+                  
+                  <button
+                    type="button"
+                    (click)="archiverMission(m.id, $event)"
+                    class="text-xs font-semibold text-rose-600 hover:text-rose-800 hover:underline transition-colors p-1"
+                    title="Archiver cette mission"
+                  >
+                    Archiver
+                  </button>
+                </div>
               </div>
             </app-entity-card>
           } @empty {
@@ -177,51 +199,79 @@ export class MissionsList implements OnInit {
 
   protected readonly isLoading = signal<boolean>(true);
   protected readonly missions = signal<Mission[]>([]);
+  protected readonly missionsCohorte = signal<MissionCohorteResponse[]>([]);
   protected readonly filtreStatut = signal<FiltreStatutMission>('TOUTES');
   protected readonly showCreateModal = signal<boolean>(false);
 
   protected readonly searchControl = new FormControl('', { nonNullable: true });
   protected readonly searchTerm = signal('');
 
-  protected readonly compteEnCours = computed(() =>
-    this.missions().filter((m) => m.statut === 'EN_COURS' || m.statut === 'A_FAIRE').length
-  );
+protected readonly compteEnCours = computed(() =>
+  this.missionsCohorte().filter(
+    (m) => m.nombreAFaire > 0
+  ).length
+);
 
-  protected readonly compteARevoir = computed(() =>
-    this.missions().filter((m) => m.statut === 'SOUMIS' || m.statut === 'A_CORRIGER').length
-  );
+protected readonly compteARevoir = computed(() =>
+  this.missionsCohorte().filter(
+    (m) => m.nombreEnRevue > 0
+  ).length
+);
 
-  protected readonly compteValidees = computed(() =>
-    this.missions().filter((m) => m.statut === 'VALIDEE' || (m.statut as string) === 'VALIDE').length
-  );
+protected readonly compteValidees = computed(() =>
+  this.missionsCohorte().filter(
+    (m) => m.nombreValides > 0
+  ).length
+);
 
-  protected readonly optionsFiltreStatut = computed<TabOption<FiltreStatutMission>[]>(() => [
-    { value: 'TOUTES', label: 'Toutes', count: this.missions().length },
-    { value: 'EN_COURS', label: 'En cours', count: this.compteEnCours() },
-    { value: 'A_REVOIR', label: 'À réviser', count: this.compteARevoir() },
-    { value: 'VALIDEE', label: 'Validées', count: this.compteValidees() },
+protected readonly optionsFiltreStatut =
+  computed<TabOption<FiltreStatutMission>[]>(() => [
+    {
+      value: 'TOUTES',
+      label: 'Toutes',
+      count: this.missions().length,
+    },
+    {
+      value: 'EN_COURS',
+      label: 'En cours',
+      count: this.compteEnCours(),
+    },
+    {
+      value: 'A_REVOIR',
+      label: 'À revoir',
+      count: this.compteARevoir(),
+    },
+    {
+      value: 'VALIDEE',
+      label: 'Validées',
+      count: this.compteValidees(),
+    },
   ]);
+
 
   protected readonly missionsFiltrees = computed(() => {
     const term = this.searchTerm().toLowerCase().trim();
     const filtre = this.filtreStatut();
-    let liste = this.missions();
-
-    if (filtre === 'EN_COURS') {
-      liste = liste.filter((m) => m.statut === 'EN_COURS' || m.statut === 'A_FAIRE');
-    } else if (filtre === 'A_REVOIR') {
-      liste = liste.filter((m) => m.statut === 'SOUMIS' || m.statut === 'A_CORRIGER');
-    } else if (filtre === 'VALIDEE') {
-      liste = liste.filter((m) => m.statut === 'VALIDEE' || (m.statut as string) === 'VALIDE');
-    }
-
+    let liste = this.missionsCohorte();
+if (filtre === 'EN_COURS') {
+  liste = liste.filter(
+    (m) => m.nombreAFaire > 0
+  );
+} else if (filtre === 'A_REVOIR') {
+  liste = liste.filter(
+    (m) => m.nombreEnRevue > 0
+  );
+} else if (filtre === 'VALIDEE') {
+  liste = liste.filter(
+    (m) => m.nombreValides > 0
+  );
+}
     if (term) {
       liste = liste.filter(
         (m) =>
           m.titre.toLowerCase().includes(term) ||
           m.description?.toLowerCase().includes(term) ||
-          m.nomProjet?.toLowerCase().includes(term) ||
-          m.nomAssigneA?.toLowerCase().includes(term)
+          m.nomCohorte?.toLowerCase().includes(term)
       );
     }
 
@@ -239,53 +289,111 @@ export class MissionsList implements OnInit {
   protected chargerMissions(): void {
     this.isLoading.set(true);
     this.missionService
-      .getMissions()
+      .getMissionsCohorteAgregees()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (data) => {
-          this.missions.set(data);
+          this.missionsCohorte.set(data);
           this.isLoading.set(false);
         },
         error: (err) => {
-          console.error('Erreur chargement missions:', err);
+          console.error('Erreur chargement missions agrégées:', err);
           this.isLoading.set(false);
+          // Ne pas masquer l'erreur en mettant une liste vide
+          // Laisser l'état d'erreur visible via l'indicateur de chargement
         },
       });
   }
 
-  protected badgeStatus(statut: StatutMission): BadgeStatus {
-    switch (statut) {
-      case 'VALIDEE':
-      case 'VALIDE' as any:
-        return 'success';
-      case 'SOUMIS':
-      case 'EN_COURS':
-        return 'primary';
-      case 'A_CORRIGER':
-      case 'EN_RETARD':
-        return 'danger';
-      default:
-        return 'neutral';
+  protected archiverMission(missionId: string, event: Event): void {
+    event.stopPropagation();
+    if (!confirm('Archiver cette mission de cohorte et tous ses suivis individuels ?')) {
+      return;
     }
+
+    this.missionService
+      .archiverMissionCohorte(missionId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.missionsCohorte.update((liste) => liste.filter((m) => m.id !== missionId));
+        },
+        error: (err) => {
+          console.error('Erreur archivage mission:', err);
+          alert('Erreur lors de l\'archivage de la mission');
+        },
+      });
   }
 
-  protected formaterStatut(statut: StatutMission): string {
-    switch (statut) {
-      case 'VALIDEE':
-      case 'VALIDE' as any:
-        return 'Validée';
-      case 'SOUMIS':
-        return 'En revue';
-      case 'EN_COURS':
-        return 'En cours';
-      case 'A_CORRIGER':
-        return 'À corriger';
-      case 'EN_RETARD':
-        return 'En retard';
-      default:
-        return 'À faire';
-    }
+protected badgeStatus(statut: StatutMission): BadgeStatus {
+  switch (statut) {
+    case 'VALIDEE':
+    case 'VALIDE':
+      return 'success';
+
+    case 'SOUMIS':
+    case 'A_REVOIR':
+      return 'warning';
+
+    case 'EN_COURS':
+      return 'primary';
+
+    case 'A_FAIRE':
+    default:
+      return 'neutral';
   }
+}
+
+protected formaterStatut(statut: StatutMission): string {
+  switch (statut) {
+    case 'VALIDEE':
+    case 'VALIDE':
+      return 'Validée';
+
+    case 'SOUMIS':
+      return 'Soumise';
+
+    case 'A_REVOIR':
+      return 'À revoir';
+
+    case 'EN_COURS':
+      return 'En cours';
+
+    case 'A_FAIRE':
+    default:
+      return 'À faire';
+  }
+}
+
+protected formaterStatutAgrege(m: MissionCohorteResponse): string {
+  if (m.nombreValides === m.nombreProjetsConcernes) {
+    return 'Complétée';
+  } else if (m.nombreEnRevue > 0) {
+    return 'En revue';
+  } else if (m.nombreEnRetard > 0) {
+    return 'En retard';
+  } else {
+    return 'En cours';
+  }
+}
+
+protected badgeStatusAgrege(m: MissionCohorteResponse): BadgeStatus {
+  if (m.nombreValides === m.nombreProjetsConcernes) {
+    return 'success';
+  } else if (m.nombreEnRevue > 0) {
+    return 'warning';
+  } else if (m.nombreEnRetard > 0) {
+    return 'danger';
+  } else {
+    return 'primary';
+  }
+}
+
+protected calculerProgression(m: MissionCohorteResponse): number {
+  if (m.nombreProjetsConcernes === 0) return 0;
+  return Math.round((m.nombreValides / m.nombreProjetsConcernes) * 100);
+}
+ 
 
   protected badgePrioriteStatus(priorite?: PrioriteMission): BadgeStatus {
     switch (priorite) {

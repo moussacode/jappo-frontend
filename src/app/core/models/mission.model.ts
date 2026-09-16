@@ -1,4 +1,4 @@
-export type StatutMission = 'A_FAIRE' | 'EN_COURS' | 'SOUMIS' | 'A_CORRIGER' | 'VALIDEE' | 'EN_RETARD';
+export type StatutMission = 'A_FAIRE' | 'EN_COURS' | 'SOUMIS' | 'VALIDE' | 'VALIDEE' | 'A_REVOIR';
 export type PrioriteMission = 'BASSE' | 'MOYENNE' | 'HAUTE' | 'URGENTE';
 
 export interface Mission {
@@ -14,7 +14,9 @@ export interface Mission {
   projetId?: string;
   nomProjet?: string;
   cohorteId?: string;
-  nomCohorte?: string; // <--- C'EST CE CHAMP QUI MANQUE
+  nomCohorte?: string;
+  entrepreneurId?: string;
+  nomEntrepreneur?: string;
   
   // Assignation & Créateur
   assigneAId?: string;
@@ -31,6 +33,37 @@ export interface Mission {
   nombreLivrablesAttendus?: number;
   nombreLivrablesDeposes?: number;
 }
+
+/**
+ * DTO pour une mission de cohorte agrégée avec ses statistiques de suivi.
+ * Représente UNE mission de cohorte avec les statistiques de tous les suivis individuels.
+ */
+export interface MissionCohorteResponse {
+  id: string; // MissionCohorte ID
+  titre: string;
+  description?: string;
+  dateEcheance?: string; // YYYY-MM-DD
+  priorite?: PrioriteMission;
+  
+  // Contexte cohorte
+  cohorteId?: string;
+  nomCohorte?: string;
+  
+  // Structure & Audit
+  structureId?: string;
+  dateCreation?: string;
+  
+  // Statistiques agrégées
+  nombreProjetsConcernes: number;    // Nombre total de projets concernés
+  nombreValides: number;              // Suivis validés (VALIDE + VALIDEE)
+  nombreEnRevue: number;              // Suivis en revue (SOUMIS + A_REVOIR)
+  nombreEnRetard: number;             // Suivis en retard
+  nombreAFaire: number;               // Suivis à faire (A_FAIRE + EN_COURS)
+  
+  // Liste des suivis individuels (optionnel pour le détail)
+  suivisIndividuels?: Mission[];
+}
+
 export interface CreateMissionRequest {
   titre: string;
   description?: string;
@@ -39,4 +72,6 @@ export interface CreateMissionRequest {
   cohorteId?: string;
   projetId?: string;
   assigneAId?: string;
+  modeleId?: string;
+  enregistrerCommeModele?: boolean;
 }

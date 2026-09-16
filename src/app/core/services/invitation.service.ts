@@ -4,7 +4,8 @@ import { Observable } from 'rxjs';
 import { environment } from './../../environments/environment';
 
 export type RoleEquipe = 'ADMIN_STRUCTURE' | 'COACH';
-export type StatutMembre = 'ACCEPTE' | 'EN_ATTENTE' | 'REFUSE';
+export type StatutMembre = 'ACCEPTE' | 'EN_ATTENTE' | 'EXPIRE' | 'REFUSE';
+
 export interface MembreEquipe {
   id: string;
   nom: string;
@@ -12,8 +13,11 @@ export interface MembreEquipe {
   email: string;
   role: RoleEquipe;
   statut: StatutMembre;
-  estProprietaire?: boolean; // <-- Ajoute cette ligne
+  estProprietaire?: boolean;
+  dateInvitation?: string;
+  invitationTokenExpiresAt?: string;
 }
+
 @Injectable({ providedIn: 'root' })
 export class InvitationService {
   private readonly http = inject(HttpClient);
@@ -31,13 +35,25 @@ export class InvitationService {
     return this.http.patch<void>(`${environment.apiUrl}/structures/equipe/${membreId}/role`, { role });
   }
 
-  getLienInvitation(role: RoleEquipe, regenerate = false): Observable<{ link: string }> {
-  const params = new HttpParams()
-    .set('role', role)
-    .set('regenerate', String(regenerate));
+  renvoyerInvitationMembre(membreId: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${environment.apiUrl}/structures/equipe/${membreId}/resend`, {});
+  }
 
-  return this.http.get<{ link: string }>(`${this.apiUrl}/share-link`, { params });
-}
+  annulerInvitationMembre(membreId: string): Observable<void> {
+    return this.http.delete<void>(`${environment.apiUrl}/structures/equipe/${membreId}/invitation`);
+  }
+
+  retirerMembre(membreId: string): Observable<void> {
+    return this.http.delete<void>(`${environment.apiUrl}/structures/equipe/${membreId}`);
+  }
+
+  getLienInvitation(role: RoleEquipe, regenerate = false): Observable<{ link: string }> {
+    const params = new HttpParams()
+      .set('role', role)
+      .set('regenerate', String(regenerate));
+
+    return this.http.get<{ link: string }>(`${this.apiUrl}/share-link`, { params });
+  }
 
   revoquerLienInvitation(role: RoleEquipe): Observable<void> {
     const params = new HttpParams().set('role', role);

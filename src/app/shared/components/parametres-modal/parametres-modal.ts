@@ -22,6 +22,7 @@ import { ModalComponent } from '../modal/modal.component';
 // Services
 import { StructureContextService } from '../../../core/services/structure-context.service';
 import { StructureService } from '../../../core/services/structure.service';
+import { AuthService } from '../../../core/services/auth.service';
 import {
   InvitationService,
   MembreEquipe,
@@ -31,6 +32,7 @@ import { InputComponent } from '../input/input.component';
 import { FormFieldComponent } from '../input/form-field.component';
 import { ThemeService } from '../../../core/services/theme.service';
 import { TranslatePipe } from '../../pipes/translate.pipe';
+import { TypeStructure } from '../../../core/models';
 
 export type SettingTab =
   | 'general'
@@ -44,6 +46,12 @@ type Language = 'fr' | 'en' | 'wo';
 interface StructureFormValue {
   nom: string;
   email: string;
+  telephone: string;
+  type: TypeStructure;
+  pays: string;
+  ville: string;
+  adresse: string;
+  siteWeb: string;
 }
 
 @Component({
@@ -68,6 +76,7 @@ export class ParametresModal implements OnInit {
   // ---------------------------------------------------------------------------
 
   private readonly fb = inject(FormBuilder);
+  
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly translationService = inject(TranslationService);
@@ -85,8 +94,10 @@ export class ParametresModal implements OnInit {
     inject(InvitationService);
 
     private readonly themeService = inject(ThemeService);
+    private readonly authService = inject(AuthService);
 
     readonly selectedTheme = this.themeService.theme;
+    protected readonly currentUser = this.authService.currentUser;
 
   // ---------------------------------------------------------------------------
   // Outputs
@@ -122,6 +133,8 @@ changerTheme(theme: Theme): void {
 
   readonly isSavingStructure = signal(false);
 
+  readonly isSavingProfile = signal(false);
+
   readonly isChangingRole = signal(false);
 
   readonly isRegeneratingLink = signal(false);
@@ -133,6 +146,10 @@ changerTheme(theme: Theme): void {
   readonly errorMessage = signal('');
 
   readonly successMessage = signal('');
+
+  readonly profileErrorMessage = signal('');
+
+  readonly profileSuccessMessage = signal('');
 
   /**
    * Structure actuellement sélectionnée dans le contexte global.
@@ -147,16 +164,28 @@ changerTheme(theme: Theme): void {
   // Forms
   // ---------------------------------------------------------------------------
 
-  readonly structureForm = this.fb.nonNullable.group({
+  readonly profileForm = this.fb.nonNullable.group({
+    prenom: ['', [Validators.required, Validators.minLength(2)]],
     nom: ['', [Validators.required, Validators.minLength(2)]],
-    email: ['', [Validators.email]],
   });
+
+ readonly structureForm = this.fb.nonNullable.group({
+  nom: ['', [Validators.required, Validators.minLength(2)]],
+  email: ['', [Validators.email]],
+  telephone: [''],
+  type: ['incubateur' as TypeStructure],
+  pays: [''],
+  ville: [''],
+  adresse: [''],
+  siteWeb: [''],
+});
 
   // ---------------------------------------------------------------------------
   // Lifecycle
   // ---------------------------------------------------------------------------
 
   ngOnInit(): void {
+    this.initialiserProfileForm();
     this.initialiserStructureForm();
     this.initialiserOngletDepuisUrl();
     this.selectedLanguage.set(this.translationService.locale());
@@ -223,21 +252,64 @@ changerTheme(theme: Theme): void {
   }
 
   // ---------------------------------------------------------------------------
-  // Structure
+  // Profile (Utilisateur Connecté)
   // ---------------------------------------------------------------------------
 
-  private initialiserStructureForm(): void {
-    const structure = this.structure();
+  private initialiserProfileForm(): void {
+    const user = this.currentUser();
+    if (user) {
+      this.profileForm.patchValue({
+        prenom: user.prenom ?? '',
+        nom: user.nom ?? '',
+      });
+    }
+  }
 
-    if (!structure) {
+  sauvegarderProfil(): void {
+    if (this.profileForm.invalid) {
+      this.profileForm.markAllAsTouched();
       return;
     }
 
-    this.structureForm.patchValue({
-      nom: structure.nom ?? '',
-      email: structure.email ?? '',
-    });
+    this.isSavingProfile.set(true);
+    this.profileErrorMessage.set('');
+    this.profileSuccessMessage.set('');
+
+    const val = this.profileForm.getRawValue();
+    this.authService
+      .updateProfile(val.prenom.trim(), val.nom.trim())
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.profileSuccessMessage.set('Votre profil a été mis à jour avec succès.');
+          this.isSavingProfile.set(false);
+        },
+        error: (err) => {
+          this.profileErrorMessage.set(err?.error?.message ?? 'Impossible de mettre à jour votre profil.');
+          this.isSavingProfile.set(false);
+        },
+      });
   }
+
+  // ---------------------------------------------------------------------------
+  // Structure
+  // ---------------------------------------------------------------------------
+
+ private initialiserStructureForm(): void {
+  const structure = this.structure();
+  if (!structure) return;
+
+  this.structureForm.patchValue({
+    nom: structure.nom ?? '',
+    email: structure.email ?? '',
+    telephone: structure.telephone ?? '',
+    type: (structure.type as TypeStructure | null | undefined) ?? 'incubateur',
+    pays: structure.pays ?? '',
+    ville: structure.ville ?? '',
+    adresse: structure.adresse ?? '',
+    siteWeb: structure.siteWeb ?? '',
+  });
+}
 
   sauvegarderStructure(): void {
     if (this.structureForm.invalid) {
@@ -246,7 +318,6 @@ changerTheme(theme: Theme): void {
     }
 
     const structure = this.structure();
-
     if (!structure) {
       return;
     }
@@ -254,34 +325,29 @@ changerTheme(theme: Theme): void {
     this.isSavingStructure.set(true);
     this.clearMessages();
 
-    const value: StructureFormValue =
-      this.structureForm.getRawValue();
+    const value: StructureFormValue = this.structureForm.getRawValue();
 
     this.structureService
       .updateProfil(structure.id, {
-  nom: value.nom.trim(),
-  email: value.email.trim() || undefined,
-})
+        nom: value.nom.trim(),
+        type: value.type,
+        pays: value.pays.trim() || undefined,
+        email: value.email.trim() || undefined,
+        telephone: value.telephone.trim() || undefined,
+        adresse: value.adresse.trim() || undefined,
+        ville: value.ville.trim() || undefined,
+        siteWeb: value.siteWeb.trim() || undefined,
+      })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-       next: updatedStructure => {
-  this.structureContext.updateActiveStructure(updatedStructure);
-  this.successMessage.set(
-    'Les informations de la structure ont été enregistrées.'
-  );
-},
-
-        error: error => {
-          console.error(
-            'Erreur lors de la sauvegarde de la structure',
-            error
-          );
-
-          this.errorMessage.set(
-            'Impossible d’enregistrer les modifications.'
-          );
+        next: (updatedStructure) => {
+          this.structureContext.updateActiveStructure(updatedStructure);
+          this.successMessage.set('Les informations de la structure ont été enregistrées.');
         },
-
+        error: (error) => {
+          console.error('Erreur lors de la sauvegarde de la structure', error);
+          this.errorMessage.set('Impossible d’enregistrer les modifications.');
+        },
         complete: () => {
           this.isSavingStructure.set(false);
         },
@@ -391,16 +457,15 @@ protected renvoyerInvitation(membre: MembreEquipe): void {
   this.clearMessages();
 
   this.invitationService
-    .envoyerInvitation(
-      membre.email,
-      membre.role
-    )
+    .renvoyerInvitationMembre(membre.id)
     .pipe(takeUntilDestroyed(this.destroyRef))
     .subscribe({
       next: () => {
         this.successMessage.set(
           `Une nouvelle invitation a été envoyée à ${membre.email}.`
         );
+        this.chargerMembresEquipe();
+        this.isSendingInvitation.set(false);
       },
 
       error: (error) => {
@@ -419,6 +484,45 @@ protected renvoyerInvitation(membre: MembreEquipe): void {
 
       complete: () => {
         this.isSendingInvitation.set(false);
+      },
+    });
+}
+
+protected annulerInvitation(membre: MembreEquipe): void {
+  if (!confirm(`Êtes-vous sûr de vouloir annuler l'invitation envoyée à ${membre.email} ?`)) {
+    return;
+  }
+  this.clearMessages();
+  this.invitationService
+    .annulerInvitationMembre(membre.id)
+    .pipe(takeUntilDestroyed(this.destroyRef))
+    .subscribe({
+      next: () => {
+        this.successMessage.set(`L'invitation pour ${membre.email} a été annulée.`);
+        this.chargerMembresEquipe();
+      },
+      error: (error) => {
+        this.errorMessage.set(error?.error?.message ?? "Impossible d'annuler l'invitation.");
+      },
+    });
+}
+
+protected retirerMembre(membre: MembreEquipe): void {
+  const nomAffiche = membre.prenom || membre.nom ? `${membre.prenom} ${membre.nom}`.trim() : membre.email;
+  if (!confirm(`Êtes-vous sûr de vouloir retirer ${nomAffiche} de l'équipe ?`)) {
+    return;
+  }
+  this.clearMessages();
+  this.invitationService
+    .retirerMembre(membre.id)
+    .pipe(takeUntilDestroyed(this.destroyRef))
+    .subscribe({
+      next: () => {
+        this.successMessage.set(`${nomAffiche} a été retiré de l'équipe.`);
+        this.chargerMembresEquipe();
+      },
+      error: (error) => {
+        this.errorMessage.set(error?.error?.message ?? "Impossible de retirer ce membre.");
       },
     });
 }
