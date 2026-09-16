@@ -2,7 +2,13 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from './../../environments/environment';
-import { ConversationIA, MessageIA } from '../models/conversation-ia.model';
+import {
+  ConversationIA,
+  MessageIA,
+  CreateConversationRequest,
+  SendMessageRequest,
+  UpdateContexteRequest,
+} from '../models/conversation-ia.model';
 
 @Injectable({ providedIn: 'root' })
 export class ConversationService {
@@ -10,28 +16,45 @@ export class ConversationService {
   private readonly apiUrl = `${environment.apiUrl}/conversations`;
 
   /**
-   * Récupérer ou créer automatiquement la conversation IA rattachée à un projet
-   * GET /api/conversations/projet/:projetId
+   * Créer une nouvelle conversation.
+   * POST /api/conversations
+   * Le contexte est optionnel — {} = aucun contexte = structure globale.
    */
-  getOrCreate(projetId: string): Observable<ConversationIA> {
-    return this.http.get<ConversationIA>(`${this.apiUrl}/projet/${projetId}`);
+  createConversation(request?: CreateConversationRequest): Observable<ConversationIA> {
+    return this.http.post<ConversationIA>(this.apiUrl, request ?? { contexte: {} });
   }
 
   /**
-   * Récupérer la liste des messages d'une conversation
-   * GET /api/conversations/:conversationId/messages
+   * Lister toutes les conversations du coach pour la structure active.
+   * GET /api/conversations
    */
-  getMessages(conversationId: string): Observable<MessageIA[]> {
-    return this.http.get<MessageIA[]>(`${this.apiUrl}/${conversationId}/messages`);
+  listConversations(): Observable<ConversationIA[]> {
+    return this.http.get<ConversationIA[]>(this.apiUrl);
   }
 
   /**
-   * Envoyer un nouveau message à l'assistant IA
-   * POST /api/conversations/:conversationId/messages
+   * Récupérer une conversation avec ses messages et son contexte.
+   * GET /api/conversations/:id
    */
-  sendMessage(conversationId: string, contenu: string): Observable<MessageIA> {
-    return this.http.post<MessageIA>(`${this.apiUrl}/${conversationId}/messages`, {
-      contenu
-    });
+  getConversation(conversationId: string): Observable<ConversationIA> {
+    return this.http.get<ConversationIA>(`${this.apiUrl}/${conversationId}`);
+  }
+
+  /**
+   * Envoyer un message et obtenir la réponse de l'Assistant IA.
+   * POST /api/conversations/:id/messages
+   * Retourne [messageCoach, messageAssistant].
+   */
+  sendMessage(conversationId: string, contenu: string): Observable<MessageIA[]> {
+    const body: SendMessageRequest = { contenu };
+    return this.http.post<MessageIA[]>(`${this.apiUrl}/${conversationId}/messages`, body);
+  }
+
+  /**
+   * Mettre à jour le périmètre métier sélectionné par le coach.
+   * PATCH /api/conversations/:id/contexte
+   */
+  updateContexte(conversationId: string, request: UpdateContexteRequest): Observable<ConversationIA> {
+    return this.http.patch<ConversationIA>(`${this.apiUrl}/${conversationId}/contexte`, request);
   }
 }

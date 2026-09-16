@@ -38,7 +38,7 @@ export class IncubateurLayout {
     icon: 'entrepreneurs',
   },
   {
-    label: 'Missions',
+    label: 'Activités',
     path: '/incubateur/missions',
     icon: 'missions',
   },

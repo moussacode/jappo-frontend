@@ -182,6 +182,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/incubateur/missions/mission-detail/mission-detail').then((m) => m.MissionDetail),
   },
       {
+        path: 'missions-cohorte/:id',
+        loadComponent: () => import('./features/incubateur/missions/mission-cohorte-detail/mission-cohorte-detail').then((m) => m.MissionCohorteDetail),
+  },
+      {
         path: 'projets',
         loadComponent: () =>
           import('./features/incubateur/projets/projets-list/projets-list').then((m) => m.ProjetsList),

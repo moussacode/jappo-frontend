@@ -43,6 +43,22 @@ export class CohorteService {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 
+  /**
+   * Restaurer une cohorte archivée
+   * PATCH /api/cohortes/{id}/restaurer
+   */
+  restaurerCohorte(id: string): Observable<void> {
+    return this.http.patch<void>(`${this.apiUrl}/${id}/restaurer`, {});
+  }
+
+  /**
+   * Récupérer les cohortes par statut (actives ou archivées)
+   * GET /api/cohortes/statut/{statut}
+   */
+  getCohortesByStatut(statut: string): Observable<Cohorte[]> {
+    return this.http.get<Cohorte[]>(`${this.apiUrl}/statut/${statut}`);
+  }
+
   /** Cohortes de la structure dont la phase est postérieure à celle donnée (pour la promotion de projets) */
   getCohortesPhaseSuivante(phaseActuelle: PhaseParcours): Observable<Cohorte[]> {
     const ordre: PhaseParcours[] = ['PRE_INCUBATION', 'INCUBATION', 'POST_INCUBATION'];

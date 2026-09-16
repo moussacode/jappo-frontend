@@ -18,6 +18,11 @@ export interface Projet {
   nomCohorte?: string;
   structureId?: string;
   dateCreation?: string;
+  archive?: boolean;
+  dateArchivage?: string;
+  // Statistiques de missions (calculées côté backend)
+  nombreMissionsTotal?: number;
+  nombreMissionsValidees?: number;
 }
 
 export interface CreateProjetRequest {

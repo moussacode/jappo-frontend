@@ -2,7 +2,7 @@ import { Component, inject, signal, computed, OnInit, DestroyRef } from '@angula
 import { ActivatedRoute, RouterLink, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { DatePipe } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common';
 
 // Services & Modèles
 import { MissionService } from '../../../../core/services/mission.service';
@@ -33,7 +33,7 @@ interface CorrectionFormState {
   imports: [
     RouterLink,
     FormsModule,
-    DatePipe,
+    CommonModule,
     BadgeComponent,
     ButtonComponent,
     Icon,
@@ -73,11 +73,104 @@ interface CorrectionFormState {
               </div>
             </div>
 
-            <app-badge [status]="statutBadge(m.statut).status" size="md">
-              {{ statutBadge(m.statut).label }}
-            </app-badge>
+            <div class="flex items-center gap-2">
+              <app-badge [status]="statutBadge(m.statut).status" size="md">
+                {{ statutBadge(m.statut).label }}
+              </app-badge>
+              
+              @if (!isEditMode()) {
+                <app-button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  (click)="ouvrirEditMode()"
+                >
+                  <app-icon name="edit" class="size-3.5 mr-1" />
+                  <span>Modifier</span>
+                </app-button>
+              }
+            </div>
           </div>
         </div>
+
+        @if (isEditMode()) {
+          <!-- Formulaire de modification de mission -->
+          <app-card padding="lg" class="flex flex-col gap-4">
+            <div class="flex items-center justify-between border-b border-line pb-2.5">
+              <h2 class="text-xs font-bold text-ink uppercase tracking-wider">Modifier la mission</h2>
+              <button
+                type="button"
+                (click)="fermerEditMode()"
+                class="text-xs text-ink-muted hover:text-ink cursor-pointer"
+              >
+                Annuler
+              </button>
+            </div>
+
+            <div class="flex flex-col gap-3">
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-semibold text-ink">Titre <span class="text-danger-500">*</span></label>
+                <input
+                  type="text"
+                  [(ngModel)]="editForm().titre"
+                  class="rounded-lg border border-line bg-surface px-3 py-2 text-xs text-ink placeholder:text-ink-muted/50 focus:border-accent focus:outline-none"
+                />
+              </div>
+
+              <div class="flex flex-col gap-1">
+                <label class="text-xs font-semibold text-ink">Description</label>
+                <textarea
+                  [(ngModel)]="editForm().description"
+                  rows="3"
+                  class="rounded-lg border border-line bg-surface p-3 text-xs text-ink placeholder:text-ink-muted/50 focus:border-accent focus:outline-none resize-none leading-relaxed"
+                ></textarea>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="flex flex-col gap-1">
+                  <label class="text-xs font-semibold text-ink">Priorité</label>
+                  <select
+                    [(ngModel)]="editForm().priorite"
+                    class="rounded-lg border border-line bg-surface px-3 py-2 text-xs text-ink focus:border-accent focus:outline-none"
+                  >
+                    <option value="">Sélectionner...</option>
+                    <option value="HAUTE">Haute</option>
+                    <option value="MOYENNE">Moyenne</option>
+                    <option value="BASSE">Basse</option>
+                  </select>
+                </div>
+
+                <div class="flex flex-col gap-1">
+                  <label class="text-xs font-semibold text-ink">Date d'échéance</label>
+                  <input
+                    type="date"
+                    [(ngModel)]="editForm().dateEcheance"
+                    class="rounded-lg border border-line bg-surface px-3 py-2 text-xs text-ink focus:border-accent focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2">
+              <app-button
+                type="button"
+                variant="secondary"
+                size="sm"
+                (click)="fermerEditMode()"
+              >
+                Annuler
+              </app-button>
+              <app-button
+                type="button"
+                size="sm"
+                [disabled]="traitement()"
+                (click)="sauvegarderMission()"
+              >
+                {{ traitement() ? 'Sauvegarde...' : 'Sauvegarder' }}
+              </app-button>
+            </div>
+          </app-card>
+        }
 
         <!-- Consignes & Description -->
         <app-card padding="lg" class="flex flex-col gap-2">
@@ -452,6 +545,15 @@ export class MissionDetail implements OnInit {
   protected readonly isLoading = signal<boolean>(true);
   protected readonly traitement = signal(false);
 
+  // Gestion du formulaire de modification de mission
+  protected readonly isEditMode = signal<boolean>(false);
+  protected readonly editForm = signal({
+    titre: '',
+    description: '',
+    priorite: '',
+    dateEcheance: ''
+  });
+
   // Gestion des formulaires de correction structurée
   protected correctionForms: Record<string, CorrectionFormState> = {};
   protected readonly formsOuverts = signal<Record<string, boolean>>({});
@@ -585,6 +687,60 @@ export class MissionDetail implements OnInit {
   protected isCorrectionFormValid(livrableId: string): boolean {
     const form = this.correctionForms[livrableId];
     return !!(form && form.motif.trim() && form.pointsACorriger.trim());
+  }
+
+  // ── Modification de mission ───────────────────────────────────────────────────
+
+  protected ouvrirEditMode(): void {
+    const m = this.mission();
+    if (!m) return;
+
+    this.editForm.set({
+      titre: m.titre || '',
+      description: m.description || '',
+      priorite: m.priorite || '',
+      dateEcheance: m.dateEcheance || ''
+    });
+    this.isEditMode.set(true);
+  }
+
+  protected fermerEditMode(): void {
+    this.isEditMode.set(false);
+  }
+
+  protected sauvegarderMission(): void {
+    const m = this.mission();
+    if (!m) return;
+
+    const form = this.editForm();
+    const changements: Partial<Pick<Mission, 'titre' | 'description' | 'dateEcheance' | 'priorite'>> = {};
+
+    if (form.titre !== m.titre) changements.titre = form.titre;
+    if (form.description !== m.description) changements.description = form.description;
+    if (form.priorite !== m.priorite) changements.priorite = form.priorite as any;
+    if (form.dateEcheance !== m.dateEcheance) changements.dateEcheance = form.dateEcheance as any;
+
+    if (Object.keys(changements).length === 0) {
+      this.fermerEditMode();
+      return;
+    }
+
+    this.traitement.set(true);
+
+    this.missionService
+      .updateMissionDetails(m.id, changements)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (updated) => {
+          this.mission.set(updated);
+          this.traitement.set(false);
+          this.isEditMode.set(false);
+        },
+        error: (err) => {
+          console.error('Erreur modification mission:', err);
+          this.traitement.set(false);
+        },
+      });
   }
 
   // Validation

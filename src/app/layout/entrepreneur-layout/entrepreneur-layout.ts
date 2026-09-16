@@ -27,7 +27,7 @@ export class EntrepreneurLayout {
   //   icon: 'route',
   // },
   {
-    label: 'Mes missions',
+    label: 'Mes Activités',
     path: '/entrepreneur/missions',
     icon: 'missions',
   },

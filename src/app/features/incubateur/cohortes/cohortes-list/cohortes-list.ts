@@ -39,6 +39,7 @@ interface CohorteAffichee {
 
 type SortField = 'nom' | 'progression';
 type SortDir = 'asc' | 'desc';
+type CohorteFilter = 'ACTIVES' | 'ARCHIVEES' | 'TOUTES';
 
 @Component({
   selector: 'app-cohortes-dashboard',
@@ -193,6 +194,34 @@ type SortDir = 'asc' | 'desc';
                 </app-card>
               </div>
 
+              <!-- Filtre de statut -->
+              <div class="flex items-center gap-3 mb-4">
+                <button
+                  type="button"
+                  (click)="filtreStatut.set('ACTIVES')"
+                  [class]="filtreStatut() === 'ACTIVES' ? 'bg-accent text-white' : 'bg-surface-muted text-ink-muted hover:bg-surface-muted/70'"
+                  class="px-4 py-2 rounded-lg text-xs font-semibold transition-colors"
+                >
+                  Actives
+                </button>
+                <button
+                  type="button"
+                  (click)="filtreStatut.set('ARCHIVEES')"
+                  [class]="filtreStatut() === 'ARCHIVEES' ? 'bg-accent text-white' : 'bg-surface-muted text-ink-muted hover:bg-surface-muted/70'"
+                  class="px-4 py-2 rounded-lg text-xs font-semibold transition-colors"
+                >
+                  Archivées
+                </button>
+                <button
+                  type="button"
+                  (click)="filtreStatut.set('TOUTES')"
+                  [class]="filtreStatut() === 'TOUTES' ? 'bg-accent text-white' : 'bg-surface-muted text-ink-muted hover:bg-surface-muted/70'"
+                  class="px-4 py-2 rounded-lg text-xs font-semibold transition-colors"
+                >
+                  Toutes
+                </button>
+              </div>
+
               <!-- Tableau (desktop) -->
               <app-card padding="none" class="hidden w-full min-w-0 overflow-hidden border border-line/60 shadow-xs sm:block rounded-2xl">
                 <table class="w-full min-w-[650px] border-collapse text-left text-sm">
@@ -235,14 +264,25 @@ type SortDir = 'asc' | 'desc';
                           </div>
                         </td>
                         <td class="px-6 py-4 text-right">
-                          <button
-                            type="button"
-                            (click)="archiverCohorte(item.cohorte, $event)"
-                            class="text-xs font-semibold text-rose-600 hover:text-rose-800 hover:underline transition-colors p-1"
-                            title="Archiver le programme"
-                          >
-                            Archiver
-                          </button>
+                          @if (item.cohorte.statut === 'ARCHIVEE') {
+                            <button
+                              type="button"
+                              (click)="restaurerCohorte(item.cohorte, $event)"
+                              class="text-xs font-semibold text-emerald-600 hover:text-emerald-800 hover:underline transition-colors p-1"
+                              title="Restaurer le programme"
+                            >
+                              Restaurer
+                            </button>
+                          } @else {
+                            <button
+                              type="button"
+                              (click)="archiverCohorte(item.cohorte, $event)"
+                              class="text-xs font-semibold text-rose-600 hover:text-rose-800 hover:underline transition-colors p-1"
+                              title="Archiver le programme"
+                            >
+                              Archiver
+                            </button>
+                          }
                         </td>
                       </tr>
                     }
@@ -276,10 +316,7 @@ type SortDir = 'asc' | 'desc';
                     <app-icon name="missions" class="size-4 mr-1.5" /> Attribuer mission
                   </app-button>
                 </a>
-                
-                <app-button size="sm" class="shadow-sm" (click)="showCreateProjectModal.set(true)">
-                  <app-icon name="plus" class="size-4 mr-1.5" /> Nouveau projet
-                </app-button>
+         
               </div>
             </app-page-header>
 
@@ -451,67 +488,7 @@ type SortDir = 'asc' | 'desc';
       />
     }
 
-    <!-- Modale : Création Projet (Startup) -->
-    @if (showCreateProjectModal()) {
-      <app-modal title="Ajouter un projet" subtitle="Créez une nouvelle startup et renseignez ses informations." maxWidth="lg" (close)="fermerCreationProjet()">
-        <form [formGroup]="projetForm" (ngSubmit)="creerProjetDansCohorteActive()" class="flex flex-col gap-4">
-          
-          <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-semibold text-ink-muted">Nom du projet / Startup *</label>
-            <input
-              type="text"
-              formControlName="nom"
-              placeholder="Ex: SenTech Solutions"
-              class="rounded-xl border border-line bg-surface px-3 py-2.5 text-sm text-ink focus:border-accent focus:outline-none"
-            />
-          </div>
-
-          <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-semibold text-ink-muted">Description</label>
-            <textarea
-              formControlName="description"
-              rows="2"
-              placeholder="Brève description de la solution..."
-              class="rounded-xl border border-line bg-surface px-3 py-2.5 text-sm text-ink focus:border-accent focus:outline-none resize-none"
-            ></textarea>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-semibold text-ink-muted">Secteur d'activité</label>
-              <input
-                type="text"
-                formControlName="secteur"
-                placeholder="Ex: FinTech, AgriTech..."
-                class="rounded-xl border border-line bg-surface px-3 py-2.5 text-sm text-ink focus:border-accent focus:outline-none"
-              />
-            </div>
-
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-semibold text-ink-muted">ID de l'entrepreneur (Optionnel)</label>
-              <input
-                type="text"
-                formControlName="entrepreneurId"
-                placeholder="UUID de l'entrepreneur"
-                class="rounded-xl border border-line bg-surface px-3 py-2.5 text-sm text-ink focus:border-accent focus:outline-none"
-              />
-            </div>
-          </div>
-
-          @if (erreurCreationProjet()) {
-            <div class="rounded-lg bg-rose-50 p-3 text-xs text-rose-600 border border-rose-100">
-              {{ erreurCreationProjet() }}
-            </div>
-          }
-
-          <div class="mt-4 flex items-center justify-end gap-3 border-t border-line pt-4">
-            <app-button variant="ghost" size="sm" (click)="fermerCreationProjet()">Annuler</app-button>
-            <app-button size="sm" type="submit" [disabled]="creationProjetEnCours() || projetForm.invalid">
-              {{ creationProjetEnCours() ? 'Création…' : 'Créer le projet' }}
-            </app-button>
-          </div>
-        </form>
-      </app-modal>}
+    
 
       @if (showInviteEntrepreneurModal() && activeCohorteData(); as data) {
         <app-inviter-entrepreneur-modal
@@ -536,7 +513,7 @@ export class CohortesList {
 
   // -- Contrôle Modales --
   protected readonly showEditModal = signal(false);
-  protected readonly showCreateProjectModal = signal(false);
+ 
   protected readonly showInviteEntrepreneurModal = signal(false);
 
   // Édition de la cohorte active
@@ -580,6 +557,7 @@ protected readonly missionsParCohorte = signal<Record<string, Mission[]>>({});
   protected readonly projetSortDir = signal<SortDir>('desc');
   protected readonly searchControl = new FormControl<string>('', { nonNullable: true });
   private readonly searchTerm = signal('');
+  protected readonly filtreStatut = signal<CohorteFilter>('ACTIVES');
 // Ajoute ce signal pour savoir quelle cohorte est modifiée
   protected readonly cohorteEnCoursEdition = signal<Cohorte | null>(null);
 
@@ -802,7 +780,14 @@ protected readonly projetForm = new FormGroup({
  protected loadData(): void {
   this.isLoading.set(true);
 
-  this.cohorteService.getActiveCohortes().subscribe({
+  // Charger les cohortes selon le filtre actif
+  const obs$ = this.filtreStatut() === 'ARCHIVEES'
+    ? this.cohorteService.getCohortesByStatut('ARCHIVEE')
+    : this.filtreStatut() === 'TOUTES'
+    ? this.cohorteService.getCohortes()
+    : this.cohorteService.getActiveCohortes();
+
+  obs$.subscribe({
     next: (cohortes) => {
       this.cohortes.set(cohortes);
       this.cohorteOrder.set(
@@ -909,6 +894,19 @@ protected readonly projetForm = new FormGroup({
     });
   }
 
+  protected restaurerCohorte(cohorte: Cohorte, event: Event): void {
+    event.stopPropagation();
+    if (!confirm(`Restaurer la cohorte "${cohorte.nom}" ?`)) return;
+
+    this.cohorteService.restaurerCohorte(cohorte.id).subscribe({
+      next: () => {
+        // Recharger la liste des cohortes
+        this.loadData();
+      },
+      error: (err) => console.error('Erreur lors de la restauration:', err),
+    });
+  }
+
   // --- LOGIQUE MODALES ---
 
 protected ouvrirEdition(): void {
@@ -954,7 +952,7 @@ protected ouvrirEdition(): void {
   }
 
   protected fermerCreationProjet(): void {
-    this.showCreateProjectModal.set(false);
+    
     this.nouveauNomProjet.set('');
     this.erreurCreationProjet.set(null);
   }

@@ -67,6 +67,10 @@ archiverProjet(id: string): Observable<void> {
   return this.http.delete<void>(`${this.apiUrl}/${id}`);
 }
 
+restaurerProjet(id: string): Observable<void> {
+  return this.http.patch<void>(`${this.apiUrl}/${id}/restaurer`, {});
+}
+
 
 /**
  * Créer un projet (avec ou sans cohorte)
