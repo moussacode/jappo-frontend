@@ -29,12 +29,14 @@ export class ButtonComponent {
   disabled = input(false);
   type = input<ButtonType>('button');
   fullWidth = input(false);
+  fullWidthMobile = input(false);
 
   protected classes = computed(() => {
     const base =
       'inline-flex items-center justify-center gap-2 rounded-[var(--radius-button)] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer';
-    
+
     const width = this.fullWidth() ? ' w-full' : '';
+    const widthMobile = this.fullWidthMobile() ? ' sm:w-auto w-full' : '';
 
     const sizes: Record<ButtonSize, string> = {
       xs: 'px-3 py-1.5 text-xs',
@@ -49,6 +51,6 @@ export class ButtonComponent {
       ghost: 'bg-surface-muted text-ink hover:bg-line',
     };
 
-    return `${base} ${sizes[this.size()]} ${variants[this.variant()]}${width}`;
+    return `${base} ${sizes[this.size()]} ${variants[this.variant()]}${width}${widthMobile}`;
   });
 }

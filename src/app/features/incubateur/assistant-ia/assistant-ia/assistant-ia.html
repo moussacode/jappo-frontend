@@ -1,7 +1,16 @@
 <div class="flex h-full overflow-hidden">
+  <!-- ── Overlay mobile pour sidebar ───────────────────────────────────────── -->
+  @if (!sidebarCollapsed()) {
+    <div
+      class="fixed inset-0 z-20 bg-black/50 backdrop-blur-sm md:hidden"
+      (click)="sidebarCollapsed.set(true)"
+      aria-hidden="true"
+    ></div>
+  }
+
   <!-- ── Sidebar historique (style ChatGPT) ───────────────────────────────── -->
   <aside
-    class="sidebar-history flex w-64 shrink-0 flex-col border-r border-line bg-surface-muted transition-all duration-200"
+    class="sidebar-history flex w-64 shrink-0 flex-col border-r border-line bg-surface-muted transition-all duration-200 fixed inset-y-0 left-0 z-30 md:relative md:z-auto"
     [class.w-64]="!sidebarCollapsed()"
     [class.w-0]="sidebarCollapsed()"
     [class.overflow-hidden]="sidebarCollapsed()"
@@ -85,20 +94,20 @@
   <div class="flex flex-1 min-w-0 flex-col">
 
     <!-- ── Header ─────────────────────────────────────────────────────── -->
-    <div class="flex items-center justify-between border-b border-line px-5 py-3.5">
+    <div class="flex items-center justify-between border-b border-line px-4 py-3 sm:px-5 sm:py-3.5">
       <!-- Bouton toggle sidebar + titre -->
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 min-w-0">
         <button
           type="button"
           (click)="sidebarCollapsed.update(v => !v)"
           aria-label="Afficher/masquer l'historique"
-          class="flex size-8 items-center justify-center rounded-lg text-ink-muted transition hover:bg-surface hover:text-ink"
+          class="flex size-8 items-center justify-center rounded-lg text-ink-muted transition hover:bg-surface hover:text-ink shrink-0"
         >
           <svg class="size-4" viewBox="0 0 24 24" fill="none">
             <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
           </svg>
         </button>
-        <h1 class="text-base font-semibold text-ink">
+        <h1 class="text-base font-semibold text-ink truncate">
           {{ titreConversationActif() || 'Assistant IA' }}
         </h1>
       </div>
@@ -107,12 +116,12 @@
       <button
         type="button"
         (click)="nouvelleConversation()"
-        class="flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink-muted transition hover:bg-surface hover:text-ink"
+        class="flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink-muted transition hover:bg-surface hover:text-ink shrink-0"
       >
         <svg class="size-3.5" viewBox="0 0 24 24" fill="none">
           <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         </svg>
-        Nouveau
+        <span class="hidden sm:inline">Nouveau</span>
       </button>
     </div>
 
@@ -137,9 +146,9 @@
     <!-- ── Messages ───────────────────────────────────────────────────── -->
     <div
       #messagesContainer
-      class="messages-scroll flex-1 overflow-y-auto px-6 py-6"
+      class="messages-scroll flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6"
     >
-      <div class="mx-auto flex max-w-3xl flex-col gap-5">
+      <div class="mx-auto flex max-w-3xl flex-col gap-4 sm:gap-5">
 
         @for (message of messages(); track message.id) {
 
@@ -147,7 +156,7 @@
             <!-- Message du coach -->
             <div class="flex min-w-0 justify-end">
               <div
-                class="min-w-0 max-w-[560px] break-words [overflow-wrap:anywhere] rounded-[var(--radius-token-md)] bg-accent/10 border border-accent/20 px-4 py-3 text-sm leading-5 text-ink"
+                class="min-w-0 max-w-[560px] break-words [overflow-wrap:anywhere] rounded-[var(--radius-token-md)] bg-accent/10 border border-accent/20 px-3 py-2.5 sm:px-4 sm:py-3 text-sm leading-5 text-ink"
               >
                 {{ message.contenu }}
               </div>
@@ -163,7 +172,7 @@
               </span>
               <div class="min-w-0 max-w-[560px] flex flex-col gap-3">
                 <div
-                  class="break-words [overflow-wrap:anywhere] rounded-[var(--radius-token-md)] bg-surface-muted px-4 py-3 text-sm leading-5 text-ink whitespace-pre-line"
+                  class="break-words [overflow-wrap:anywhere] rounded-[var(--radius-token-md)] bg-surface-muted px-3 py-2.5 sm:px-4 sm:py-3 text-sm leading-5 text-ink whitespace-pre-line"
                 >
                   {{ message.contenu }}
                 </div>
@@ -249,14 +258,14 @@
 
     <!-- ── Erreur structure manquante ──────────────────────────────────── -->
     @if (erreur()) {
-      <div class="mx-6 mb-3 rounded-lg border border-danger-200 bg-danger-50 px-4 py-2.5 text-sm text-danger-700">
+      <div class="mx-4 mb-3 sm:mx-6 rounded-lg border border-danger-200 bg-danger-50 px-4 py-2.5 text-sm text-danger-700">
         {{ erreur() }}
       </div>
     }
 
     <!-- ── Suggestions (écran vide) ─────────────────────────────────────── -->
     @if (messages().length === 0 && !envoiEnCours()) {
-      <div class="flex flex-wrap gap-2 px-6 pb-3 max-w-3xl mx-auto w-full">
+      <div class="flex flex-wrap gap-2 px-4 pb-3 sm:px-6 sm:pb-3 max-w-3xl mx-auto w-full">
         @for (suggestion of suggestions; track suggestion) {
           <button
             type="button"
@@ -271,7 +280,7 @@
     }
 
     <!-- ── Zone de saisie ───────────────────────────────────────────────── -->
-    <div class="border-t border-line px-6 py-4">
+    <div class="border-t border-line px-4 py-4 sm:px-6 sm:py-4">
       <div class="mx-auto max-w-3xl">
 
         <!-- Chips de contexte sélectionné -->

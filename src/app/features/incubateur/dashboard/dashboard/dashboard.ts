@@ -41,14 +41,18 @@ import { InviterEntrepreneurModalComponent } from '../../entrepreneurs/inviter-e
     InviterEntrepreneurModalComponent,
   ],
   template: `
-    <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-8 p-4 sm:p-6 lg:p-8">
+    <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 sm:gap-8 p-3 sm:p-4 md:p-6 lg:p-8">
       
       <!-- En-tête Page Unifié avec PageHeaderComponent -->
       <app-page-header
         title="Vue d'ensemble"
         [subtitle]="'Espace Incubateur / ' + nomStructure()"
       >
-        <app-button size="sm" (click)="showInviteModal.set(true)">
+        <app-button
+          size="sm"
+          [fullWidthMobile]="true"
+          (click)="showInviteModal.set(true)"
+        >
           <app-icon name="plus" class="size-3.5" />
           <span>Inviter des entrepreneurs</span>
         </app-button>
@@ -56,7 +60,7 @@ import { InviterEntrepreneurModalComponent } from '../../entrepreneurs/inviter-e
 
       <!-- SKELETON LOADER -->
       @if (isLoading()) {
-        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 animate-pulse">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-pulse">
           @for (i of [1, 2, 3, 4]; track i) {
             <app-card padding="md" class="h-28 animate-pulse bg-line/20">
               <div class="h-4 w-1/2 rounded bg-line mb-3"></div>
@@ -68,7 +72,7 @@ import { InviterEntrepreneurModalComponent } from '../../entrepreneurs/inviter-e
       } @else {
 
         <!-- 1. CARTES KPIS -->
-        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <!-- <app-kpi-card 
             label="Entrepreneurs suivis" 
             [value]="stats()?.entrepreneursActifs || 0" 
@@ -97,7 +101,7 @@ import { InviterEntrepreneurModalComponent } from '../../entrepreneurs/inviter-e
 
         <!-- 2. BLOC COHORTES ACTIVES (CLICABLES) -->
         @if (cohortesActives().length > 0) {
-          <div class="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-5 shadow-xs">
+          <div class="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4 sm:p-5 shadow-xs">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2 text-ink font-bold text-xs uppercase tracking-wider">
                 <app-icon name="cohortes" class="size-4 text-accent" />
@@ -128,10 +132,10 @@ import { InviterEntrepreneurModalComponent } from '../../entrepreneurs/inviter-e
 
         <!-- 3. ACTIVITÉ RÉCENTE (DERNIERS LIVRABLES DÉPOSÉS) -->
         <app-card padding="none" class="w-full min-w-0">
-          <div class="flex items-center justify-between border-b border-line px-6 py-4 bg-surface-muted/30">
-            <div class="flex items-center gap-2">
-              <app-icon name="missions" class="size-4 text-ink-muted" />
-              <h2 class="text-sm font-bold text-ink">Activité récente (Derniers livrables déposés)</h2>
+          <div class="flex items-center justify-between border-b border-line px-4 py-3 sm:px-6 sm:py-4 bg-surface-muted/30">
+            <div class="flex items-center gap-2 min-w-0">
+              <app-icon name="missions" class="size-4 text-ink-muted shrink-0" />
+              <h2 class="text-sm font-bold text-ink truncate">Activité récente (Derniers livrables déposés)</h2>
             </div>
           </div>
 
@@ -139,7 +143,7 @@ import { InviterEntrepreneurModalComponent } from '../../entrepreneurs/inviter-e
             @for (l of livrablesRecents(); track l.livrableId) {
               <a
                 [routerLink]="l.missionId ? ['/incubateur/missions', l.missionId] : null"
-                class="flex items-center justify-between px-6 py-4 hover:bg-surface-muted/40 transition-colors gap-4 group cursor-pointer"
+                class="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-3 sm:px-6 sm:py-4 hover:bg-surface-muted/40 transition-colors gap-3 sm:gap-4 group cursor-pointer"
               >
                 <div class="flex items-center gap-3 min-w-0">
                   <div class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-surface-muted border border-line text-ink-muted group-hover:border-accent/40 group-hover:text-accent transition-colors">
@@ -153,18 +157,20 @@ import { InviterEntrepreneurModalComponent } from '../../entrepreneurs/inviter-e
                   </div>
                 </div>
 
-                <div class="flex items-center gap-3 shrink-0">
-                  <span class="hidden sm:inline text-[11px] text-ink-muted">
+                <div class="flex items-center gap-2 sm:gap-3 shrink-0 w-full sm:w-auto justify-between sm:justify-end">
+                  <span class="text-[11px] text-ink-muted">
                     {{ l.dateDepot ? (l.dateDepot | date:'dd/MM/yyyy à HH:mm') : '' }}
                   </span>
-                  <app-badge [status]="badgeLivrableStatus(l.statut)" size="sm">
-                    {{ formaterStatutLivrable(l.statut) }}
-                  </app-badge>
-                  <app-icon name="chevron-right" class="size-3.5 text-ink-muted transition-transform group-hover:translate-x-0.5 group-hover:text-accent" />
+                  <div class="flex items-center gap-2">
+                    <app-badge [status]="badgeLivrableStatus(l.statut)" size="sm">
+                      {{ formaterStatutLivrable(l.statut) }}
+                    </app-badge>
+                    <app-icon name="chevron-right" class="size-3.5 text-ink-muted transition-transform group-hover:translate-x-0.5 group-hover:text-accent" />
+                  </div>
                 </div>
               </a>
             } @empty {
-              <div class="p-8">
+              <div class="p-6 sm:p-8">
                 <app-empty-state
                   title="Aucun livrable récemment déposé"
                   description="Les livrables soumis par les entrepreneurs de vos cohortes apparaîtront ici."

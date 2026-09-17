@@ -67,7 +67,7 @@ type CohorteFilter = 'ACTIVES' | 'ARCHIVEES' | 'TOUTES';
       <div
         role="tablist"
         aria-label="Cohortes Fabrique 360"
-        class="shrink-0 flex w-full items-end gap-2 overflow-x-auto border-b border-line/60 bg-surface px-4 pt-4 sm:px-6 lg:px-8 custom-scrollbar sticky top-0 z-10 shadow-sm"
+        class="shrink-0 flex w-full items-end gap-2 overflow-x-auto border-b border-line/60 bg-surface px-3 pt-4 sm:px-4 sm:pt-4 md:px-6 lg:px-8 custom-scrollbar sticky top-0 z-10 shadow-sm"
       >
         <button
           role="tab"
@@ -126,7 +126,7 @@ type CohorteFilter = 'ACTIVES' | 'ARCHIVEES' | 'TOUTES';
       </div>
 
       <div id="panel-cohortes" role="tabpanel" class="min-h-0 flex-1 overflow-y-auto">
-        <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-8 p-4 sm:p-6 lg:p-8">
+        <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 sm:gap-8 p-3 sm:p-4 md:p-6 lg:p-8">
           
           <!-- CHARGEMENT -->
           @if (isLoading()) {
@@ -166,7 +166,7 @@ type CohorteFilter = 'ACTIVES' | 'ARCHIVEES' | 'TOUTES';
               </app-empty-state>
             } @else {
               <!-- KPI Globaux -->
-              <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <app-card padding="lg" >
                   <div class="flex items-center gap-3 mb-2">
                    
@@ -196,9 +196,37 @@ type CohorteFilter = 'ACTIVES' | 'ARCHIVEES' | 'TOUTES';
 
              
 
+              <!-- Cards mobiles Cohortes (sm:hidden) -->
+              <div class="flex flex-col gap-3 sm:hidden">
+                @for (item of sortedCohortesAffichees(); track item.cohorte.id) {
+                  <button
+                    type="button"
+                    (click)="activeContextId.set(item.cohorte.id)"
+                    class="flex flex-col gap-2 rounded-xl border border-line bg-surface p-4 shadow-xs text-left hover:border-accent/40 transition-colors w-full"
+                  >
+                    <div class="flex items-center justify-between gap-2 min-w-0">
+                      <span class="text-sm font-bold text-ink truncate">{{ item.cohorte.nom }}</span>
+                      <span class="text-xs font-semibold text-ink-muted shrink-0">{{ item.nbProjets }} startup{{ item.nbProjets > 1 ? 's' : '' }}</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <div class="h-2 flex-1 overflow-hidden rounded-full bg-line/60">
+                        <div class="h-full rounded-full bg-gradient-to-r from-accent to-orange-400" [style.width.%]="item.scoreMoyen"></div>
+                      </div>
+                      <span class="text-xs font-bold text-ink w-9 text-right">{{ item.scoreMoyen }}%</span>
+                    </div>
+                    <p class="text-xs text-ink-muted">
+                      {{ formatDate(item.cohorte.dateDebut) }} → {{ formatDate(item.cohorte.dateFin) }}
+                    </p>
+                  </button>
+                } @empty {
+                  <p class="py-8 text-center text-sm text-ink-muted">Aucune cohorte.</p>
+                }
+              </div>
+
               <!-- Tableau (desktop) -->
               <app-card padding="none" class="hidden w-full min-w-0 overflow-hidden border border-line/60 shadow-xs sm:block rounded-2xl">
-                <table class="w-full min-w-[650px] border-collapse text-left text-sm">
+                <div class="overflow-x-auto">
+                  <table class="w-full min-w-[650px] border-collapse text-left text-sm">
                   <thead>
                     <tr class="border-b border-line bg-surface-muted/30 text-xs font-bold uppercase tracking-wider text-ink-muted">
                       <th class="w-4/12 px-6 py-4">
@@ -262,6 +290,7 @@ type CohorteFilter = 'ACTIVES' | 'ARCHIVEES' | 'TOUTES';
                     }
                   </tbody>
                 </table>
+                </div>
               </app-card>
             }
           }
@@ -272,11 +301,11 @@ type CohorteFilter = 'ACTIVES' | 'ARCHIVEES' | 'TOUTES';
               [title]="data.cohorte.nom"
               [subtitle]="formatDate(data.cohorte.dateDebut) + ' au ' + formatDate(data.cohorte.dateFin) + ' · ' + data.projets.length + ' startups accompagnées'"
             >
-              <div class="flex flex-wrap items-center gap-2">
+              <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                 <span class="rounded-full bg-accent/10 border border-accent/20 px-3 py-1 text-xs font-bold text-accent-strong hidden sm:inline-block">
                   {{ labelPhase[data.cohorte.phase] }}
                 </span>
-                
+
                 <app-button size="sm" class="border-line/60 hover:bg-surface-muted/30" (click)="ouvrirEdition()">
                   <app-icon name="edit" class="size-4 mr-1.5" /> Modifier
                 </app-button>
@@ -290,12 +319,12 @@ type CohorteFilter = 'ACTIVES' | 'ARCHIVEES' | 'TOUTES';
                     <app-icon name="missions" class="size-4 mr-1.5" /> Attribuer mission
                   </app-button>
                 </a>
-         
+
               </div>
             </app-page-header>
 
             <!-- KPI Cohorte -->
-            <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <div class="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <app-card padding="md" >
                 <span class="text-xs font-semibold uppercase tracking-wider text-ink-muted">Startups Suivies</span>
                 <div class="mt-2 text-2xl font-extrabold text-ink">{{ data.projets.length }}</div>
@@ -334,9 +363,43 @@ type CohorteFilter = 'ACTIVES' | 'ARCHIVEES' | 'TOUTES';
               </div>
             </div>
 
+            <!-- Cards mobiles Portefeuille (sm:hidden) -->
+            <div class="flex flex-col gap-3 sm:hidden">
+              @for (p of filteredSortedProjets(); track p.id) {
+                <a
+                  [routerLink]="['/incubateur/projets', p.id]"
+                  class="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4 shadow-xs hover:border-accent/40 transition-colors"
+                >
+                  <div class="flex items-center gap-3 min-w-0">
+                    <app-avatar [initials]="p.nom ? p.nom.substring(0, 2).toUpperCase() : 'PR'" size="md" />
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-bold text-ink truncate">{{ p.nom }}</p>
+                      <p class="text-xs text-ink-muted truncate">{{ p.nomEntrepreneur || 'Équipe à définir' }}</p>
+                    </div>
+                    @if ((p.scoreMaturite || 0) > 70) {
+                      <app-badge status="success" size="sm">À jour</app-badge>
+                    } @else if ((p.scoreMaturite || 0) > 30) {
+                      <app-badge status="warning" size="sm">En cours</app-badge>
+                    } @else {
+                      <app-badge status="danger" size="sm">En retard</app-badge>
+                    }
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <div class="h-2 flex-1 overflow-hidden rounded-full bg-line/60">
+                      <div class="h-full rounded-full bg-gradient-to-r from-accent to-orange-400 transition-all" [style.width.%]="p.scoreMaturite || 0"></div>
+                    </div>
+                    <span class="text-xs font-bold text-ink w-9 text-right">{{ p.scoreMaturite || 0 }}%</span>
+                  </div>
+                </a>
+              } @empty {
+                <p class="py-8 text-center text-sm text-ink-muted">Aucune startup trouvée.</p>
+              }
+            </div>
+
             <!-- Tableau Portefeuille (desktop) -->
             <app-card padding="none" class="hidden w-full min-w-0 overflow-hidden border border-line/60 shadow-xs sm:block rounded-2xl">
-              <table class="w-full min-w-[800px] border-collapse text-left text-sm">
+              <div class="overflow-x-auto">
+                <table class="w-full min-w-[800px] border-collapse text-left text-sm">
                 <thead>
                   <tr class="border-b border-line bg-surface-muted/30 text-xs font-bold uppercase tracking-wider text-ink-muted">
                     <th class="w-3/12 px-6 py-4">
@@ -437,6 +500,7 @@ type CohorteFilter = 'ACTIVES' | 'ARCHIVEES' | 'TOUTES';
                   }
                 </tbody>
               </table>
+              </div>
             </app-card>
           }
         </div>

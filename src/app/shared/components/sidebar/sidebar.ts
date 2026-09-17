@@ -2,6 +2,7 @@ import {
   Component,
   ChangeDetectionStrategy,
   input,
+  output,
   signal,
   inject,
   ElementRef,
@@ -33,7 +34,7 @@ export interface NavItem {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <aside
-      class="relative flex h-full shrink-0 flex-col border-r border-line bg-surface p-4 transition-all duration-300 ease-in-out select-none"
+      class="relative flex h-full shrink-0 flex-col  bg-surface p-3 sm:p-4 transition-all duration-300 ease-in-out select-none overflow-visible"
       [class.w-[260px]]="!collapsed()"
       [class.w-[80px]]="collapsed()"
     >
@@ -41,7 +42,7 @@ export interface NavItem {
       <button
         type="button"
         (click)="toggleCollapsed()"
-        class="absolute -right-3 top-6 z-20 flex h-7 w-7 items-center justify-center rounded-full border border-line bg-surface text-ink-muted shadow-sm transition-all hover:bg-surface-muted hover:text-ink cursor-pointer"
+        class="absolute -right-3 top-6 z-50 flex h-7 w-7 items-center justify-center rounded-full border border-line bg-surface text-ink-muted shadow-sm transition-all hover:bg-surface-muted hover:text-ink cursor-pointer"
         [attr.aria-label]="collapsed() ? 'Ouvrir la sidebar' : 'Réduire la sidebar'"
       >
         <app-icon
@@ -53,7 +54,7 @@ export interface NavItem {
 
       <!-- Logo -->
       <div
-        class="mb-4 flex h-10 items-center px-2 transition-all shrink-0"
+        class="mb-3 sm:mb-4 flex h-10 items-center px-2 transition-all shrink-0"
         [class.justify-center]="collapsed()"
       >
         @if (!collapsed()) {
@@ -64,7 +65,7 @@ export interface NavItem {
       </div>
 
       <!-- Sélecteur de Structure Multi-Tenant -->
-      <div class="relative mb-6 shrink-0">
+      <div class="relative mb-4 sm:mb-6 shrink-0">
         @if (activeMembership(); as active) {
           <button
             type="button"
@@ -161,6 +162,7 @@ export interface NavItem {
                   [routerLink]="item.path"
                   routerLinkActive
                   #rla="routerLinkActive"
+                  (click)="navClick.emit()"
                   class="flex h-10 items-center rounded-xl px-3 text-xs font-medium transition-colors"
                   [class]="
                     rla.isActive
@@ -254,7 +256,7 @@ export interface NavItem {
       </div>
 
       <!-- Bloc Utilisateur (Profil + Notifications) -->
-      <div class="relative mt-3 shrink-0 border-t border-line pt-3">
+      <div class="relative mt-2 sm:mt-3 shrink-0 border-t border-line pt-2 sm:pt-3">
         @if (currentUser(); as user) {
           <div class="flex items-center gap-2" [class.justify-center]="collapsed()">
             <!-- Bouton Profil -->
@@ -341,6 +343,9 @@ export class Sidebar {
   private readonly elementRef = inject(ElementRef);
 
   navItems = input.required<NavItem[]>();
+
+  /** Émis après chaque clic sur un lien de navigation — le layout parent ferme le drawer mobile */
+  navClick = output<void>();
 
   collapsed = signal(false);
   isStructureMenuOpen = signal(false);
