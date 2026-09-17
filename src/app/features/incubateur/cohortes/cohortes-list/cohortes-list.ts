@@ -194,33 +194,7 @@ type CohorteFilter = 'ACTIVES' | 'ARCHIVEES' | 'TOUTES';
                 </app-card>
               </div>
 
-              <!-- Filtre de statut -->
-              <div class="flex items-center gap-3 mb-4">
-                <button
-                  type="button"
-                  (click)="filtreStatut.set('ACTIVES')"
-                  [class]="filtreStatut() === 'ACTIVES' ? 'bg-accent text-white' : 'bg-surface-muted text-ink-muted hover:bg-surface-muted/70'"
-                  class="px-4 py-2 rounded-lg text-xs font-semibold transition-colors"
-                >
-                  Actives
-                </button>
-                <button
-                  type="button"
-                  (click)="filtreStatut.set('ARCHIVEES')"
-                  [class]="filtreStatut() === 'ARCHIVEES' ? 'bg-accent text-white' : 'bg-surface-muted text-ink-muted hover:bg-surface-muted/70'"
-                  class="px-4 py-2 rounded-lg text-xs font-semibold transition-colors"
-                >
-                  Archivées
-                </button>
-                <button
-                  type="button"
-                  (click)="filtreStatut.set('TOUTES')"
-                  [class]="filtreStatut() === 'TOUTES' ? 'bg-accent text-white' : 'bg-surface-muted text-ink-muted hover:bg-surface-muted/70'"
-                  class="px-4 py-2 rounded-lg text-xs font-semibold transition-colors"
-                >
-                  Toutes
-                </button>
-              </div>
+             
 
               <!-- Tableau (desktop) -->
               <app-card padding="none" class="hidden w-full min-w-0 overflow-hidden border border-line/60 shadow-xs sm:block rounded-2xl">

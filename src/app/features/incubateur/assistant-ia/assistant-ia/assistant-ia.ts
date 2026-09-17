@@ -19,6 +19,8 @@ import { ConversationService } from '../../../../core/services/conversation.serv
 import { StructureContextService } from '../../../../core/services/structure-context.service';
 import { AiActionService } from '../../../../core/services/ai-action.service';
 import { VoiceService } from '../../../../core/services/voice.service';
+import { VoiceModeService } from '../../../../core/services/voice-mode.service';
+import { TtsService } from '../../../../core/services/tts.service';
 
 import {
   ConversationContexte,
@@ -32,6 +34,7 @@ import { Cohorte } from '../../../../core/models/cohorte.model';
 import { Projet } from '../../../../core/models/projet.model';
 
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
+import { VoiceModalComponent } from '../../../../shared/components/voice-modal/voice-modal';
 
 /**
  * Assistant IA — côté coach/incubateur.
@@ -50,7 +53,7 @@ import { ButtonComponent } from '../../../../shared/components/button/button.com
 @Component({
   selector: 'app-assistant-ia',
   standalone: true,
-  imports: [CommonModule, ButtonComponent, JsonPipe, RouterLink, DatePipe],
+  imports: [CommonModule, ButtonComponent, JsonPipe, RouterLink, DatePipe, VoiceModalComponent],
   templateUrl: './assistant-ia.html',
 })
 export class AssistantIa implements OnInit {
@@ -63,6 +66,8 @@ export class AssistantIa implements OnInit {
   private readonly structureContext     = inject(StructureContextService);
   private readonly aiActionService      = inject(AiActionService);
   private readonly voiceService         = inject(VoiceService);
+  private readonly voiceModeService     = inject(VoiceModeService);
+  private readonly ttsService           = inject(TtsService);
   private readonly destroyRef           = inject(DestroyRef);
 
   // ── Vue ───────────────────────────────────────────────────────────────────
@@ -176,6 +181,14 @@ export class AssistantIa implements OnInit {
   /** true si le service vocal est disponible dans ce navigateur */
   protected readonly micSupported = this.voiceService.isSupported;
 
+  // ── Mode vocal (Phase 6) ──────────────────────────────────────────────────
+
+  /** Contrôle l'affichage de la modal vocale */
+  protected readonly modalVocaleOuverte = signal(false);
+
+  /** État TTS pour feedback visuel dans le chat */
+  protected readonly ttsState = this.ttsService.ttsState;
+
   // ── Suggestions rapides ───────────────────────────────────────────────────
 
   protected readonly suggestions = [
@@ -186,17 +199,17 @@ export class AssistantIa implements OnInit {
 
   // ── Sélecteur de modèle ───────────────────────────────────────────────────
 
-  protected readonly models = [
-    { id: 'fast',      name: 'Rapide',       description: 'Réponses rapides pour les tâches simples' },
-    { id: 'balanced',  name: 'Équilibré',    description: 'Bon équilibre entre rapidité et qualité' },
-    { id: 'reasoning', name: 'Raisonnement', description: 'Pour les analyses et décisions complexes' },
-  ];
+  // protected readonly models = [
+  //   { id: 'fast',      name: 'Rapide',       description: 'Réponses rapides pour les tâches simples' },
+  //   { id: 'balanced',  name: 'Équilibré',    description: 'Bon équilibre entre rapidité et qualité' },
+  //   { id: 'reasoning', name: 'Raisonnement', description: 'Pour les analyses et décisions complexes' },
+  // ];
 
   protected readonly selectedModel     = signal('balanced');
   protected readonly modelMenuOpen     = signal(false);
-  protected readonly selectedModelInfo = computed(() =>
-    this.models.find((m) => m.id === this.selectedModel())
-  );
+  // protected readonly selectedModelInfo = computed(() =>
+  //   this.models.find((m) => m.id === this.selectedModel())
+  // );
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -231,6 +244,7 @@ export class AssistantIa implements OnInit {
             const db = new Date(b.dateDerniereActivite ?? b.dateCreation).getTime();
             return db - da;
           });
+          console.log(sorted)
           this.historique.set(sorted);
           this.loadingHistory.set(false);
         },
@@ -239,13 +253,49 @@ export class AssistantIa implements OnInit {
   }
 
   /** Ouvrir une conversation existante depuis la sidebar */
-  protected ouvrirConversation(conv: ConversationIA): void {
-    this.conversationId.set(conv.id);
-    this.messages.set(conv.messages ?? []);
-    this.contextChips.set(this.buildChipsFromContexte(conv.contexte));
-    this.erreur.set(null);
-    this.scrollToBottom();
-  }
+ protected ouvrirConversation(conv: ConversationIA): void {
+  this.conversationId.set(conv.id);
+  this.erreur.set(null);
+
+  // Affichage immédiat du contexte connu depuis la sidebar
+  this.contextChips.set(
+    this.buildChipsFromContexte(conv.contexte)
+  );
+
+  // Charger la conversation complète avec son historique
+  this.conversationService
+    .getConversation(conv.id)
+    .pipe(takeUntilDestroyed(this.destroyRef))
+    .subscribe({
+      next: (conversation) => {
+        // Mettre à jour la conversation complète dans la sidebar
+        this.ajouterAuHistorique(conversation);
+
+        // Charger les vrais messages
+        this.messages.set(conversation.messages ?? []);
+
+        // Recharger le contexte depuis la réponse complète
+        this.contextChips.set(
+          this.buildChipsFromContexte(conversation.contexte)
+        );
+
+        this.scrollToBottom();
+      },
+
+      error: (err) => {
+        console.error(
+          'Erreur lors du chargement de la conversation:',
+          err
+        );
+
+        this.messages.set([]);
+
+        this.erreur.set(
+          'Impossible de charger l’historique de cette conversation.'
+        );
+      },
+    });
+}
 
   /** Démarrer une nouvelle conversation vide */
   protected nouvelleConversation(): void {
@@ -515,6 +565,99 @@ export class AssistantIa implements OnInit {
    */
   protected annulerMicro(): void {
     this.voiceService.cancelRecording();
+  }
+
+  // ── Mode vocal (Phase 6) ──────────────────────────────────────────────────
+
+  /** Ouvre la modal vocale */
+  protected ouvrirModeVocal(): void {
+    this.modalVocaleOuverte.set(true);
+  }
+
+  /** Ferme la modal vocale */
+  protected fermerModeVocal(): void {
+    this.modalVocaleOuverte.set(false);
+  }
+
+  /**
+   * Reçoit le transcript de la modal vocale, envoie au pipeline IA,
+   * puis joue la réponse en TTS.
+   *
+   * Flux :
+   *   VoiceModal → onTranscript$ → ici → doSendMessage → réponse IA → TTS
+   */
+  protected async onVocalTranscript(texte: string): Promise<void> {
+    if (!texte.trim() || !this.structureActive()) return;
+
+    // Affichage optimiste du message COACH dans le chat
+    const tempId = crypto.randomUUID();
+    const tempMsg: MessageIA = {
+      id: tempId,
+      conversationId: '',
+      auteur: 'COACH',
+      contenu: texte,
+      dateEnvoi: new Date().toISOString(),
+    };
+    this.messages.update(msgs => [...msgs, tempMsg]);
+    this.scrollToBottom();
+    this.envoiEnCours.set(true);
+
+    const convId = this.conversationId();
+
+    const handleResponse = (convId: string) => {
+      this.conversationService.sendMessage(convId, texte)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (nouveauxMessages) => {
+            this.messages.update(msgs => [
+              ...msgs.filter(m => m.id !== tempId),
+              ...nouveauxMessages,
+            ]);
+            this.envoiEnCours.set(false);
+            this.scrollToBottom();
+
+            // Jouer la réponse IA en TTS
+            const repIA = nouveauxMessages.find(m => m.auteur === 'ASSISTANT');
+            if (repIA?.contenu) {
+              // Nettoyer le texte pour TTS (retirer les balises markdown)
+              const texteNettoyé = repIA.contenu
+                .replace(/```[\s\S]*?```/g, '[code]')
+                .replace(/[*_#`]/g, '')
+                .replace(/\[.*?\]\(.*?\)/g, '')
+                .trim();
+              this.voiceModeService.speakResponse(texteNettoyé);
+            } else {
+              // Pas de réponse textuelle → repasser en IDLE
+              this.voiceModeService.vocalState.set('IDLE');
+            }
+          },
+          error: () => {
+            this.messages.update(msgs => msgs.filter(m => m.id !== tempId));
+            this.envoiEnCours.set(false);
+            this.voiceModeService.vocalState.set('ERROR');
+          },
+        });
+    };
+
+    if (convId) {
+      handleResponse(convId);
+    } else {
+      const contexte = this.buildContexteFromChips(this.contextChips());
+      this.conversationService.createConversation({ contexte })
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (conv) => {
+            this.conversationId.set(conv.id);
+            this.ajouterAuHistorique(conv);
+            handleResponse(conv.id);
+          },
+          error: () => {
+            this.messages.update(msgs => msgs.filter(m => m.id !== tempId));
+            this.envoiEnCours.set(false);
+            this.voiceModeService.vocalState.set('ERROR');
+          },
+        });
+    }
   }
 
   private autoResizeTextarea(): void {

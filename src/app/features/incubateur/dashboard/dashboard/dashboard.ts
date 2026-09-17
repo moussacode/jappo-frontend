@@ -68,13 +68,13 @@ import { InviterEntrepreneurModalComponent } from '../../entrepreneurs/inviter-e
       } @else {
 
         <!-- 1. CARTES KPIS -->
-        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          <app-kpi-card 
+        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <!-- <app-kpi-card 
             label="Entrepreneurs suivis" 
             [value]="stats()?.entrepreneursActifs || 0" 
             [note]="(stats()?.totalEntrepreneurs || 0) + ' membre(s) au total'"
             noteVariant="neutral"
-          />
+          /> -->
           <app-kpi-card 
             label="Cohortes actives" 
             [value]="cohortesActives().length  || 0" 

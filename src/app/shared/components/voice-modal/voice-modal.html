@@ -1,0 +1,164 @@
+<!-- ════════════════════════════════════════════════════════════════════════
+     Modal Mode Vocal — JAPPO
+     États : IDLE | LISTENING | PROCESSING | SPEAKING | ERROR
+     ════════════════════════════════════════════════════════════════════════ -->
+
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+     (click)="onClose()">
+
+  <!-- Carte modale ─────────────────────────────────────────────────────── -->
+  <div class="relative flex flex-col items-center gap-6
+               bg-gray-900 border border-gray-700 rounded-3xl
+               w-80 py-10 px-8 shadow-2xl"
+       (click)="$event.stopPropagation()">
+
+    <!-- Bouton fermer -->
+    <button class="absolute top-4 right-4 text-gray-500 hover:text-gray-300 transition-colors"
+            (click)="onClose()" title="Fermer">
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+
+    <!-- ── Waveform SVG + Cercle central ────────────────────────────────── -->
+    <div class="relative flex items-center justify-center w-40 h-40">
+
+      <!-- Halo animé (SVG) — réactif à audioLevel -->
+      <svg class="absolute inset-0 w-full h-full overflow-visible"
+           viewBox="0 0 140 140">
+        <!-- Anneau externe — niveau audio -->
+        <circle
+          cx="70" cy="70"
+          [attr.r]="haloRadius()"
+          fill="none"
+          [attr.stroke]="haloColor"
+          stroke-width="2"
+          [attr.opacity]="haloOpacity()"
+          [class.animate-ping]="isListening()"
+        />
+        <!-- Anneau intermédiaire — toujours visible en enregistrement/parole -->
+        @if (isListening() || isSpeaking()) {
+          <circle
+            cx="70" cy="70"
+            [attr.r]="haloRadius() * 0.75"
+            fill="none"
+            [attr.stroke]="haloColor"
+            stroke-width="1.5"
+            [attr.opacity]="haloOpacity() * 0.6"
+          />
+        }
+      </svg>
+
+      <!-- Cercle principal (bouton micro) -->
+      <button
+        class="relative z-10 flex items-center justify-center
+               w-24 h-24 rounded-full transition-all duration-300
+               focus:outline-none focus:ring-4 focus:ring-offset-2 focus:ring-offset-gray-900"
+        [style.background-color]="circleColor"
+        [style.box-shadow]="isListening() ? '0 0 32px ' + circleColor + '80' : 'none'"
+        [style.focus-ring-color]="circleColor"
+        [disabled]="isProcessing()"
+        (click)="isListening() ? onMicClick() : (isSpeaking() ? onInterrupt() : onMicClick())"
+        [title]="isListening() ? 'Arrêter l\'enregistrement' : isSpeaking() ? 'Interrompre' : 'Démarrer l\'enregistrement'"
+      >
+
+        <!-- IDLE / ERROR / LISTENING → Icône micro -->
+        @if (!isProcessing() && !isSpeaking()) {
+          <svg class="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
+            @if (isListening()) {
+              <!-- Micro plein (enregistrement actif) -->
+              <path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 1 1-8 0V5a4 4 0 0 1 4-4z"/>
+              <path d="M19 10a7 7 0 0 1-14 0H3a9 9 0 0 0 8 8.94V21H9v2h6v-2h-2v-2.06A9 9 0 0 0 21 10h-2z"/>
+            } @else {
+              <!-- Micro outline (idle / error) -->
+              <path fill-rule="evenodd" clip-rule="evenodd"
+                d="M12 1a4 4 0 0 1 4 4v6a4 4 0 1 1-8 0V5a4 4 0 0 1 4-4zm0 2a2 2 0 0 0-2 2v6a2 2 0 1 0 4 0V5a2 2 0 0 0-2-2zm-7 8a1 1 0 0 1 1 1 6 6 0 0 0 12 0 1 1 0 1 1 2 0 8 8 0 0 1-7 7.94V21h2a1 1 0 1 1 0 2H9a1 1 0 1 1 0-2h2v-2.06A8 8 0 0 1 4 12a1 1 0 0 1 1-1z"/>
+            }
+          </svg>
+        }
+
+        <!-- PROCESSING → Spinner -->
+        @if (isProcessing()) {
+          <svg class="w-10 h-10 text-white animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10"
+                    stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor"
+                  d="M4 12a8 8 0 0 1 8-8V0C5.37 0 0 5.37 0 12h4z"/>
+          </svg>
+        }
+
+        <!-- SPEAKING → Icône onde (stop/interruption) -->
+        @if (isSpeaking()) {
+          <svg class="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
+            <rect x="6"  y="4" width="4" height="16" rx="2"/>
+            <rect x="14" y="4" width="4" height="16" rx="2"/>
+          </svg>
+        }
+
+      </button>
+    </div>
+
+    <!-- ── Label d'état ───────────────────────────────────────────────────── -->
+    <div class="text-center">
+      <p class="text-white text-base font-medium leading-snug">
+        {{ stateLabel() }}
+      </p>
+
+      <!-- Transcript (texte reconnu) -->
+      @if (transcript()) {
+        <p class="mt-2 text-gray-400 text-sm italic line-clamp-3">
+          "{{ transcript() }}"
+        </p>
+      }
+    </div>
+
+    <!-- ── Barre d'activité audio (mini-waveform) ─────────────────────────── -->
+    @if (isListening() || isSpeaking()) {
+      <div class="flex items-end justify-center gap-1 h-8">
+        @for (i of [0,1,2,3,4,5,6]; track i) {
+          <div class="w-1 rounded-full transition-all duration-100"
+               [style.background-color]="circleColor"
+               [style.height.px]="4 + audioLevel() * 28 * (0.4 + 0.6 * ((i % 3) / 2))">
+          </div>
+        }
+      </div>
+    }
+
+    <!-- ── Indicateur processing (dots) ──────────────────────────────────── -->
+    @if (isProcessing()) {
+      <div class="flex items-center gap-1.5">
+        <span class="w-2 h-2 bg-violet-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+        <span class="w-2 h-2 bg-violet-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+        <span class="w-2 h-2 bg-violet-400 rounded-full animate-bounce"></span>
+      </div>
+    }
+
+    <!-- ── Toggle auto-loop ───────────────────────────────────────────────── -->
+    <div class="flex items-center gap-2">
+      <button
+        class="relative inline-flex h-5 w-9 rounded-full transition-colors duration-200 focus:outline-none"
+        [class.bg-blue-500]="autoLoop()"
+        [class.bg-gray-600]="!autoLoop()"
+        (click)="onToggleAutoLoop()"
+        title="Reprendre l'écoute automatiquement après chaque réponse"
+      >
+        <span class="inline-block w-4 h-4 bg-white rounded-full shadow
+                     transform transition-transform duration-200 mt-0.5"
+              [class.translate-x-4]="autoLoop()"
+              [class.translate-x-0.5]="!autoLoop()">
+        </span>
+      </button>
+      <span class="text-gray-400 text-xs">Conversation continue</span>
+    </div>
+
+    <!-- ── Bouton Terminer ────────────────────────────────────────────────── -->
+    <button
+      class="mt-2 px-5 py-2 rounded-full border border-gray-600
+             text-gray-300 text-sm hover:bg-gray-800 hover:border-gray-400
+             transition-colors focus:outline-none"
+      (click)="onClose()">
+      Terminer la conversation
+    </button>
+
+  </div>
+</div>

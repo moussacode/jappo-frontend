@@ -365,7 +365,7 @@
             <!-- Droite : modèle + micro + envoyer -->
             <div class="flex items-center gap-1.5">
 
-              <div class="model-selector relative">
+              <!-- <div class="model-selector relative">
                 <button type="button" (click)="modelMenuOpen.update(v => !v)" class="flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium text-ink-muted transition hover:bg-surface-muted hover:text-ink">
                   <span>{{ selectedModelInfo()?.name }}</span>
                   <svg class="size-3.5 transition-transform" [class.rotate-180]="modelMenuOpen()" viewBox="0 0 20 20" fill="none">
@@ -388,7 +388,7 @@
                     }
                   </div>
                 }
-              </div>
+              </div> -->
 
               <!-- Bouton microphone -->
               @if (micSupported) {
@@ -487,6 +487,22 @@
                 </svg>
               </button>
 
+              <!-- Bouton mode vocal (Phase 6) -->
+              @if (micSupported) {
+                <button
+                  type="button"
+                  (click)="ouvrirModeVocal()"
+                  title="Mode conversation vocale"
+                  aria-label="Ouvrir le mode vocal"
+                  class="flex size-9 items-center justify-center rounded-xl border border-line text-ink-muted transition hover:border-accent hover:text-accent"
+                >
+                  <!-- Icône onde vocale -->
+                  <svg class="size-4" viewBox="0 0 24 24" fill="none">
+                    <path d="M3 12h2m14 0h2M7 8c0 0-1 1-1 4s1 4 1 4M17 8c0 0 1 1 1 4s-1 4-1 4M10 6c0 0-2 1.5-2 6s2 6 2 6M14 6c0 0 2 1.5 2 6s-2 6-2 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                  </svg>
+                </button>
+              }
+
             </div>
           </div>
         </div>
@@ -499,3 +515,12 @@
 
   </div>
 </div>
+
+<!-- ── Modal mode vocal (Phase 6) ─────────────────────────────────────────── -->
+@if (modalVocaleOuverte()) {
+  <app-voice-modal
+    [visible]="modalVocaleOuverte()"
+    (sendMessage)="onVocalTranscript($event)"
+    (closed)="fermerModeVocal()"
+  />
+}
