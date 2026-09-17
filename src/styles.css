@@ -4,6 +4,8 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
+@import '@angular/cdk/overlay-prebuilt.css';
+
 @theme {
   /* ===== Ancienne palette JAPPO — conservée telle quelle, utilisée
      directement par les 21 écrans Entrepreneur déjà construits ===== */

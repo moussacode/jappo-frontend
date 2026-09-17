@@ -57,4 +57,44 @@ export class ConversationService {
   updateContexte(conversationId: string, request: UpdateContexteRequest): Observable<ConversationIA> {
     return this.http.patch<ConversationIA>(`${this.apiUrl}/${conversationId}/contexte`, request);
   }
+
+  /**
+   * Renommer une conversation.
+   * PATCH /api/conversations/:id/titre
+   */
+  renameConversation(conversationId: string, titre: string): Observable<ConversationIA> {
+    return this.http.patch<ConversationIA>(`${this.apiUrl}/${conversationId}/titre`, { titre });
+  }
+
+  /**
+   * Archiver une conversation.
+   * PATCH /api/conversations/:id/archiver
+   */
+  archiveConversation(conversationId: string): Observable<void> {
+    return this.http.patch<void>(`${this.apiUrl}/${conversationId}/archiver`, {});
+  }
+
+  /**
+   * Restaurer une conversation archivée.
+   * PATCH /api/conversations/:id/restaurer
+   */
+  restaurerConversation(conversationId: string): Observable<void> {
+    return this.http.patch<void>(`${this.apiUrl}/${conversationId}/restaurer`, {});
+  }
+
+  /**
+   * Supprimer définitivement une conversation.
+   * DELETE /api/conversations/:id
+   */
+  deleteConversation(conversationId: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${conversationId}`);
+  }
+
+  /**
+   * Lister les conversations archivées.
+   * GET /api/conversations/archivees
+   */
+  listArchivedConversations(): Observable<ConversationIA[]> {
+    return this.http.get<ConversationIA[]>(`${this.apiUrl}/archivees`);
+  }
 }

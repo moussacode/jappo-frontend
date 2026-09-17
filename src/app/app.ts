@@ -2,10 +2,11 @@ import { Component, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { AuthService } from './core/services/auth.service';
 import { StructureContextService } from './core/services/structure-context.service';
+import { WebsocketDiagnosticComponent } from './shared/components/websocket-diagnostic/websocket-diagnostic.component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, WebsocketDiagnosticComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })

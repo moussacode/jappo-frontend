@@ -10,7 +10,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { CommonModule, JsonPipe } from '@angular/common';
+import { CommonModule, JsonPipe, DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
 import { CohorteService } from '../../../../core/services/cohorte.service';
@@ -18,9 +18,11 @@ import { ProjetService } from '../../../../core/services/projet.service';
 import { ConversationService } from '../../../../core/services/conversation.service';
 import { StructureContextService } from '../../../../core/services/structure-context.service';
 import { AiActionService } from '../../../../core/services/ai-action.service';
+import { VoiceService } from '../../../../core/services/voice.service';
 
 import {
   ConversationContexte,
+  ConversationIA,
   ContexteChip,
   MessageIA,
   TypeContexte,
@@ -48,7 +50,7 @@ import { ButtonComponent } from '../../../../shared/components/button/button.com
 @Component({
   selector: 'app-assistant-ia',
   standalone: true,
-  imports: [CommonModule, ButtonComponent, JsonPipe, RouterLink],
+  imports: [CommonModule, ButtonComponent, JsonPipe, RouterLink, DatePipe],
   templateUrl: './assistant-ia.html',
 })
 export class AssistantIa implements OnInit {
@@ -60,6 +62,7 @@ export class AssistantIa implements OnInit {
   private readonly conversationService  = inject(ConversationService);
   private readonly structureContext     = inject(StructureContextService);
   private readonly aiActionService      = inject(AiActionService);
+  private readonly voiceService         = inject(VoiceService);
   private readonly destroyRef           = inject(DestroyRef);
 
   // ── Vue ───────────────────────────────────────────────────────────────────
@@ -70,13 +73,70 @@ export class AssistantIa implements OnInit {
   // ── État conversation ─────────────────────────────────────────────────────
 
   /** ID de la conversation en cours — null jusqu'au premier envoi */
-  private readonly conversationId = signal<string | null>(null);
+  protected  readonly conversationId = signal<string | null>(null);
 
   protected readonly messages      = signal<MessageIA[]>([]);
   protected readonly envoiEnCours  = signal(false);
 
   /** Erreur à afficher à l'utilisateur (structure manquante, réseau...) */
   protected readonly erreur = signal<string | null>(null);
+
+  // ── Sidebar historique ────────────────────────────────────────────────────
+
+  /** Liste de toutes les conversations de la structure */
+  protected readonly historique = signal<ConversationIA[]>([]);
+
+  /** Indique si la sidebar est réduite */
+  protected readonly sidebarCollapsed = signal(false);
+
+  /** Indique le chargement de la liste */
+  protected readonly loadingHistory = signal(false);
+
+  /** Renommage en ligne */
+  protected readonly renommageEnCours    = signal(false);
+  protected readonly renommageValeur     = signal('');
+  private renommageConvId: string | null = null;
+
+  /** Titre de la conversation active pour l'en-tête */
+  protected readonly titreConversationActif = computed(() => {
+    const id = this.conversationId();
+    if (!id) return null;
+    return this.historique().find(c => c.id === id)?.titre ?? null;
+  });
+
+  /**
+   * Conversations regroupées par période (Aujourd'hui / Hier / Plus ancien)
+   * pour l'affichage dans la sidebar.
+   */
+  protected readonly conversationsParJour = computed(() => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+
+    const todayItems:     ConversationIA[] = [];
+    const yesterdayItems: ConversationIA[] = [];
+    const olderItems:     ConversationIA[] = [];
+
+    for (const conv of this.historique()) {
+      if (conv.archivee) continue;
+      const d = new Date(conv.dateDerniereActivite ?? conv.dateCreation);
+      const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      if (day.getTime() === today.getTime()) {
+        todayItems.push(conv);
+      } else if (day.getTime() === yesterday.getTime()) {
+        yesterdayItems.push(conv);
+      } else {
+        olderItems.push(conv);
+      }
+    }
+
+    const groupes: { label: string; conversations: ConversationIA[] }[] = [];
+    if (todayItems.length)     groupes.push({ label: "Aujourd'hui", conversations: todayItems });
+    if (yesterdayItems.length) groupes.push({ label: 'Hier',        conversations: yesterdayItems });
+    if (olderItems.length)     groupes.push({ label: 'Plus ancien', conversations: olderItems });
+    return groupes;
+  });
 
   // ── État de traitement des actions IA ─────────────────────────────────────────
   
@@ -107,6 +167,15 @@ export class AssistantIa implements OnInit {
 
   protected readonly saisie = signal('');
 
+  // ── Microphone (Phase 5) ──────────────────────────────────────────────────
+
+  /** État du microphone exposé depuis VoiceService */
+  protected readonly micState = this.voiceService.micState;
+  protected readonly micError = this.voiceService.micError;
+
+  /** true si le service vocal est disponible dans ce navigateur */
+  protected readonly micSupported = this.voiceService.isSupported;
+
   // ── Suggestions rapides ───────────────────────────────────────────────────
 
   protected readonly suggestions = [
@@ -133,7 +202,6 @@ export class AssistantIa implements OnInit {
 
   ngOnInit(): void {
     // Charger cohortes et projets de la structure pour alimenter le menu +
-    // Ces appels ne dépendent d'aucun entrepreneur ni d'aucun userId.
     this.cohorteService
       .getCohortes()
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -143,6 +211,123 @@ export class AssistantIa implements OnInit {
       .getProjets()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({ next: (p) => this.projets.set(p), error: () => {} });
+
+    // Charger l'historique des conversations
+    this.chargerHistorique();
+  }
+
+  // ── Historique sidebar ────────────────────────────────────────────────────
+
+  private chargerHistorique(): void {
+    this.loadingHistory.set(true);
+    this.conversationService
+      .listConversations()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (list) => {
+          // Trier par activité la plus récente en premier
+          const sorted = [...list].sort((a, b) => {
+            const da = new Date(a.dateDerniereActivite ?? a.dateCreation).getTime();
+            const db = new Date(b.dateDerniereActivite ?? b.dateCreation).getTime();
+            return db - da;
+          });
+          this.historique.set(sorted);
+          this.loadingHistory.set(false);
+        },
+        error: () => this.loadingHistory.set(false),
+      });
+  }
+
+  /** Ouvrir une conversation existante depuis la sidebar */
+  protected ouvrirConversation(conv: ConversationIA): void {
+    this.conversationId.set(conv.id);
+    this.messages.set(conv.messages ?? []);
+    this.contextChips.set(this.buildChipsFromContexte(conv.contexte));
+    this.erreur.set(null);
+    this.scrollToBottom();
+  }
+
+  /** Démarrer une nouvelle conversation vide */
+  protected nouvelleConversation(): void {
+    this.conversationId.set(null);
+    this.messages.set([]);
+    this.contextChips.set([]);
+    this.saisie.set('');
+    this.erreur.set(null);
+  }
+
+  /** Charger une conversation si on n'a que son ID (après création) */
+  private ajouterAuHistorique(conv: ConversationIA): void {
+    this.historique.update(list => {
+      const existe = list.some(c => c.id === conv.id);
+      if (existe) return list.map(c => c.id === conv.id ? conv : c);
+      return [conv, ...list];
+    });
+  }
+
+  // ── Renommage ─────────────────────────────────────────────────────────────
+
+  protected demanderRenommage(conv: ConversationIA): void {
+    this.renommageConvId  = conv.id;
+    this.renommageValeur.set(conv.titre ?? '');
+    this.renommageEnCours.set(true);
+  }
+
+  protected validerRenommage(): void {
+    const id    = this.renommageConvId;
+    const titre = this.renommageValeur().trim();
+    if (!id || !titre) { this.annulerRenommage(); return; }
+
+    this.conversationService
+      .renameConversation(id, titre)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (updated) => {
+          this.historique.update(list => list.map(c => c.id === id ? { ...c, titre: updated.titre } : c));
+          this.annulerRenommage();
+        },
+        error: () => this.annulerRenommage(),
+      });
+  }
+
+  protected annulerRenommage(): void {
+    this.renommageEnCours.set(false);
+    this.renommageConvId = null;
+    this.renommageValeur.set('');
+  }
+
+  // ── Suppression ───────────────────────────────────────────────────────────
+
+  protected supprimerConversation(id: string): void {
+    if (!confirm('Supprimer définitivement cette conversation ?')) return;
+
+    this.conversationService
+      .deleteConversation(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.historique.update(list => list.filter(c => c.id !== id));
+          if (this.conversationId() === id) {
+            this.nouvelleConversation();
+          }
+        },
+        error: () => {},
+      });
+  }
+
+  // ── Helper inverse chips → contexte ──────────────────────────────────────
+
+  private buildChipsFromContexte(ctx: ConversationContexte): ContexteChip[] {
+    const chips: ContexteChip[] = [];
+    if (ctx?.cohorteId) {
+      const c = this.cohortes().find(x => x.id === ctx.cohorteId);
+      if (c) chips.push({ type: 'COHORTE', id: c.id, label: c.nom });
+    }
+    if (ctx?.projetId) {
+      const p = this.projets().find(x => x.id === ctx.projetId);
+      if (p) chips.push({ type: 'PROJET', id: p.id, label: p.nom });
+    }
+    return chips;
   }
 
   // ── Envoi de message ──────────────────────────────────────────────────────
@@ -186,12 +371,13 @@ export class AssistantIa implements OnInit {
         .subscribe({
           next: (conv) => {
             this.conversationId.set(conv.id);
+            // Ajouter immédiatement à la sidebar
+            this.ajouterAuHistorique(conv);
             this.doSendMessage(conv.id, contenu, tempId);
           },
           error: (err) => {
             this.messages.update((msgs) => msgs.filter((m) => m.id !== tempId));
             this.envoiEnCours.set(false);
-            // 401 = structure non reconnue côté backend
             if (err?.status === 401 || err?.status === 403) {
               this.erreur.set('Session expirée ou structure non autorisée. Rechargez la page.');
             }
@@ -212,6 +398,13 @@ export class AssistantIa implements OnInit {
           ]);
           this.envoiEnCours.set(false);
           this.scrollToBottom();
+          // Rafraîchir la conversation dans la sidebar (titre auto-généré après 1er message)
+          this.conversationService.getConversation(convId)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe({
+              next: (conv) => this.ajouterAuHistorique(conv),
+              error: () => {},
+            });
         },
         error: () => {
           this.messages.update((msgs) => msgs.filter((m) => m.id !== tempId));
@@ -257,6 +450,81 @@ export class AssistantIa implements OnInit {
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({ error: () => {} });
+  }
+
+  // ── Microphone ────────────────────────────────────────────────────────────
+
+  /**
+   * Bascule l'enregistrement :
+   * - Si idle  → démarre l'enregistrement
+   * - Si recording → arrête et transcrit
+   */
+  protected async basculerMicro(): Promise<void> {
+    const state = this.micState();
+
+    if (state === 'recording') {
+      // Arrêter et transcrire
+      this.voiceService.stopRecording();
+      return;
+    }
+
+    if (state !== 'idle') return; // Ne pas démarrer si processing/error/requesting
+
+    // Démarrer l'enregistrement
+    let blobPromise: Promise<Blob>;
+    try {
+      blobPromise = this.voiceService.startRecording();
+    } catch {
+      return; // L'erreur est déjà dans micError via VoiceService
+    }
+
+    // Attendre la fin de l'enregistrement, puis transcrire
+    const blob = await blobPromise;
+
+    if (blob.size === 0) {
+      this.voiceService.reset();
+      return;
+    }
+
+    // Transcription
+    this.voiceService.transcribe(blob)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (response) => {
+          if (response.success && response.text.trim()) {
+            // Injecter le texte dans le champ de saisie
+            // L'utilisateur peut lire, corriger puis appuyer sur Entrée
+            this.saisie.set(response.text.trim());
+            this.autoResizeTextarea();
+          } else {
+            this.voiceService.micError.set('Aucun texte reconnu. Réessayez.');
+          }
+          this.voiceService.reset();
+        },
+        error: () => {
+          this.voiceService.micError.set(
+            'Impossible de contacter le service vocal. Vérifiez que jappo-voice est démarré sur le port 8001.'
+          );
+          this.voiceService.reset();
+        },
+      });
+  }
+
+  /**
+   * Annule l'enregistrement en cours sans transcrire.
+   */
+  protected annulerMicro(): void {
+    this.voiceService.cancelRecording();
+  }
+
+  private autoResizeTextarea(): void {
+    setTimeout(() => {
+      const ta = document.querySelector<HTMLTextAreaElement>('textarea');
+      if (ta) {
+        ta.style.height = 'auto';
+        ta.style.height = `${Math.min(ta.scrollHeight, 160)}px`;
+      }
+    });
   }
 
   private buildContexteFromChips(chips: ContexteChip[]): ConversationContexte {

@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit, DestroyRef } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy, DestroyRef } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
@@ -40,7 +40,7 @@ export interface LivrableItem {
   templateUrl: './mission-detail.html',
   styleUrl: './mission-detail.css',
 })
-export class MissionDetail implements OnInit {
+export class MissionDetail implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly authService = inject(AuthService);
   private readonly projetService = inject(ProjetService);
@@ -48,7 +48,11 @@ export class MissionDetail implements OnInit {
   private readonly livrableService = inject(LivrableService);
   private readonly destroyRef = inject(DestroyRef);
 
-  protected readonly livrablesExistants = signal<LivrableResponse[]>([]);
+  /**
+   * Signal partagé avec le LivrableService — mis à jour automatiquement via WebSocket.
+   */
+  protected readonly livrablesExistants = this.livrableService.livrables;
+
   protected readonly missionId = this.route.snapshot.paramMap.get('id') ?? '';
 
   // Récupération réactive des détails de la mission
@@ -90,6 +94,11 @@ export class MissionDetail implements OnInit {
   protected readonly historiquesOuverts = signal<Record<string, boolean>>({});
 
   ngOnInit(): void {
+    // Déclare la mission active dans LivrableService :
+    // - charge les livrables initiaux
+    // - active l'écoute WebSocket pour cette mission
+    this.livrableService.setActiveMission(this.missionId);
+
     const userId = this.authService.currentUser()?.id;
     if (userId) {
       this.projetService
@@ -100,18 +109,16 @@ export class MissionDetail implements OnInit {
           error: (err) => console.error('Erreur récupération projet:', err),
         });
     }
+  }
 
-    this.rechargerLivrables();
+  ngOnDestroy(): void {
+    // Libère le contexte mission pour éviter les mises à jour parasites
+    this.livrableService.clearActiveMission();
   }
 
   protected rechargerLivrables(): void {
-    this.livrableService
-      .getLivrablesByMission(this.missionId)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (livrables) => this.livrablesExistants.set(livrables || []),
-        error: (err) => console.error('Erreur récupération livrables:', err),
-      });
+    // Délègue au service partagé — rafraîchit le signal partagé
+    this.livrableService.rechargerLivrablesMissionActive();
   }
 
   protected statutBadge(statut: StatutMission) {
@@ -318,6 +325,7 @@ export class MissionDetail implements OnInit {
     this.activeRedepositId.set(null);
     this.redepositSuccessId.set(livrableId);
     setTimeout(() => this.redepositSuccessId.set(null), 5000);
+    // Rafraîchissement via le service partagé (WebSocket prendra le relais mais on force quand même)
     this.rechargerLivrables();
   }
 

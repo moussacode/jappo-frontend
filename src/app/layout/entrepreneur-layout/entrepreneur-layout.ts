@@ -6,11 +6,16 @@ import { Sidebar, NavItem } from '../../shared/components/sidebar/sidebar';
   selector: 'app-entrepreneur-layout',
   imports: [RouterOutlet, Sidebar],
   template: `
-    <div class="flex h-screen">
-      <app-sidebar [navItems]="navItems" />
-      <main class="flex-1 overflow-y-auto bg-neutral-25">
-        <router-outlet />
-      </main>
+    <div class="flex flex-col h-screen">
+     
+
+      <!-- Contenu principal avec sidebar -->
+      <div class="flex flex-1 overflow-hidden">
+        <app-sidebar [navItems]="navItems" />
+        <main class="flex-1 overflow-y-auto bg-neutral-25">
+          <router-outlet />
+        </main>
+      </div>
     </div>
   `,
 })
