@@ -36,6 +36,22 @@ export const routes: Routes = [
         (m) => m.AcceptInvitationComponent
       ),
   },
+
+  {
+  path: 'entrepreneur/reunions/:id',
+  canActivate: [authGuard],
+  loadComponent: () =>
+    import('./features/incubateur/meetings/meeting-room/meeting-room')
+      .then(m => m.MeetingRoomComponent),
+},
+
+{
+  path: 'incubateur/reunions/:id',
+  canActivate: [incubateurGuard],
+  loadComponent: () =>
+    import('./features/incubateur/meetings/meeting-room/meeting-room')
+      .then(m => m.MeetingRoomComponent),
+},
   {
   path: 'onboarding/projet',
   loadComponent: () =>
@@ -102,6 +118,22 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/entrepreneur/profil/changer-forfait/changer-forfait').then((m) => m.ChangerForfait),
       },
+      {
+        path: 'reunions',
+        loadComponent: () =>
+          import('./features/entrepreneur/meetings/entrepreneur-meetings-list/entrepreneur-meetings-list').then((m) => m.EntrepreneurMeetingsListComponent),
+      },
+      {
+        path: 'projets',
+        loadComponent: () =>
+          import('./features/entrepreneur/projets/entrepreneur-projets-list/entrepreneur-projets-list').then((m) => m.EntrepreneurProjetsListComponent),
+      },
+      {
+        path: 'projets/:id/modifier',
+        loadComponent: () =>
+          import('./features/entrepreneur/projets/entrepreneur-projet-edit/entrepreneur-projet-edit').then((m) => m.EntrepreneurProjetEditComponent),
+      },
+      
 //       {
 //   path: 'pitch-deck-editor',
 //   loadComponent: () =>
@@ -203,10 +235,20 @@ export const routes: Routes = [
           import('./features/incubateur/assistant-ia/assistant-ia/assistant-ia').then((m) => m.AssistantIa),
       },
       {
-  path: 'parametres',
-  loadComponent: () => import('./features/incubateur/parametres/parametres').then((m) => m.Parametres),
-}
-     
+        path: 'parametres',
+        loadComponent: () => import('./features/incubateur/parametres/parametres').then((m) => m.Parametres),
+      },
+      {
+        path: 'reunions',
+        loadComponent: () =>
+          import('./features/incubateur/meetings/meetings-list/meetings-list').then((m) => m.MeetingsListComponent),
+      },
+      {
+        path: 'reunions/nouvelle',
+        loadComponent: () =>
+          import('./features/incubateur/meetings/meeting-planning/meeting-planning').then((m) => m.MeetingPlanningComponent),
+      },
+    
     ],
   },
 

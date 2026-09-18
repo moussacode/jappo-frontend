@@ -1,6 +1,6 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:8080/api',
+  apiUrl: 'http://192.168.1.52:8080/api',
   serverUrl: 'http://localhost:8080',
   voiceApiUrl: 'http://localhost:8001/api/voice',
 

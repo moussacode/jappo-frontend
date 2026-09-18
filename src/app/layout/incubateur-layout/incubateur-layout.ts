@@ -52,10 +52,15 @@ export class IncubateurLayout {
   //   path: '/incubateur/rapports',
   //   icon: 'documents',
   // },
- {
+  {
     label: 'Assistant IA',
     path: '/incubateur/assistant-ia',
     icon: 'ai',
+  },
+  {
+    label: 'Réunions',
+    path: '/incubateur/reunions',
+    icon: 'video',
   },
 ];
 }

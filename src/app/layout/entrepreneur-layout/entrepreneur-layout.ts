@@ -37,11 +37,21 @@ export class EntrepreneurLayout {
     icon: 'missions',
   },
   {
-    label: 'Mes documents',
+    label: 'Mes Projets',
+    path: '/entrepreneur/projets',
+    icon: 'projects',
+  },
+  {
+    label: 'Mes réunions',
+    path: '/entrepreneur/reunions',
+    icon: 'video',
+  },
+  {
+    label: 'Mes livrables',
     path: '/entrepreneur/documents',
     icon: 'documents',
   },
-  
+
   // {
   //   label: 'Mon profil',
   //   path: '/entrepreneur/profil',

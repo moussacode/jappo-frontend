@@ -42,9 +42,17 @@ export type IconName =
   | 'chevrons-up-down'
   | 'folder'
   | 'warning'
-  |'copie'
-  |'chevron-up'
-  |'chevron-down';
+  | 'copie'
+  | 'chevron-up'
+  | 'chevron-down'
+  | 'video'
+  | 'mic'
+  | 'mic-off'
+  | 'video-off'
+  | 'phone-off'
+  | 'location'
+  | 'home'
+  | 'projects';
 
 export type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | string;
 

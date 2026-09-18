@@ -47,9 +47,9 @@ export type FiltreStatutMission = 'TOUTES' | 'EN_COURS' | 'A_REVOIR' | 'VALIDEE'
       <!-- En-tête Page Unifié -->
       <!-- En-tête Page Unifié -->
 <app-page-header
-  title="Missions & Jalons"
-  subtitle="Suivez et pilotez l'avancement des missions et livrables de la promotion."
-  breadcrumb="Incubateur > Suivi des missions"
+  title="Activites"
+  subtitle="Suivez et pilotez l'avancement des activites et livrables de la promotion."
+  breadcrumb="Incubateur > Suivi des activites"
 >
   <div class="flex items-center gap-2">
     <app-button size="sm" class="hidden sm:flex">

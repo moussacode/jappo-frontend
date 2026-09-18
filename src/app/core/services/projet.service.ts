@@ -45,6 +45,14 @@ export class ProjetService {
   }
 
   /**
+   * Récupérer les projets de l'entrepreneur connecté
+   * GET /api/projets/mes-projets
+   */
+  getMesProjets(): Observable<Projet[]> {
+    return this.http.get<Projet[]>(`${this.apiUrl}/mes-projets`);
+  }
+
+  /**
    * Mettre à jour l'étape du diagnostic
    * PATCH /api/projets/:id/diagnostic
    */

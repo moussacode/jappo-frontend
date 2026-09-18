@@ -41,7 +41,7 @@ export class WebSocketService implements OnDestroy {
        * et non brokerURL.
        */
       webSocketFactory: () => {
-        return new SockJS('http://localhost:8080/ws');
+        return new SockJS('http://192.168.1.52:4200//ws');
       },
 
       reconnectDelay: 5000,
