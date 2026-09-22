@@ -1,4 +1,4 @@
-export type StatutMission = 'A_FAIRE' | 'EN_COURS' | 'SOUMIS' | 'VALIDE' | 'VALIDEE' | 'A_REVOIR';
+export type StatutMission = 'A_FAIRE' | 'EN_COURS' | 'SOUMIS' | 'VALIDE' | 'A_REVOIR';
 export type PrioriteMission = 'BASSE' | 'MOYENNE' | 'HAUTE' | 'URGENTE';
 
 export interface Mission {
@@ -34,6 +34,9 @@ export interface Mission {
   nombreLivrablesDeposes?: number;
 }
 
+/** Alias contrat backend MissionResponse (suivi MissionProjet). */
+export type MissionResponse = Mission;
+
 /**
  * DTO pour une mission de cohorte agrégée avec ses statistiques de suivi.
  * Représente UNE mission de cohorte avec les statistiques de tous les suivis individuels.
@@ -44,22 +47,29 @@ export interface MissionCohorteResponse {
   description?: string;
   dateEcheance?: string; // YYYY-MM-DD
   priorite?: PrioriteMission;
-  
+
   // Contexte cohorte
   cohorteId?: string;
   nomCohorte?: string;
-  
+
   // Structure & Audit
   structureId?: string;
   dateCreation?: string;
-  
+
   // Statistiques agrégées
-  nombreProjetsConcernes: number;    // Nombre total de projets concernés
-  nombreValides: number;              // Suivis validés (VALIDE + VALIDEE)
-  nombreEnRevue: number;              // Suivis en revue (SOUMIS + A_REVOIR)
-  nombreEnRetard: number;             // Suivis en retard
-  nombreAFaire: number;               // Suivis à faire (A_FAIRE + EN_COURS)
-  
+  nombreProjetsConcernes: number;
+  nombreValides: number;
+  nombreEnRevue: number;
+  nombreEnRetard: number;
+  nombreAFaire: number;
+
+  // Verrouillage structural
+  verrouillee: boolean;
+  dateVerrouillage?: string;
+
+  // Ressources pédagogiques attachées
+  ressourceIds?: string[];
+
   // Liste des suivis individuels (optionnel pour le détail)
   suivisIndividuels?: Mission[];
 }
@@ -73,5 +83,6 @@ export interface CreateMissionRequest {
   projetId?: string;
   assigneAId?: string;
   modeleId?: string;
+ 
   enregistrerCommeModele?: boolean;
 }

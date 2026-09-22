@@ -327,7 +327,7 @@ if (filtre === 'EN_COURS') {
 
 protected badgeStatus(statut: StatutMission): BadgeStatus {
   switch (statut) {
-    case 'VALIDEE':
+    
     case 'VALIDE':
       return 'success';
 
@@ -346,7 +346,7 @@ protected badgeStatus(statut: StatutMission): BadgeStatus {
 
 protected formaterStatut(statut: StatutMission): string {
   switch (statut) {
-    case 'VALIDEE':
+    
     case 'VALIDE':
       return 'Validée';
 

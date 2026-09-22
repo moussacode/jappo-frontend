@@ -1,14 +1,19 @@
 import { Component, inject, signal, computed, OnInit, DestroyRef } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { DatePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { HttpErrorResponse } from '@angular/common/http';
 
-// Services & Modèles
 import { ProjetService } from '../../../../core/services/projet.service';
 import { MissionService } from '../../../../core/services/mission.service';
-import { Projet, Mission } from '../../../../core/models';
+import { StructureContextService } from '../../../../core/services/structure-context.service';
 
-// Design System Partagé
-import { BadgeComponent, BadgeStatus } from '../../../../shared/components/badge/badge';
+import { Projet, ParticipationCohorteResponse, PromouvoirProjetRequest } from '../../../../core/models/projet.model';
+import { Mission } from '../../../../core/models/mission.model';
+import { Cohorte } from '../../../../core/models/cohorte.model';
+
+import { BadgeComponent } from '../../../../shared/components/badge/badge';
 import { Icon } from '../../../../shared/components/icon/icon';
 import { CardComponent } from '../../../../shared/components/card/card.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
@@ -16,183 +21,265 @@ import { ButtonComponent } from '../../../../shared/components/button/button.com
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state';
 import { ModalComponent } from '../../../../shared/components/modal/modal.component';
 import { BreadcrumbComponent, BreadcrumbItem } from '../../../../shared/components/breadcrumb/breadcrumb.component';
+import { LoadingState } from '../../../../shared/components/loading-state/loading-state';
+
+interface Promotion409 {
+  message: string;
+  missionsNonValidees: { titre: string; statut: string }[];
+}
 
 @Component({
   selector: 'app-projet-detail',
   standalone: true,
   imports: [
-    RouterLink,
-    BadgeComponent,
-    Icon,
-    CardComponent,
-    PageHeaderComponent,
-    ButtonComponent,
-    EmptyStateComponent,
-    ModalComponent,
+    RouterLink, FormsModule, DatePipe,
+    BadgeComponent, Icon, CardComponent, PageHeaderComponent,
+    ButtonComponent, EmptyStateComponent, ModalComponent,
     BreadcrumbComponent,
-],
+    LoadingState
+  ],
   template: `
-    <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8 font-sans">
-      
-      <!-- Fil d'Ariane Contextuel -->
-      <app-breadcrumb [items]="breadcrumbItems()" />
+<div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
+  <app-breadcrumb [items]="breadcrumbItems()" />
+  <app-loading-state *ngIf="loading()" message="Chargement du projet..." />
 
-      <!-- SKELETON LOADER -->
-      @if (loading()) {
-        <div class="flex flex-col gap-6 animate-pulse mt-2">
-          <div class="h-20 rounded-2xl bg-surface-muted/40 border border-line"></div>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            @for (i of [1, 2, 3]; track i) { <div class="h-24 rounded-2xl bg-surface-muted/40 border border-line"></div> }
-          </div>
-          <div class="h-64 rounded-2xl bg-surface-muted/40 border border-line"></div>
-        </div>
-      } @else if (projet(); as p) {
-        
-        <!-- EN-TÊTE DU PROJET -->
-        <app-page-header
-          [title]="p.nom"
-          [subtitle]="'Secteur : ' + (p.secteur || 'Non renseigné') + (p.nomCohorte ? ' · Cohorte : ' + p.nomCohorte : '')"
-        >
-          <div class="flex items-center gap-3">
-            <app-badge [status]="statutBadge(p.statut).status" size="md">
-              {{ statutBadge(p.statut).label }}
-            </app-badge>
+  @if (!loading() && projet(); as p) {
+    <app-page-header [title]="p.nom" [subtitle]="soustitre(p)">
+      <div class="flex items-center gap-2">
+        @if (canPromote()) {
+          <app-button variant="secondary" size="sm" (click)="ouvrirPromotion()">
+           Promouvoir
+          </app-button>
+        }
+        @if (!p.archive) {
+          <app-button variant="ghost" size="sm" (click)="showArchiveModal.set(true)">Archiver</app-button>
+        } @else {
+          <app-button variant="ghost" size="sm" (click)="restaurer()">Restaurer</app-button>
+        }
+      </div>
+    </app-page-header>
 
-            <button
-              type="button"
-              (click)="showArchiveModal.set(true)"
-              class="rounded-lg border border-rose-500/30 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors shadow-sm"
-            >
-              Archiver
-            </button>
-          </div>
-        </app-page-header>
+    <!-- KPIs -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <app-card padding="lg">
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Phase actuelle</p>
+        <p class="text-sm font-bold text-gray-900 dark:text-white truncate">{{ p.nomPhase || '—' }}</p>
+      </app-card>
+      <app-card padding="lg">
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Missions validées</p>
+        <p class="text-xl font-extrabold text-gray-900 dark:text-white">
+          {{ p.nombreMissionsValidees ?? 0 }}<span class="text-sm font-normal text-gray-400">/{{ p.nombreMissionsTotal ?? 0 }}</span>
+        </p>
+      </app-card>
+      <app-card padding="lg">
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Entrepreneur</p>
+        <p class="text-sm font-bold text-gray-900 dark:text-white truncate">{{ p.nomEntrepreneur ?? '—' }}</p>
+      </app-card>
+    </div>
 
-        <!-- GRILLE DE SYNTHÈSE (KPIs / Infos clés) -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          
-          <app-card padding="lg" >
-            <div class="flex items-center gap-3 mb-2">
-              
-              <span class="text-xs font-semibold uppercase tracking-wider text-ink-muted">Score de maturité</span>
-            </div>
-            <div class="mt-2 flex-col justify-center gap-6">
-              <span class="text-3xl font-extrabold text-ink tracking-tight">{{ p.scoreMaturite }}%</span>
-              <div class="flex-1 h-2 bg-line/60 rounded-full overflow-hidden">
-                <div 
-                  class="h-full bg-gradient-to-r from-accent to-orange-400 transition-all duration-500 ease-out" 
-                  [style.width.%]="p.scoreMaturite || 0"
-                ></div>
-              </div>
-            </div>
-          </app-card>
+    <!-- Frise historique -->
+    <div>
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-ink-muted">Historique de parcours</h2>
+        @if (!loadingHistorique() && historique().length > 0) {
+          <span class="text-xs font-semibold text-ink-muted">{{ historique().length }} phase(s)</span>
+        }
+      </div>
 
-          <app-card padding="lg">
-            <div class="flex items-center gap-3 mb-2">
-             
-              <span class="text-xs font-semibold uppercase tracking-wider text-ink-muted">Missions assignées</span>
-            </div>
-            <div class="mt-2 text-3xl font-extrabold text-ink tracking-tight">{{ missions().length }} <span class="text-sm font-medium text-ink-muted">jalon(s)</span></div>
-          </app-card>
-
-          <app-card padding="lg" >
-            <div class="flex items-center gap-3 mb-2">
-              
-              <span class="text-xs font-semibold uppercase tracking-wider text-ink-muted">Phase actuelle</span>
-            </div>
-            <div class="mt-2 text-lg font-extrabold text-ink truncate">{{ p.statut || 'En cours' }}</div>
-          </app-card>
-
-        </div>
-
-        <!-- SECTION MISSIONS ASSOCIÉES -->
-        <div class="flex items-center justify-between mt-4">
-          <h2 class="text-base font-bold text-ink flex items-center gap-2">Missions et jalons</h2>
-        </div>
-
-        <app-card padding="none" class="w-full min-w-0 overflow-hidden border border-line/60 shadow-xs rounded-2xl">
-          <table class="w-full min-w-[600px] border-collapse text-left text-sm">
-            <thead>
-              <tr class="border-b border-line bg-surface-muted/30 text-xs font-bold uppercase tracking-wider text-ink-muted">
-                <th class="w-7/12 px-6 py-4">Titre de la mission</th>
-                <th class="w-3/12 px-6 py-4 text-center">Statut</th>
-                <th class="w-2/12 px-6 py-4 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-line/60 bg-surface">
-              @for (mission of missions(); track mission.id) {
-                <tr class="group transition-all duration-200 hover:bg-surface-muted/30 cursor-pointer" [routerLink]="['/incubateur/missions', mission.id]">
-                  <td class="px-6 py-4">
-                    <div class="flex flex-col">
-                      <span class="font-bold text-ink transition-colors group-hover:text-accent">{{ mission.titre }}</span>
-                      @if (mission.dateEcheance) {
-                        <span class="text-xs text-ink-muted mt-0.5">Échéance : {{ mission.dateEcheance }}</span>
+      @if (loadingHistorique()) {
+        <p class="text-xs text-ink-muted animate-pulse">Chargement de l'historique...</p>
+      } @else if (historique().length === 0) {
+        <p class="text-xs text-ink-muted italic">Aucun historique de parcours enregistré.</p>
+      } @else {
+        <app-card padding="none" class=" overflow-hidden ">
+          <div class="overflow-x-auto p-4 sm:p-5 custom-scrollbar">
+            <ol class="flex items-start min-w-max sm:min-w-0">
+              @for (part of historiqueInverse(); track part.id; let i = $index; let last = $last) {
+                <li
+                  class="relative flex-1 pr-6 last:pr-0 min-w-[200px]"
+                  [attr.aria-current]="part.active ? 'step' : null"
+                >
+                  <!-- Ligne de connexion horizontale centrée sur la pastille -->
+                  @if (!last) {
+                    <div class="absolute left-3.5 top-3.5 h-0.5 w-full bg-line/80 z-0">
+                      @if (!part.active) {
+                        <div class="absolute inset-0 bg-emerald-500"></div>
                       }
                     </div>
-                  </td>
-                  <td class="px-6 py-4 text-center">
-                    <app-badge status="neutral" size="sm" class="font-bold">
-                      {{ mission.statut || 'En cours' }}
-                    </app-badge>
-                  </td>
-                  <td class="px-6 py-4 text-right">
-                    <app-icon name="arrow-right" class="size-4 text-ink-muted transition-colors group-hover:text-accent ml-auto" />
-                  </td>
-                </tr>
-              } @empty {
-                <tr>
-                  <td colspan="3" class="p-10 text-center text-sm text-ink-muted bg-surface-muted/10">
-                    <div class="flex flex-col items-center justify-center">
-                      <div class="flex size-10 items-center justify-center rounded-full bg-surface-muted text-ink-muted mb-2 border border-line/60">
-                        <app-icon name="missions" class="size-5" />
-                      </div>
-                      <p class="font-bold text-ink">Aucune mission associée</p>
-                      <p class="text-xs mt-1">Ce projet n'a pas encore de jalons pédagogiques actifs.</p>
+                  }
+
+                  <!-- Pastille numérotée (1, 2, 3...) de gauche à droite -->
+                  <div class="relative z-10 flex size-7 items-center justify-center">
+                    @if (!part.active) {
+                      <span class="flex size-7 items-center justify-center rounded-full bg-emerald-500 text-white text-xs font-bold shadow-2xs">
+                        {{ i + 1 }}
+                      </span>
+                    } @else {
+                      <span class="absolute size-7 rounded-full bg-accent/20 motion-reduce:hidden animate-pulse"></span>
+                      <span class="relative flex size-7 items-center justify-center rounded-full border-2 border-accent bg-surface text-accent text-xs font-bold shadow-2xs">
+                        {{ i + 1 }}
+                      </span>
+                    }
+                  </div>
+
+                  <!-- Contenu de l'étape -->
+                  <div class="mt-3 flex flex-col gap-1">
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-surface-muted text-ink-muted border border-line/60">
+                        Phase {{ i + 1 }}
+                      </span>
+                      <p class="text-[10px] font-bold uppercase tracking-wider text-ink-muted truncate">
+                        {{ part.nomCohorte }}
+                      </p>
                     </div>
+                    
+                    <p class="text-xs font-bold text-ink leading-tight">
+                      {{ part.nomPhase }}
+                    </p>
+
+                    <p class="text-[11px] text-ink-muted">
+                      {{ part.dateEntree | date:'dd/MM/yyyy' }}
+                      @if (part.dateSortie) { → {{ part.dateSortie | date:'dd/MM/yyyy' }} }
+                    </p>
+
+                    @if (part.motifSortie) {
+                      <p class="text-[11px] font-medium text-ink">
+                        Motif : {{ part.motifSortie }}
+                      </p>
+                    }
+
+                    @if (part.raison) {
+                      <p class="text-[11px] text-ink-muted italic bg-surface-muted/50 p-2 rounded-lg border border-line/40 mt-1">
+                        « {{ part.raison }} »
+                      </p>
+                    }
+
+                    <div class="mt-2">
+                      @if (part.active) {
+                        <app-badge status="info" size="sm" class="w-fit font-bold">En cours</app-badge>
+                      } @else {
+                        <app-badge status="success" size="sm" class="w-fit font-bold">Terminée</app-badge>
+                      }
+                    </div>
+                  </div>
+                </li>
+              }
+            </ol>
+          </div>
+        </app-card>
+      }
+    </div>
+
+    <!-- Missions -->
+    <div>
+      <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Missions</h2>
+      @if (missions().length === 0) {
+        <p class="text-sm text-gray-400 italic">Aucune mission assignée.</p>
+      } @else {
+        <div class="rounded-2xl border border-gray-200 dark:border-white/10 overflow-hidden">
+          <table class="w-full text-sm">
+            <tbody class="divide-y divide-gray-100 dark:divide-white/5">
+              @for (m of missions(); track m.id) {
+                <tr class="hover:bg-gray-50 dark:hover:bg-white/5">
+                  <td class="px-4 py-3">
+                    <a [routerLink]="['/incubateur/missions', m.id]" class="font-medium text-gray-900 dark:text-white hover:text-indigo-500">{{ m.titre }}</a>
+                  </td>
+                  <td class="px-4 py-3 text-xs text-gray-400">{{ m.dateEcheance ?? '' }}</td>
+                  <td class="px-4 py-3 text-right">
+                    <app-badge size="sm">{{ m.statut }}</app-badge>
                   </td>
                 </tr>
               }
             </tbody>
           </table>
-        </app-card>
-
-      } @else {
-        <!-- CAS INTROUVABLE -->
-        <app-empty-state title="Projet introuvable">
-          <p class="text-sm text-ink-muted mt-1">Le projet demandé n'existe pas ou a été supprimé.</p>
-          <a routerLink="/incubateur/projets" class="mt-4 inline-block">
-            <app-button size="sm">Retourner au portefeuille</app-button>
-          </a>
-        </app-empty-state>
+        </div>
       }
+    </div>
+  }
 
+  @if (!loading() && !projet()) {
+    <app-empty-state icon="folder" title="Projet introuvable" description="Ce projet n'existe pas ou a été supprimé.">
+      <app-button variant="secondary" routerLink="/incubateur/projets">Retour</app-button>
+    </app-empty-state>
+  }
+</div>
+
+<!-- Modale archivage -->
+@if (showArchiveModal()) {
+  <app-modal title="Archiver le projet" maxWidth="md" (close)="showArchiveModal.set(false)">
+    <p class="text-sm text-gray-600 dark:text-gray-300">
+      Archiver <strong>{{ projet()?.nom }}</strong> ? Il sera masqué des listes principales.
+    </p>
+    <div class="mt-4 flex justify-end gap-3">
+      <app-button variant="ghost" (click)="showArchiveModal.set(false)">Annuler</app-button>
+      <app-button variant="primary" (click)="confirmerArchivage()">Archiver</app-button>
+    </div>
+  </app-modal>
+}
+
+<!-- Modale de promotion (remplacement du panneau latéral) -->
+@if (promotionOuverte()) {
+  <app-modal
+    title="Promouvoir ce projet"
+    subtitle="Sélectionnez la cohorte cible pour faire avancer le projet."
+    maxWidth="md"
+    (close)="promotionOuverte.set(false)"
+  >
+    <div class="space-y-5">
+      <div>
+        <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Cohorte cible *</p>
+        @if (loadingEligibles()) {
+          <p class="text-sm text-gray-400">Chargement...</p>
+        } @else if (cohortesEligibles().length === 0) {
+          <p class="text-sm text-gray-400 italic">Aucune cohorte éligible.</p>
+        } @else {
+          <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
+            @for (c of cohortesEligibles(); track c.id) {
+              <label class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors"
+                [class]="cohorteCibleId() === c.id ? 'border-indigo-400 bg-indigo-50 dark:bg-indigo-500/10' : 'border-gray-200 dark:border-white/10'">
+                <input type="radio" [value]="c.id" [checked]="cohorteCibleId() === c.id" (change)="cohorteCibleId.set(c.id)" class="text-indigo-600"/>
+                <div>
+                  <p class="text-sm font-medium text-gray-900 dark:text-white">{{ c.nom }}</p>
+                  <p class="text-xs text-gray-500">Phase : {{ c.phase?.nom ?? '—' }}</p>
+                </div>
+              </label>
+            }
+          </div>
+        }
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Raison</label>
+        <textarea [(ngModel)]="raisonPromotion" rows="2" placeholder="Raison optionnelle..."
+          class="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"></textarea>
+      </div>
+
+      @if (promotion409()) {
+        <div class="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-500/10 p-4 space-y-3">
+          <p class="text-sm font-semibold text-amber-800 dark:text-amber-300 flex items-center gap-2">
+            <app-icon name="alert-circle" class="w-4 h-4"/>Missions non validées
+          </p>
+          <ul class="space-y-1">
+            @for (m of promotion409()!.missionsNonValidees; track m.titre) {
+              <li class="text-xs text-amber-700 dark:text-amber-400">• {{ m.titre }} — {{ m.statut }}</li>
+            }
+          </ul>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" [(ngModel)]="forcerPromotion" class="rounded text-amber-500"/>
+            <span class="text-sm text-amber-800 dark:text-amber-300 font-medium">Promouvoir quand même</span>
+          </label>
+        </div>
+      }
     </div>
 
-    <!-- MODALE : ARCHIVER LE PROJET -->
-    <!-- MODALE : ARCHIVER LE PROJET -->
-    @if (showArchiveModal()) {
-      <app-modal title="Archiver le projet" maxWidth="md" (close)="showArchiveModal.set(false)">
-        <div class="flex items-start gap-3.5">
-          
-          <div>
-            <h4 class="text-sm font-bold text-ink">Confirmation requise</h4>
-            <p class="text-xs text-ink-muted mt-1 leading-relaxed">
-              Êtes-vous sûr de vouloir archiver <strong>{{ projet()?.nom }}</strong> ? Il ne sera plus actif dans l'incubation et sera masqué des listes principales.
-            </p>
-          </div>
-        </div>
-
-        <div class="mt-6 flex items-center justify-end gap-3 border-t border-line pt-4">
-          <app-button variant="ghost" size="sm" (click)="showArchiveModal.set(false)">Annuler</app-button>
-          <button
-            class="rounded-xl bg-rose-700 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-rose-700 disabled:opacity-50 cursor-pointer shadow-sm"
-            [disabled]="isArchiving()"
-            (click)="confirmerArchivage()"
-          >
-            {{ isArchiving() ? 'Archivage en cours...' : 'Oui, archiver' }}
-          </button>
-        </div>
-      </app-modal>}
+    <div class="mt-6 flex justify-end gap-3 border-t border-gray-200 dark:border-white/10 pt-4">
+      <app-button variant="secondary" size="sm" (click)="promotionOuverte.set(false)">Annuler</app-button>
+      <app-button variant="primary" size="sm" [disabled]="!cohorteCibleId() || promotionEnCours()" (click)="lancerPromotion()">
+        {{ promotionEnCours() ? 'Promotion...' : 'Promouvoir' }}
+      </app-button>
+    </div>
+  </app-modal>
+}
   `,
 })
 export class ProjetDetail implements OnInit {
@@ -200,101 +287,95 @@ export class ProjetDetail implements OnInit {
   private readonly router = inject(Router);
   private readonly projetService = inject(ProjetService);
   private readonly missionService = inject(MissionService);
+  private readonly structureCtx = inject(StructureContextService);
   private readonly destroyRef = inject(DestroyRef);
 
-  protected readonly projet = signal<Projet | undefined>(undefined);
-  protected readonly missions = signal<Mission[]>([]);
-  protected readonly loading = signal<boolean>(true);
-  protected readonly isArchiving = signal<boolean>(false);
-  protected readonly showArchiveModal = signal<boolean>(false);
+  readonly projet = signal<Projet | undefined>(undefined);
+  readonly missions = signal<Mission[]>([]);
+  readonly historique = signal<ParticipationCohorteResponse[]>([]);
+  
+  // Computed pour inverser l'ordre de l'historique (le plus ancien en premier, le plus récent en dernier)
+  readonly historiqueInverse = computed(() => [...this.historique()].reverse());
 
-  protected readonly breadcrumbItems = computed<BreadcrumbItem[]>(() => {
+  readonly cohortesEligibles = signal<Cohorte[]>([]);
+  readonly loading = signal(true);
+  readonly loadingHistorique = signal(false);
+  readonly loadingEligibles = signal(false);
+  readonly isArchiving = signal(false);
+  readonly showArchiveModal = signal(false);
+  readonly promotionOuverte = signal(false);
+  readonly promotionEnCours = signal(false);
+  readonly cohorteCibleId = signal('');
+  raisonPromotion = '';
+  forcerPromotion = false;
+  readonly promotion409 = signal<Promotion409 | null>(null);
+
+  readonly breadcrumbItems = computed<BreadcrumbItem[]>(() => {
     const p = this.projet();
-    const items: BreadcrumbItem[] = [
-      { label: 'Portefeuille', url: '/incubateur/projets' },
-    ];
-
-    if (!p) return items;
-
-    if (p.cohorteId && p.nomCohorte) {
-      items.push({
-        label: p.nomCohorte,
-        url: '/incubateur/cohortes',
-        queryParams: { cohorteId: p.cohorteId },
-      });
-    }
-
-    if (p.entrepreneurId && p.nomEntrepreneur) {
-      items.push({
-        label: p.nomEntrepreneur,
-        url: `/incubateur/entrepreneurs/${p.entrepreneurId}`,
-      });
-    }
-
-    items.push({
-      label: p.nom,
-    });
-
+    const items: BreadcrumbItem[] = [{ label: 'Projets', url: '/incubateur/projets' }];
+    if (p?.cohorteId && p.nomCohorte) items.push({ label: p.nomCohorte, url: `/incubateur/cohortes/${p.cohorteId}` });
+    if (p) items.push({ label: p.nom });
     return items;
   });
 
+  canPromote(): boolean {
+    const r = this.structureCtx.activeRole();
+    return r === 'ADMIN_STRUCTURE' || r === 'COACH';
+  }
+
+  soustitre(p: Projet): string {
+    const parts: string[] = [];
+    if (p.nomParcours) parts.push(p.nomParcours);
+    if (p.nomPhase) parts.push(`Phase : ${p.nomPhase}`);
+    else if (p.nomCohorte) parts.push(`Cohorte : ${p.nomCohorte}`);
+    return parts.join(' · ');
+  }
+
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
-    if (!id) {
-      this.loading.set(false);
-      return;
-    }
-
-    this.projetService
-      .getById(id)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (p) => {
-          this.projet.set(p);
-          this.loading.set(false);
-          // Chargement des missions associées
-          this.missionService
-            .getByProjet(p.id)
-            .pipe(takeUntilDestroyed(this.destroyRef))
-            .subscribe((m) => this.missions.set(m));
-        },
-        error: (err) => {
-          console.error('Erreur projet :', err);
-          this.loading.set(false);
-        },
-      });
+    if (!id) { this.loading.set(false); return; }
+    this.projetService.getById(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (p) => {
+        this.projet.set(p); this.loading.set(false);
+        this.missionService.getByProjet(p.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: m => this.missions.set(m), error: () => {} });
+        this.loadingHistorique.set(true);
+        this.projetService.getHistorique(p.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: h => { this.historique.set(h); this.loadingHistorique.set(false); }, error: () => this.loadingHistorique.set(false) });
+      },
+      error: () => this.loading.set(false),
+    });
   }
 
-  protected confirmerArchivage(): void {
-    const p = this.projet();
-    if (!p) return;
-    
+  ouvrirPromotion(): void {
+    const p = this.projet(); if (!p) return;
+    this.promotion409.set(null); this.cohorteCibleId.set(''); this.raisonPromotion = ''; this.forcerPromotion = false;
+    this.promotionOuverte.set(true); this.loadingEligibles.set(true);
+    this.projetService.getCohortesEligibles(p.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: c => { this.cohortesEligibles.set(c); this.loadingEligibles.set(false); }, error: () => this.loadingEligibles.set(false) });
+  }
+
+  lancerPromotion(): void {
+    const p = this.projet(); if (!p || !this.cohorteCibleId()) return;
+    if (this.forcerPromotion && !this.raisonPromotion.trim()) { alert('Raison obligatoire.'); return; }
+    this.promotionEnCours.set(true); this.promotion409.set(null);
+    const req: PromouvoirProjetRequest = { cohorteCibleId: this.cohorteCibleId(), raison: this.raisonPromotion.trim() || undefined, forcer: this.forcerPromotion };
+    this.projetService.promouvoir(p.id, req).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: updated => { this.projet.set(updated); this.promotionEnCours.set(false); this.promotionOuverte.set(false); this.projetService.getHistorique(p.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(h => this.historique.set(h)); },
+      error: (err: HttpErrorResponse) => { this.promotionEnCours.set(false); if (err.status === 409) this.promotion409.set(err.error); else alert('Erreur : ' + (err.error?.message ?? err.message)); },
+    });
+  }
+
+  confirmerArchivage(): void {
+    const p = this.projet(); if (!p) return;
     this.isArchiving.set(true);
-
-    this.projetService.archiverProjet(p.id)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: () => {
-          this.isArchiving.set(false);
-          this.showArchiveModal.set(false);
-          this.router.navigate(['/incubateur/projets']);
-        },
-        error: (err) => {
-          console.error('Erreur lors de l\'archivage du projet:', err);
-          this.isArchiving.set(false);
-          this.showArchiveModal.set(false);
-        },
-      });
+    this.projetService.archiverProjet(p.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: () => { this.isArchiving.set(false); this.showArchiveModal.set(false); this.router.navigate(['/incubateur/projets']); }, error: () => { this.isArchiving.set(false); alert('Erreur lors de l\'archivage.'); } });
   }
 
-  protected statutBadge(statut: string): { status: BadgeStatus; label: string } {
-    switch (statut?.toUpperCase()) {
-      case 'EN_INCUBATION': 
-        return { status: 'success', label: 'En incubation' };
-      case 'DIAGNOSTIC': 
-        return { status: 'info', label: 'Diagnostic' };
-      default: 
-        return { status: 'neutral', label: statut || 'En cours' };
-    }
+  restaurer(): void {
+    const p = this.projet(); if (!p) return;
+    this.projetService.restaurerProjet(p.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: () => this.projet.update(x => x ? { ...x, archive: false } : x), error: () => alert('Erreur restauration.') });
+  }
+
+  statutBadge(statut: string): 'success' | 'warning' | 'neutral' | 'danger' {
+    const m: Record<string, 'success' | 'warning' | 'neutral' | 'danger'> = { VALIDE: 'success', EN_COURS: 'warning', A_FAIRE: 'neutral', A_REVOIR: 'danger', SOUMIS: 'warning' };
+    return m[statut] ?? 'neutral';
   }
 }

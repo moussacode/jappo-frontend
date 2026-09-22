@@ -22,15 +22,15 @@ import { Sidebar, NavItem } from '../../shared/components/sidebar/sidebar';
 export class EntrepreneurLayout {
   protected readonly navItems: NavItem[] = [
   {
+    label: 'Mon parcours',
+    path: '/entrepreneur/mon-parcours',
+    icon: 'layers',
+  },
+  {
     label: 'Tableau de bord',
     path: '/entrepreneur/dashboard',
     icon: 'dashboard',
   },
-  // {
-  //   label: 'Mon parcours',
-  //   path: '/entrepreneur/parcours',
-  //   icon: 'route',
-  // },
   {
     label: 'Mes Activités',
     path: '/entrepreneur/missions',
@@ -51,11 +51,6 @@ export class EntrepreneurLayout {
     path: '/entrepreneur/documents',
     icon: 'documents',
   },
-
-  // {
-  //   label: 'Mon profil',
-  //   path: '/entrepreneur/profil',
-  //   icon: 'profile',
-  // },
+  
 ];
 }

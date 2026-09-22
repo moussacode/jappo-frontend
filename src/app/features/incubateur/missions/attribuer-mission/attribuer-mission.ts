@@ -247,8 +247,6 @@ export class AttribuerMission implements OnInit {
     const membership = this.authService.memberships()[0];
     if (!membership) return;
 
-    const structureId = membership.structure.id;
-
     // Charger projets et cohortes
     this.projetService
       .getProjets()
@@ -258,7 +256,7 @@ export class AttribuerMission implements OnInit {
           this.projets.set(projets);
 
           this.cohorteService
-            .getByStructure(structureId)
+            .getByStructure()
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe({
               next: (cohortes) => {

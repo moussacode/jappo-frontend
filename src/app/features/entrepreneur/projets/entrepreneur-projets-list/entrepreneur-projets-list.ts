@@ -1,6 +1,7 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, DestroyRef } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 // Services & Modèles
 import { ProjetService } from '../../../../core/services/projet.service';
@@ -13,6 +14,16 @@ import { CardComponent } from '../../../../shared/components/card/card.component
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
+import { TabFilterComponent } from '../../../../shared/components/tab-filter/tab-filter.component';
+
+type ProjetFilter = 'TOUS' | 'ACTIF' | 'DIPLOME' | 'ABANDONNE';
+
+const FILTRES_PROJETS: { value: ProjetFilter; label: string }[] = [
+  { value: 'TOUS', label: 'Tous' },
+  { value: 'ACTIF', label: 'Actifs' },
+  { value: 'DIPLOME', label: 'Diplômés' },
+  { value: 'ABANDONNE', label: 'Abandonnés' },
+];
 
 @Component({
   selector: 'app-entrepreneur-projets-list',
@@ -25,7 +36,8 @@ import { ButtonComponent } from '../../../../shared/components/button/button.com
     CardComponent,
     PageHeaderComponent,
     ButtonComponent,
-    EmptyStateComponent
+    EmptyStateComponent,
+    TabFilterComponent
   ],
   template: `
     <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
@@ -41,126 +53,148 @@ import { ButtonComponent } from '../../../../shared/components/button/button.com
         breadcrumb="Entrepreneur > Mes Projets"
       />
 
+      <!-- Filtre par statut -->
+      @if (!loading() && !error() && projets().length > 0) {
+        <app-tab-filter
+          [options]="filtres"
+          [value]="filtreStatut()"
+          (valueChange)="changerFiltre($event)"
+          class="w-full sm:w-fit"
+        />
+      }
+
       <!-- SKELETON LOADER -->
       @if (loading()) {
         <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           @for (i of [1, 2, 3]; track i) {
-            <app-card padding="md" class="animate-pulse flex flex-col justify-between gap-4 h-40">
-              <div class="flex items-center justify-between">
-                <div class="h-5 w-1/2 rounded bg-line"></div>
-                <div class="h-5 w-16 rounded-full bg-line"></div>
-              </div>
-              <div class="h-4 w-3/4 rounded bg-line/60"></div>
-              <div class="flex items-center justify-between border-t border-line pt-3">
-                <div class="h-4 w-20 rounded bg-line"></div>
-                <div class="h-4 w-12 rounded bg-line"></div>
-              </div>
-            </app-card>
+            <div class="h-40 rounded-2xl border border-line/60 bg-surface-muted/30 animate-pulse p-5"></div>
           }
         </div>
-      } @else if (projets().length === 0) {
-        <!-- ÉTAT VIDE -->
-        <app-empty-state
-          title="Aucun projet"
-          description="Vous n'avez pas encore de projet associé à votre compte."
-        />
-      } @else {
-        <!-- GRILLE DE CARTES -->
-        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          @for (p of projets(); track p.id) {
-            <app-card padding="md" class="flex flex-col justify-between gap-4 h-40 hover:shadow-lg transition-shadow">
-              <!-- En-tête carte -->
-              <div class="flex items-start justify-between gap-3">
-                <div class="flex-1 min-w-0">
-                  <h3 class="font-semibold text-ink truncate text-lg">{{ p.nom }}</h3>
-                  @if (p.secteur) {
-                    <p class="text-sm text-ink-muted truncate">{{ p.secteur }}</p>
-                  }
-                </div>
-                <app-badge [status]="statutBadge(p.statut).status" size="sm">
-                  {{ statutBadge(p.statut).label }}
-                </app-badge>
-              </div>
-
-              <!-- Description -->
-              @if (p.description) {
-                <p class="text-sm text-ink-muted line-clamp-2">{{ p.description }}</p>
-              }
-
-              <!-- Footer avec actions -->
-              <div class="flex items-center justify-between border-t border-line pt-3 mt-auto">
-                <div class="flex items-center gap-2 text-xs text-ink-muted">
-                  @if (p.scoreMaturite !== undefined) {
-                    <span>Progression: {{ p.scoreMaturite }}%</span>
-                  }
-                </div>
-                <div class="flex gap-2">
-                  <a [routerLink]="['/entrepreneur/projets', p.id, 'modifier']"
-                     class="text-xs font-medium text-accent hover:text-accent/80 transition-colors">
-                    Modifier
-                  </a>
-                </div>
-              </div>
-            </app-card>
-          }
-        </div>
-      }
-
+      } 
       <!-- ÉTAT ERREUR -->
-      @if (error()) {
-        <div class="bg-rose-50 border border-rose-200 rounded-xl p-6 text-center">
-          <p class="text-rose-800 font-medium">{{ error() }}</p>
-          <button (click)="loadProjets()" class="mt-3 text-sm text-rose-600 hover:text-rose-800 font-medium">
+      @else if (error()) {
+        <div class="flex flex-col items-center justify-center rounded-2xl border border-rose-500/20 bg-rose-500/10 p-8 text-center">
+          <app-icon name="warning" class="size-8 text-rose-600 mb-2" />
+          <p class="text-sm font-semibold text-rose-600">{{ error() }}</p>
+          <app-button variant="secondary" size="sm" class="mt-4" (click)="loadProjets()">
             Réessayer
-          </button>
+          </app-button>
+        </div>
+      } 
+      <!-- ÉTAT VIDE -->
+      @else if (projetsFiltres().length === 0) {
+        <app-card padding="none" >
+          <div class="p-8 sm:p-12">
+            <app-empty-state
+              title="Aucun projet trouvé"
+              description="Aucun projet ne correspond au filtre sélectionné."
+              iconName="dashboard"
+            />
+          </div>
+        </app-card>
+      } 
+      <!-- GRILLE DE CARTES -->
+      @else {
+        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          @for (p of projetsFiltres(); track p.id) {
+            <app-card padding="none" class="group flex flex-col justify-between overflow-hidden transition-all hover:border-accent/40">
+              
+              <!-- Corps de la carte -->
+              <div class="p-5 flex flex-col gap-3">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="flex-1 min-w-0">
+                    <h3 class="text-sm font-bold text-ink truncate group-hover:text-accent transition-colors">{{ p.nom }}</h3>
+                    @if (p.secteur) {
+                      <p class="text-xs text-ink-muted truncate mt-0.5">{{ p.secteur }}</p>
+                    }
+                  </div>
+                  <app-badge [status]="statutBadge(p.statut).status" size="sm" class="shrink-0 font-bold">
+                    {{ statutBadge(p.statut).label }}
+                  </app-badge>
+                </div>
+
+                @if (p.description) {
+                  <p class="text-xs text-ink-muted line-clamp-2 mt-1">{{ p.description }}</p>
+                }
+              </div>
+
+              <!-- Pied de carte (Actions) -->
+              <div class="flex items-center justify-end border-t border-line/60 bg-surface-muted/30 px-5 py-3 mt-auto">
+                <app-button
+                  variant="secondary"
+                  size="sm"
+                  [routerLink]="['/entrepreneur/projets', p.id, 'modifier']"
+                >
+                  <app-icon name="edit" class="size-3.5 mr-1.5" />
+                  Modifier
+                </app-button>
+              </div>
+
+            </app-card>
+          }
         </div>
       }
     </div>
   `,
 })
 export class EntrepreneurProjetsListComponent implements OnInit {
-  private projetService = inject(ProjetService);
+  private readonly projetService = inject(ProjetService);
+  private readonly destroyRef = inject(DestroyRef);
 
-  projets = signal<Projet[]>([]);
-  loading = signal(true);
-  error = signal<string | null>(null);
+  protected readonly filtres = FILTRES_PROJETS;
+  protected readonly projets = signal<Projet[]>([]);
+  protected readonly loading = signal(true);
+  protected readonly error = signal<string | null>(null);
+  protected readonly filtreStatut = signal<ProjetFilter>('TOUS');
+
+  // Computed pour filtrer la liste des projets selon l'onglet actif
+  protected readonly projetsFiltres = computed(() => {
+    const statut = this.filtreStatut();
+    const liste = this.projets();
+    if (statut === 'TOUS') {
+      return liste;
+    }
+    return liste.filter((p) => p.statut?.toUpperCase() === statut);
+  });
 
   ngOnInit(): void {
     this.loadProjets();
   }
 
-  loadProjets(): void {
+  protected loadProjets(): void {
     this.loading.set(true);
     this.error.set(null);
 
-    this.projetService.getMesProjets().subscribe({
-      next: (projets) => {
-        this.projets.set(projets);
-        this.loading.set(false);
-      },
-      error: (err) => {
-        console.error('Erreur lors du chargement des projets:', err);
-        this.error.set('Impossible de charger vos projets. Veuillez réessayer.');
-        this.loading.set(false);
-      }
-    });
+    this.projetService.getMesProjets()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (projets) => {
+          this.projets.set(projets);
+          this.loading.set(false);
+        },
+        error: (err) => {
+          console.error('Erreur lors du chargement des projets:', err);
+          this.error.set('Impossible de charger vos projets. Veuillez réessayer.');
+          this.loading.set(false);
+        }
+      });
   }
 
-  statutBadge(statut: StatutProjet | string): { label: string; status: BadgeStatus } {
-    const s = statut as StatutProjet;
+  protected changerFiltre(filtre: ProjetFilter): void {
+    this.filtreStatut.set(filtre);
+  }
+
+  protected statutBadge(statut: StatutProjet | string): { label: string; status: BadgeStatus } {
+    const s = statut?.toUpperCase();
     switch (s) {
-      case 'IDEE':
-        return { label: 'Idée', status: 'neutral' };
-      case 'EN_INCUBATION':
-        return { label: 'Incubation', status: 'primary' };
-      case 'EN_ACCELERATION':
-        return { label: 'Accélération', status: 'info' };
+      case 'ACTIF':
+        return { label: 'Actif', status: 'success' };
       case 'DIPLOME':
-        return { label: 'Diplômé', status: 'success' };
+        return { label: 'Diplômé', status: 'info' };
       case 'ABANDONNE':
         return { label: 'Abandonné', status: 'danger' };
       default:
-        return { label: s, status: 'neutral' };
+        return { label: statut || 'Indéfini', status: 'neutral' };
     }
   }
 }

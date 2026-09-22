@@ -52,7 +52,26 @@ export type IconName =
   | 'phone-off'
   | 'location'
   | 'home'
-  | 'projects';
+  | 'projects'
+  | 'book-open'
+  | 'file-text'
+  | 'external-link'
+  | 'upload'
+  | 'archive'
+  | 'rotate-ccw'
+  | 'alert-circle'
+  | 'loader'
+  | 'paperclip'
+  | 'file'
+  | 'layers'
+  | 'save'
+  | 'trash-2'
+  | 'edit-2'
+  | 'zap'
+  | 'arrow-up-circle'
+  | 'check-circle'
+  | 'x-circle'
+  | 'user-plus';
 
 export type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | string;
 

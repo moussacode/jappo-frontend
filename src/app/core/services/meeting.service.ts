@@ -13,8 +13,9 @@ export class MeetingService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = `${environment.apiUrl}/meetings`;
 
-  getMeetings(): Observable<Meeting[]> {
-    return this.http.get<Meeting[]>(this.apiUrl);
+  getMeetings(cohorteId?: string): Observable<Meeting[]> {
+    const params = cohorteId ? { cohorteId } : undefined;
+    return this.http.get<Meeting[]>(this.apiUrl, params ? { params } : {});
   }
 
   getMyMeetings(): Observable<Meeting[]> {

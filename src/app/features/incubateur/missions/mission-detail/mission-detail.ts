@@ -77,17 +77,24 @@ interface CorrectionFormState {
               <app-badge [status]="statutBadge(m.statut).status" size="md">
                 {{ statutBadge(m.statut).label }}
               </app-badge>
-              
+
               @if (!isEditMode()) {
-                <app-button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  (click)="ouvrirEditMode()"
-                >
-                  <app-icon name="edit" class="size-3.5 mr-1" />
-                  <span>Modifier</span>
-                </app-button>
+                @if (!hasSubmittedLivrables()) {
+                  <app-button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    (click)="ouvrirEditMode()"
+                  >
+                    <app-icon name="edit" class="size-3.5 mr-1" />
+                    <span>Modifier</span>
+                  </app-button>
+                } @else {
+                  <div class="flex items-center gap-2 text-xs text-ink-muted">
+                    <app-icon name="lock" class="size-3.5" />
+                    <span>Édition verrouillée (livrables soumis)</span>
+                  </div>
+                }
               }
             </div>
           </div>
@@ -566,6 +573,11 @@ export class MissionDetail implements OnInit, OnDestroy {
 
   // Gestion des tiroirs historiques dépliés
   protected readonly historiquesOuverts = signal<Record<string, boolean>>({});
+
+  // Vérifier si des livrables ont été soumis (empêche la modification de mission)
+  protected readonly hasSubmittedLivrables = computed(() => {
+    return this.livrables().length > 0;
+  });
 
   protected readonly breadcrumbItems = computed<BreadcrumbItem[]>(() => {
     const m = this.mission();

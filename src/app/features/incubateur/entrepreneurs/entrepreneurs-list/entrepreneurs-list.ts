@@ -1,6 +1,6 @@
 import { Component, inject, signal, computed, OnInit, DestroyRef } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { FormControl, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { forkJoin, of } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged } from 'rxjs/operators';
@@ -19,9 +19,8 @@ import { AvatarComponent } from '../../../../shared/components/avatar/avatar.com
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state';
 import { TabFilterComponent, TabOption } from '../../../../shared/components/tab-filter/tab-filter.component';
+import { ModalComponent } from '../../../../shared/components/modal/modal.component';
 import { InviterEntrepreneurModalComponent } from '../inviter-entrepreneur/inviter-entrepreneur';
-
-// Import de la modale d'invitation
 
 export interface LigneEntrepreneur {
   entrepreneur: Entrepreneur;
@@ -39,6 +38,7 @@ export type FiltreStatut = 'ACTIFS' | 'EN_ATTENTE' | 'TOUS';
   imports: [
     RouterLink,
     ReactiveFormsModule,
+    FormsModule,
     Icon,
     BadgeComponent,
     CardComponent,
@@ -47,8 +47,9 @@ export type FiltreStatut = 'ACTIFS' | 'EN_ATTENTE' | 'TOUS';
     ButtonComponent,
     EmptyStateComponent,
     TabFilterComponent,
+    ModalComponent,
     InviterEntrepreneurModalComponent
-],
+  ],
   template: `
     <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
       
@@ -58,16 +59,21 @@ export type FiltreStatut = 'ACTIFS' | 'EN_ATTENTE' | 'TOUS';
         subtitle="Suivez et surveillez l'activité et la progression de vos entrepreneurs."
         breadcrumb="Incubateur > Entrepreneurs"
       >
-        <!-- Déclencheur de la Modale -->
         <app-button size="sm" (click)="showInviteModal.set(true)">
           <app-icon name="plus" class="size-4 mr-1.5" />
           <span>Inviter des entrepreneurs</span>
         </app-button>
       </app-page-header>
 
+      @if (erreurAction()) {
+        <div class="flex items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-xs text-rose-600" role="alert">
+          <app-icon name="warning" class="size-4 shrink-0" />
+          <span>{{ erreurAction() }}</span>
+        </div>
+      }
+
       <!-- Barre de contrôles : Filtres Statuts + Recherche -->
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        
         <app-tab-filter
           [options]="optionsFiltreStatut()"
           [value]="filtreStatut()"
@@ -100,10 +106,10 @@ export type FiltreStatut = 'ACTIFS' | 'EN_ATTENTE' | 'TOUS';
               <thead>
                 <tr class="border-b border-line bg-surface-muted/50 font-semibold uppercase tracking-wider text-ink-muted">
                   <th class="w-4/12 px-5 py-3.5">Entrepreneur</th>
-                  <th class="w-2/12 px-5 py-3.5">Projet</th>
+                  <th class="w-3/12 px-5 py-3.5">Projet</th>
                   <th class="w-2/12 px-5 py-3.5">Cohorte</th>
-                  <th class="w-2/12 px-5 py-3.5">Statut</th>
-                  <th class="w-2/12 px-5 py-3.5 text-right">Maturité</th>
+                  <th class="w-1.5/12 px-5 py-3.5">Statut</th>
+                  <th class="w-1.5/12 px-5 py-3.5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-line">
@@ -145,18 +151,18 @@ export type FiltreStatut = 'ACTIFS' | 'EN_ATTENTE' | 'TOUS';
                       </app-badge>
                     </td>
 
-                    <!-- Maturité -->
+                    <!-- Actions CRUD -->
                     <td class="px-5 py-3.5 text-right whitespace-nowrap">
-                      <div class="flex items-center justify-end gap-2">
-                        <div class="h-1.5 w-12 overflow-hidden rounded-full bg-line">
-                          <div 
-                            class="h-full rounded-full bg-accent transition-all duration-300" 
-                            [style.width.%]="ligne.projet?.scoreMaturite || 0"
-                          ></div>
-                        </div>
-                        <span class="text-xs font-bold text-ink">{{ ligne.projet?.scoreMaturite || 0 }}%</span>
+                      <div class="flex items-center justify-end gap-1.5">
+                        <app-button variant="secondary" size="xs" (click)="ouvrirEditModal(ligne.entrepreneur)" title="Modifier">
+                          <app-icon name="edit" class="size-3.5" />
+                        </app-button>
+                        <app-button variant="secondary" size="xs" (click)="supprimerEntrepreneur(ligne.entrepreneur.id)" title="Supprimer">
+                          <app-icon name="trash" class="size-3.5 text-rose-600" />
+                        </app-button>
                       </div>
                     </td>
+
                   </tr>
                 } @empty {
                   <tr>
@@ -182,12 +188,68 @@ export type FiltreStatut = 'ACTIFS' | 'EN_ATTENTE' | 'TOUS';
       }
     </div>
 
-    <!-- AFFICHAGE CONDITIONNEL DE LA MODALE -->
+    <!-- MODALE D'INVITATION (CREATE) -->
     @if (showInviteModal()) {
       <app-inviter-entrepreneur-modal
         (close)="showInviteModal.set(false)"
         (invited)="chargerDonnees()"
       />
+    }
+
+    <!-- MODALE DE MODIFICATION (UPDATE) -->
+    @if (showEditModal() && entrepreneurEnCoursEdition()) {
+      <app-modal
+        title="Modifier l'entrepreneur"
+        subtitle="Mettez à jour les informations de l'entrepreneur."
+        maxWidth="md"
+        (close)="fermerEditModal()"
+      >
+        <div class="space-y-4">
+          <div class="flex flex-col gap-1.5">
+            <label for="edit-prenom" class="text-xs font-bold text-ink">Prénom</label>
+            <input
+              id="edit-prenom"
+              type="text"
+              [(ngModel)]="editPrenom"
+              class="w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-xs text-ink focus:border-accent focus:outline-none transition-colors"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1.5">
+            <label for="edit-nom" class="text-xs font-bold text-ink">Nom</label>
+            <input
+              id="edit-nom"
+              type="text"
+              [(ngModel)]="editNom"
+              class="w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-xs text-ink focus:border-accent focus:outline-none transition-colors"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1.5">
+            <label for="edit-email" class="text-xs font-bold text-ink">Email</label>
+            <input
+              id="edit-email"
+              type="email"
+              [(ngModel)]="editEmail"
+              class="w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-xs text-ink focus:border-accent focus:outline-none transition-colors"
+            />
+          </div>
+
+          @if (erreurEditionModal()) {
+            <div class="flex items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-xs text-rose-600" role="alert">
+              <app-icon name="warning" class="size-4 shrink-0" />
+              <span>{{ erreurEditionModal() }}</span>
+            </div>
+          }
+
+          <div class="flex items-center justify-end gap-3 pt-4 border-t border-line mt-4">
+            <app-button variant="secondary" size="sm" (click)="fermerEditModal()">Annuler</app-button>
+            <app-button size="sm" [disabled]="editionEnCours()" (click)="sauvegarderModification()">
+              {{ editionEnCours() ? 'Enregistrement...' : 'Enregistrer' }}
+            </app-button>
+          </div>
+        </div>
+      </app-modal>
     }
   `,
 })
@@ -196,13 +258,21 @@ export class EntrepreneursList implements OnInit {
   private readonly projetService = inject(ProjetService);
   private readonly destroyRef = inject(DestroyRef);
 
-  protected readonly vueMode = signal<string>('table');
   protected readonly filtreStatut = signal<FiltreStatut>('ACTIFS');
   protected readonly isLoading = signal<boolean>(true);
   protected readonly toutesLesLignes = signal<LigneEntrepreneur[]>([]);
+  protected readonly erreurAction = signal<string | null>(null);
   
-  // Signal de contrôle de la modale
   protected readonly showInviteModal = signal<boolean>(false);
+
+  protected readonly showEditModal = signal<boolean>(false);
+  protected readonly entrepreneurEnCoursEdition = signal<Entrepreneur | null>(null);
+  protected readonly editionEnCours = signal<boolean>(false);
+  protected readonly erreurEditionModal = signal<string | null>(null);
+
+  protected editPrenom = '';
+  protected editNom = '';
+  protected editEmail = '';
 
   protected readonly searchControl = new FormControl('', { nonNullable: true });
   protected readonly searchTerm = signal('');
@@ -310,6 +380,67 @@ export class EntrepreneursList implements OnInit {
           console.error('Erreur chargement entrepreneurs:', err);
           this.isLoading.set(false);
         },
+      });
+  }
+
+  protected ouvrirEditModal(entrepreneur: Entrepreneur): void {
+    this.entrepreneurEnCoursEdition.set(entrepreneur);
+    this.editPrenom = entrepreneur.prenom || '';
+    this.editNom = entrepreneur.nom || '';
+    this.editEmail = entrepreneur.email || '';
+    this.erreurEditionModal.set(null);
+    this.showEditModal.set(true);
+  }
+
+  protected fermerEditModal(): void {
+    this.showEditModal.set(false);
+    this.entrepreneurEnCoursEdition.set(null);
+  }
+
+  protected sauvegarderModification(): void {
+    const ent = this.entrepreneurEnCoursEdition();
+    if (!ent || !this.editEmail.trim()) {
+      this.erreurEditionModal.set('L\'email est obligatoire.');
+      return;
+    }
+
+    this.editionEnCours.set(true);
+    this.erreurEditionModal.set(null);
+
+    const changements = {
+      prenom: this.editPrenom.trim() || undefined,
+      nom: this.editNom.trim() || undefined,
+      email: this.editEmail.trim()
+    };
+
+    this.entrepreneurService.updateProfil(ent.id, changements)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.editionEnCours.set(false);
+          this.fermerEditModal();
+          this.chargerDonnees();
+        },
+        error: (err) => {
+          this.editionEnCours.set(false);
+          this.erreurEditionModal.set(err?.error?.message ?? 'Erreur lors de la mise à jour.');
+        }
+      });
+  }
+
+  protected supprimerEntrepreneur(id: string): void {
+    if (!confirm('Voulez-vous vraiment supprimer cet entrepreneur ?')) return;
+    this.erreurAction.set(null);
+
+    this.entrepreneurService.updateProfil(id, { statutInvitation: 'SUPPRIME' } as any)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.toutesLesLignes.update(list => list.filter(l => l.entrepreneur.id !== id));
+        },
+        error: (err) => {
+          this.erreurAction.set(err?.error?.message ?? 'Erreur lors de la suppression de l\'entrepreneur.');
+        }
       });
   }
 

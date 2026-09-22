@@ -19,8 +19,9 @@ import { TabFilterComponent, TabOption } from '../../../../shared/components/tab
 import { Mission, StatutMission } from '../../../../core/models/mission.model';
 import { STATUT_MISSION_CONFIG } from '../../../../core/constants/statut-mission.constant';
 import { EntityCardComponent } from "../../../../shared/components/entity-card/entity-card.component";
+import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state';
 
-export type FiltreStatutEntrepreneur = 'TOUTES' | 'EN_COURS' | 'A_REVOIR' | 'VALIDEE';
+export type FiltreStatutEntrepreneur = 'TOUTES' | 'EN_COURS' | 'A_REVOIR' | 'VALIDE';
 
 @Component({
   selector: 'app-missions-list',
@@ -34,7 +35,8 @@ export type FiltreStatutEntrepreneur = 'TOUTES' | 'EN_COURS' | 'A_REVOIR' | 'VAL
     CardComponent,
     PageHeaderComponent,
     TabFilterComponent,
-    EntityCardComponent
+    EntityCardComponent,
+    EmptyStateComponent
 ],
   templateUrl: './missions-list.html',
   styleUrl: './missions-list.css',
@@ -62,7 +64,7 @@ export class MissionsList implements OnInit {
   );
 
   protected readonly compteValidees = computed(() =>
-    this.allMissions().filter((m) => m.statut === 'VALIDEE' || (m.statut as string) === 'VALIDE').length
+    this.allMissions().filter((m) => m.statut === 'VALIDE' || (m.statut as string) === 'VALIDE').length
   );
 
   // Configuration des onglets avec compteurs unifiés
@@ -70,7 +72,7 @@ export class MissionsList implements OnInit {
     { value: 'TOUTES', label: 'Toutes', count: this.allMissions().length },
     { value: 'EN_COURS', label: 'En cours', count: this.compteEnCours() },
     { value: 'A_REVOIR', label: 'À réviser', count: this.compteARevoir() },
-    { value: 'VALIDEE', label: 'Validées', count: this.compteValidees() },
+    { value: 'VALIDE', label: 'Validées', count: this.compteValidees() },
   ]);
 
   // Filtrage combiné (Statut + Recherche par mot-clé)
@@ -83,8 +85,8 @@ export class MissionsList implements OnInit {
       liste = liste.filter((m) => m.statut === 'EN_COURS' || m.statut === 'A_FAIRE');
     } else if (filtre === 'A_REVOIR') {
       liste = liste.filter((m) => m.statut === 'SOUMIS' || m.statut === 'EN_COURS' );
-    } else if (filtre === 'VALIDEE') {
-      liste = liste.filter((m) => m.statut === 'VALIDEE' || (m.statut as string) === 'VALIDE');
+    } else if (filtre === 'VALIDE') {
+      liste = liste.filter((m) => m.statut === 'VALIDE' || (m.statut as string) === 'VALIDE');
     }
 
     if (term) {
@@ -137,5 +139,20 @@ export class MissionsList implements OnInit {
     }
     const config = (STATUT_MISSION_CONFIG as Record<string, { status: BadgeStatus; label: string }>)[statut];
     return config ?? { status: 'neutral', label: statut };
+  }
+
+  protected livrableStatusBadge(mission: Mission): { status: BadgeStatus; label: string } | null {
+    const attendus = mission.nombreLivrablesAttendus || 0;
+    const deposes = mission.nombreLivrablesDeposes || 0;
+
+    if (attendus === 0) return null; // Pas de livrable attendu
+
+    if (deposes === 0) {
+      return { status: 'neutral', label: 'À soumettre' };
+    } else if (deposes < attendus) {
+      return { status: 'warning', label: 'En cours' };
+    } else {
+      return { status: 'success', label: 'Complet' };
+    }
   }
 }

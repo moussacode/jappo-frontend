@@ -1,13 +1,17 @@
 import { Component, inject, signal, OnInit, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+
 import { MeetingService } from '../../../../core/services/meeting.service';
-import { Meeting, MeetingStatus, MeetingType } from '../../../../core/models/meeting.model';
-import { Observable } from 'rxjs';
-import { BadgeComponent } from '../../../../shared/components/badge/badge';
+import { Meeting, MeetingStatus } from '../../../../core/models/meeting.model';
+
+import { BadgeComponent, BadgeStatus } from '../../../../shared/components/badge/badge';
 import { CardComponent } from '../../../../shared/components/card/card.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
+import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state';
+import { Icon } from '../../../../shared/components/icon/icon';
 
 @Component({
   selector: 'app-meetings-list',
@@ -18,8 +22,10 @@ import { ButtonComponent } from '../../../../shared/components/button/button.com
     BadgeComponent,
     CardComponent,
     PageHeaderComponent,
-    ButtonComponent
-],
+    ButtonComponent,
+    EmptyStateComponent,
+    Icon
+  ],
   template: `
     <div class="flex flex-col gap-6 p-3 sm:p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full">
       <app-page-header
@@ -27,78 +33,93 @@ import { ButtonComponent } from '../../../../shared/components/button/button.com
         subtitle="Gérez et rejoignez vos réunions vidéo"
       >
         <app-button
-        size="sm"
-            >
+          [routerLink]="'/incubateur/reunions/nouvelle'"
+          size="sm"
+        >
+          <app-icon name="plus" class="size-4 mr-1.5" />
           Nouvelle réunion
         </app-button>
       </app-page-header>
 
       @if (loading()) {
-        <div class="flex items-center justify-center py-12">
-          <div class="text-sm text-ink-muted">Chargement des réunions...</div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          @for (i of [1, 2, 3]; track i) {
+            <div class="h-44 rounded-2xl border border-line/60 bg-surface-muted/30 animate-pulse p-5"></div>
+          }
         </div>
       } @else if (error()) {
-        <div class="flex items-center justify-center py-12">
-          <div class="text-sm text-rose-600">{{ error() }}</div>
+        <div class="flex flex-col items-center justify-center rounded-2xl border border-rose-500/20 bg-rose-500/10 p-8 text-center">
+          <app-icon name="warning" class="size-8 text-rose-600 mb-2" />
+          <p class="text-sm font-semibold text-rose-600">{{ error() }}</p>
+          <app-button variant="secondary" size="sm" class="mt-4" (click)="loadMeetings()">
+            Réessayer
+          </app-button>
         </div>
       } @else if (meetings().length === 0) {
-        <div class="flex flex-col items-center justify-center py-12">
-          <div class="text-sm text-ink-muted">Aucune réunion planifiée</div>
-          <button
-            type="button"
-            [routerLink]="'/incubateur/reunions/nouvelle'"
-            class="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 font-medium bg-accent text-white hover:bg-accent-strong transition-colors mt-4"
-          >
-            Créer une réunion
-          </button>
-        </div>
+        <app-card padding="none" class="shadow-xs border border-line/60">
+          <div class="p-8 sm:p-12">
+            <app-empty-state
+              title="Aucune réunion planifiée"
+              description="Vous n'avez aucune réunion en cours ou programmée pour le moment."
+              iconName="calendar"
+            >
+              <div class="mt-6">
+                <app-button
+                  [routerLink]="'/incubateur/reunions/nouvelle'"
+                  size="sm"
+                >
+                  <app-icon name="plus" class="size-4 mr-1.5" />
+                  Créer une réunion
+                </app-button>
+              </div>
+            </app-empty-state>
+          </div>
+        </app-card>
       } @else {
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           @for (meeting of meetings(); track meeting.id) {
-            <app-card class="flex flex-col">
-              <div class="flex-1 flex flex-col gap-3 p-4">
-                <div class="flex items-start justify-between gap-2">
+            <app-card padding="none" class="flex flex-col overflow-hidden ">
+              
+              <!-- Contenu de la carte -->
+              <div class="flex-1 flex flex-col gap-3 p-5">
+                <div class="flex items-start justify-between gap-3">
                   <div class="flex-1 min-w-0">
-                    <h3 class="text-sm font-semibold text-ink truncate">{{ meeting.title }}</h3>
-                    <p class="text-xs text-ink-muted mt-1">{{ meeting.description }}</p>
+                    <h3 class="text-sm font-bold text-ink truncate">{{ meeting.title }}</h3>
+                    <p class="text-xs text-ink-muted mt-1 line-clamp-2">{{ meeting.description || 'Aucune description' }}</p>
                   </div>
-                  <app-badge [status]="getStatusVariant(meeting.status)">
+                  <app-badge [status]="getStatusVariant(meeting.status)" size="sm" class="shrink-0 font-bold">
                     {{ getStatusLabel(meeting.status) }}
                   </app-badge>
                 </div>
 
-                <div class="flex items-center gap-2 text-xs text-ink-muted">
-                  <span>{{ meeting.type === 'INDIVIDUAL' ? 'Individuelle' : 'Groupe' }}</span>
+                <div class="flex items-center gap-2 text-xs text-ink-muted mt-1">
+                  <span class="font-medium text-ink">{{ meeting.type === 'INDIVIDUAL' ? 'Individuelle' : 'Groupe' }}</span>
                   @if (meeting.cohortName) {
                     <span>•</span>
-                    <span>{{ meeting.cohortName }}</span>
+                    <span class="truncate">{{ meeting.cohortName }}</span>
                   }
                 </div>
 
                 <div class="flex items-center gap-2 text-xs text-ink-muted">
-                  <span>{{ formatDateTime(meeting.scheduledAt) }}</span>
+                  <span class="flex items-center gap-1">
+                    <app-icon name="calendar" class="size-3.5 text-accent" />
+                    {{ formatDateTime(meeting.scheduledAt) }}
+                  </span>
                   <span>•</span>
                   <span>{{ meeting.durationMinutes }} min</span>
                 </div>
 
-                <div class="flex items-center gap-2 text-xs text-ink-muted">
-                  <span>Coach: {{ meeting.coachName }}</span>
-                  <span>•</span>
-                  <span>{{ meeting.participants.length }} participant(s)</span>
+                <div class="flex items-center gap-2 text-xs text-ink-muted pt-2 border-t border-line/60">
+                  <span class="font-medium text-ink">Coach :</span> 
+                  <span class="truncate">{{ meeting.coachName || 'Non assigné' }}</span>
+                  <span class="ml-auto shrink-0 bg-surface-muted px-2 py-0.5 rounded-full text-[11px] font-bold text-ink-muted border border-line/60">
+                    {{ meeting.participants?.length || 0 }} participant(s)
+                  </span>
                 </div>
               </div>
 
-              <div class="border-t border-line p-4 flex gap-2">
-                @if (meeting.status === 'PLANNED' || meeting.status === 'ONGOING') {
-                  <app-button
-                    variant="primary"
-                    size="sm"
-                    class="flex-1"
-                    [routerLink]="'/incubateur/reunions/' + meeting.id"
-                  >
-                    Rejoindre
-                  </app-button>
-                }
+              <!-- Pied de carte / Actions -->
+              <div class="border-t border-line/60 bg-surface-muted/30 p-4 flex items-center justify-end gap-2">
                 <app-button
                   variant="secondary"
                   size="sm"
@@ -106,6 +127,16 @@ import { ButtonComponent } from '../../../../shared/components/button/button.com
                 >
                   Détails
                 </app-button>
+
+                @if (meeting.status === 'PLANNED' || meeting.status === 'ONGOING') {
+                  <app-button
+                    variant="primary"
+                    size="sm"
+                    [routerLink]="'/incubateur/reunions/' + meeting.id"
+                  >
+                    Rejoindre
+                  </app-button>
+                }
               </div>
             </app-card>
           }
@@ -115,36 +146,38 @@ import { ButtonComponent } from '../../../../shared/components/button/button.com
   `,
 })
 export class MeetingsListComponent implements OnInit {
-  private meetingService = inject(MeetingService);
-  private router = inject(Router);
-  private destroyRef = inject(DestroyRef);
+  private readonly meetingService = inject(MeetingService);
+  private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
-  meetings = signal<Meeting[]>([]);
-  loading = signal(true);
-  error = signal<string | null>(null);
+  protected readonly meetings = signal<Meeting[]>([]);
+  protected readonly loading = signal(true);
+  protected readonly error = signal<string | null>(null);
 
   ngOnInit(): void {
     this.loadMeetings();
   }
 
-  private loadMeetings(): void {
+  protected loadMeetings(): void {
     this.loading.set(true);
     this.error.set(null);
 
-    this.meetingService.getMeetings().subscribe({
-      next: (meetings) => {
-        this.meetings.set(meetings as Meeting[]);
-        this.loading.set(false);
-      },
-      error: (err) => {
-        this.error.set('Impossible de charger les réunions');
-        this.loading.set(false);
-        console.error('Failed to load meetings:', err);
-      }
-    });
+    this.meetingService.getMeetings()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (meetings) => {
+          this.meetings.set(meetings as Meeting[]);
+          this.loading.set(false);
+        },
+        error: (err) => {
+          this.error.set('Impossible de charger les réunions');
+          this.loading.set(false);
+          console.error('Failed to load meetings:', err);
+        }
+      });
   }
 
-  getStatusVariant(status: MeetingStatus): 'primary' | 'success' | 'danger' | 'info' | 'neutral' {
+  protected getStatusVariant(status: MeetingStatus): BadgeStatus {
     switch (status) {
       case 'PLANNED':
         return 'info';
@@ -159,7 +192,7 @@ export class MeetingsListComponent implements OnInit {
     }
   }
 
-  getStatusLabel(status: MeetingStatus): string {
+  protected getStatusLabel(status: MeetingStatus): string {
     switch (status) {
       case 'PLANNED':
         return 'Planifiée';
@@ -174,7 +207,7 @@ export class MeetingsListComponent implements OnInit {
     }
   }
 
-  formatDateTime(dateString: string): string {
+  protected formatDateTime(dateString: string): string {
     const date = new Date(dateString);
     return date.toLocaleDateString('fr-FR', {
       day: '2-digit',

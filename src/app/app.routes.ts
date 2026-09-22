@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { incubateurGuard } from './core/guards/incubateur.guard';
+import { publicGuard } from './core/guards/public.guard';
 
 export const routes: Routes = [
   {
@@ -16,16 +17,19 @@ export const routes: Routes = [
   // --- Auth / Onboarding (sans sidebar) ---
   {
     path: 'connexion',
+    canActivate: [publicGuard],
     loadComponent: () => import('./features/auth/pages/connexion/connexion').then((m) => m.Connexion),
   },
   {
   path: 'mot-de-passe-oublie',
+  canActivate: [publicGuard],
   loadComponent: () => import('./features/auth/pages/forgot-password/forgot-password.component').then(m => m.ForgotPasswordComponent)
 }
 ,
  
     {
     path: 'inscription/incubateur',
+    canActivate: [publicGuard],
     loadComponent: () =>
       import('./features/auth/pages/inscription-structure/inscription-structure').then((m) => m.InscriptionStructure),
   },
@@ -36,22 +40,6 @@ export const routes: Routes = [
         (m) => m.AcceptInvitationComponent
       ),
   },
-
-  {
-  path: 'entrepreneur/reunions/:id',
-  canActivate: [authGuard],
-  loadComponent: () =>
-    import('./features/incubateur/meetings/meeting-room/meeting-room')
-      .then(m => m.MeetingRoomComponent),
-},
-
-{
-  path: 'incubateur/reunions/:id',
-  canActivate: [incubateurGuard],
-  loadComponent: () =>
-    import('./features/incubateur/meetings/meeting-room/meeting-room')
-      .then(m => m.MeetingRoomComponent),
-},
   {
   path: 'onboarding/projet',
   loadComponent: () =>
@@ -85,13 +73,17 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./layout/entrepreneur-layout/entrepreneur-layout').then((m) => m.EntrepreneurLayout),
     children: [
-      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+      { path: '', redirectTo: 'mon-parcours', pathMatch: 'full' },
+      {
+        path: 'mon-parcours',
+        loadComponent: () =>
+          import('./features/entrepreneur/mon-parcours/mon-parcours').then((m) => m.MonParcours),
+      },
       {
         path: 'dashboard',
         loadComponent: () =>
           import('./features/entrepreneur/dashboard/dashboard/dashboard').then((m) => m.Dashboard),
       },
-     
       {
         path: 'missions',
         loadComponent: () =>
@@ -103,20 +95,9 @@ export const routes: Routes = [
           import('./features/entrepreneur/missions/mission-detail/mission-detail').then((m) => m.MissionDetail),
       },
       {
-  path: 'documents',
-  loadComponent: () =>
-    import('./features/entrepreneur/documents/mes-documents/mes-documents').then((m) => m.MesDocuments),
-},
-     
-     
-      {
-        path: 'profil',
+        path: 'documents',
         loadComponent: () =>
-          import('./features/entrepreneur/profil/profil/profil').then((m) => m.Profil),
-      },{
-      path: 'profil/changer-forfait',
-        loadComponent: () =>
-          import('./features/entrepreneur/profil/changer-forfait/changer-forfait').then((m) => m.ChangerForfait),
+          import('./features/entrepreneur/documents/mes-documents/mes-documents').then((m) => m.MesDocuments),
       },
       {
         path: 'reunions',
@@ -133,17 +114,6 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/entrepreneur/projets/entrepreneur-projet-edit/entrepreneur-projet-edit').then((m) => m.EntrepreneurProjetEditComponent),
       },
-      
-//       {
-//   path: 'pitch-deck-editor',
-//   loadComponent: () =>
-//     import('./features/entrepreneur/documents/pitch-deck-editor/pitch-deck-editor')
-//       .then(m => m.PitchDeckEditor),
-// }
-      
-
-      // documents/pitch-deck, documents/business-plan, documents/etude-marche,
-      // assistant-ia, profil : à ajouter au fur et à mesure qu'on les construit
     ],
   },
 
@@ -165,15 +135,15 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/incubateur/cohortes/cohortes-list/cohortes-list').then((m) => m.CohortesList),
       },
-            {
-        path: 'cohortes/nouvelle',
-        loadComponent: () =>
-          import('./features/incubateur/cohortes/nouvelle-cohorte/nouvelle-cohorte').then((m) => m.NouvelleCohorte),
-      },
-            {
+      {
         path: 'cohortes/:id',
         loadComponent: () =>
-          import('./features/incubateur/cohortes/cohortes-list/cohortes-list').then((m) => m.CohortesList),
+          import('./features/incubateur/cohortes/cohorte-detail/cohorte-detail').then((m) => m.CohorteDetail),
+      },
+      {
+        path: 'parcours',
+        loadComponent: () =>
+          import('./features/incubateur/parcours/parcours-list/parcours-list').then((m) => m.ParcoursList),
       },
       {
         path: 'entrepreneurs',
@@ -201,13 +171,6 @@ export const routes: Routes = [
         path: 'missions',
         loadComponent: () =>
           import('./features/incubateur/missions/missions-list/missions-list').then((m) => m.MissionsList),
-      },
-    
-  
-            {
-        path: 'missions/attribuer',
-        loadComponent: () =>
-          import('./features/incubateur/missions/attribuer-mission/attribuer-mission').then((m) => m.AttribuerMission),
       },
       {
     path: 'missions/:id',
@@ -248,9 +211,30 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/incubateur/meetings/meeting-planning/meeting-planning').then((m) => m.MeetingPlanningComponent),
       },
+      {
+        path: 'ressources',
+        loadComponent: () =>
+          import('./features/incubateur/ressources/ressources-list/ressources-list').then((m) => m.RessourcesList),
+      },
     
     ],
   },
+  
+  {
+  path: 'entrepreneur/reunions/:id',
+  canActivate: [authGuard],
+  loadComponent: () =>
+    import('./features/incubateur/meetings/meeting-room/meeting-room')
+      .then(m => m.MeetingRoomComponent),
+},
+
+{
+  path: 'incubateur/reunions/:id',
+  canActivate: [incubateurGuard],
+  loadComponent: () =>
+    import('./features/incubateur/meetings/meeting-room/meeting-room')
+      .then(m => m.MeetingRoomComponent),
+},
 
   {
     path: '**',

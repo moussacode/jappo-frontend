@@ -1,0 +1,324 @@
+<div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
+
+      <!-- En-tête de page -->
+      <app-page-header
+        title="Ressources"
+        subtitle="Bibliothèque pédagogique de votre structure"
+      >
+        @if (activeTab() === 'ACTIVE') {
+          <app-button size="sm" (click)="ouvrirCreation()">
+            <app-icon name="plus" class="size-4 mr-1.5" />
+            <span>Nouvelle ressource</span>
+          </app-button>
+        }
+      </app-page-header>
+
+      <!-- KPI rapides -->
+      @if (!isLoading()) {
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <app-card padding="md">
+            <span class="text-xs font-semibold uppercase tracking-wider text-ink-muted">Total</span>
+            <div class="mt-2 text-2xl font-extrabold text-ink">{{ stats().total }}</div>
+          </app-card>
+          <app-card padding="md">
+            <span class="text-xs font-semibold uppercase tracking-wider text-ink-muted">PDFs</span>
+            <div class="mt-2 text-2xl font-extrabold text-ink">{{ stats().pdf }}</div>
+          </app-card>
+          <app-card padding="md">
+            <span class="text-xs font-semibold uppercase tracking-wider text-ink-muted">Liens</span>
+            <div class="mt-2 text-2xl font-extrabold text-ink">{{ stats().liens }}</div>
+          </app-card>
+          <app-card padding="md">
+            <span class="text-xs font-semibold uppercase tracking-wider text-ink-muted">Vidéos</span>
+            <div class="mt-2 text-2xl font-extrabold text-ink">{{ stats().videos }}</div>
+          </app-card>
+        </div>
+      }
+
+      <!-- Barre d'actions : Onglets (TabFilter) + Recherche -->
+      <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        
+        <!-- Onglets Actives / Archives via TabFilterComponent -->
+        <!-- <app-tab-filter
+          [options]="tabOptions"
+          [value]="activeTab()"
+          (valueChange)="switchTab($event)"
+        /> -->
+
+        <!-- Recherche -->
+        <div class="relative w-full sm:w-72">
+          <input
+            [formControl]="searchControl"
+            placeholder="Rechercher une ressource…"
+            class="w-full rounded-xl border border-line/60 bg-surface py-2.5 pl-9 pr-4 text-xs text-ink placeholder:text-ink-muted/60 transition-colors focus:border-accent focus:outline-none"
+          />
+          <app-icon name="search" class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-ink-muted pointer-events-none" />
+        </div>
+      </div>
+
+      <!-- État chargement (Skeleton) -->
+      @if (isLoading()) {
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-pulse">
+          @for (i of [1,2,3,4,5,6]; track i) {
+            <div class="h-40 rounded-2xl border border-line/60 bg-surface-muted/30 p-5"></div>
+          }
+        </div>
+      }
+
+      <!-- État vide -->
+      @else if (filteredRessources().length === 0) {
+        <app-card padding="none" class="shadow-xs">
+          <div class="p-8 sm:p-12">
+            <app-empty-state
+              [title]="activeTab() === 'ARCHIVEE' ? 'Aucune ressource archivée' : 'Aucune ressource pour le moment'"
+              [description]="activeTab() === 'ARCHIVEE' ? 'Les ressources archivées apparaîtront ici.' : 'Ajoutez votre première ressource pour construire votre bibliothèque pédagogique.'"
+              iconName="documents"
+            >
+              @if (activeTab() === 'ACTIVE') {
+                <app-button size="sm" (click)="ouvrirCreation()" class="mt-4">
+                  <app-icon name="plus" class="size-4 mr-1.5" />
+                  <span>Ajouter une ressource</span>
+                </app-button>
+              }
+            </app-empty-state>
+          </div>
+        </app-card>
+      }
+
+      <!-- Grille de cartes ressources -->
+      @else {
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          @for (r of filteredRessources(); track r.id) {
+            <app-card padding="none" class="group flex flex-col justify-between overflow-hidden shadow-xs  transition-all hover:border-accent/40 cursor-pointer" (click)="voirRessource(r)">
+              
+              <div class="p-5 flex flex-col gap-3">
+                <!-- En-tête : icône + titre -->
+                <div class="flex items-start gap-3">
+                  <div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-muted border border-line/60 text-accent">
+                    <app-icon name="documents" class="size-5" />
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-bold text-ink truncate group-hover:text-accent transition-colors">{{ r.titre }}</p>
+                    @if (r.description) {
+                      <p class="text-xs text-ink-muted line-clamp-2 mt-0.5">{{ r.description }}</p>
+                    }
+                  </div>
+                </div>
+
+                <!-- Badges -->
+                <div class="flex flex-wrap gap-1.5">
+                  <app-badge status="info" size="sm">{{ TYPE_LABELS[r.type] }}</app-badge>
+                  <app-badge status="neutral" size="sm">{{ PORTEE_LABELS[r.portee] }}</app-badge>
+                  @if (r.nomCohorte) {
+                    <app-badge status="warning" size="sm" class="truncate max-w-[140px]">{{ r.nomCohorte }}</app-badge>
+                  }
+                </div>
+
+                <!-- Méta-données fichier -->
+                @if (r.nomFichier) {
+                  <p class="text-xs text-ink-muted truncate">
+                    {{ r.nomFichier }} @if (r.taille) { · {{ formatTaille(r.taille) }} }
+                  </p>
+                }
+              </div>
+
+              <!-- Pied de carte / Actions -->
+              <div class="flex items-center justify-between border-t border-line/60 bg-surface-muted/30 px-5 py-3 mt-auto">
+                <span class="text-xs text-ink-muted">{{ formatDate(r.createdAt) }}</span>
+                <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" (click)="$event.stopPropagation()">
+                  @if (r.url) {
+                    <app-button variant="secondary" size="sm" (click)="ouvrirUrl(r.url)" title="Ouvrir">
+                      <app-icon name="external-link" class="size-3.5" />
+                    </app-button>
+                  }
+                  @if (activeTab() === 'ACTIVE') {
+                    <app-button variant="secondary" size="sm" (click)="archiverRessource(r, $event)" title="Archiver">
+                      <app-icon name="archive" class="size-3.5 text-ink-muted" />
+                    </app-button>
+                  } @else {
+                    <app-button variant="secondary" size="sm" (click)="restaurerRessource(r, $event)" title="Restaurer">
+                      <!-- <app-icon name="refresh" class="size-3.5 text-emerald-600" /> -->
+                    </app-button>
+                  }
+                </div>
+              </div>
+
+            </app-card>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+        Modal de création (via AppModalComponent)
+    ══════════════════════════════════════════════════════════ -->
+    @if (showCreateModal()) {
+      <app-modal title="Nouvelle ressource" subtitle="Ajoutez un lien ou un document pédagogique" maxWidth="lg" (close)="fermerCreation()">
+        <div class="space-y-5">
+
+          <!-- Sélection du mode -->
+          <div class="flex gap-2 p-1 bg-surface-muted/50 rounded-xl border border-line/60">
+            <button
+              type="button"
+              (click)="setCreationMode('LIEN')"
+              [class]="creationMode() === 'LIEN' ? 'bg-surface text-ink shadow-xs font-bold' : 'text-ink-muted hover:text-ink'"
+              class="flex-1 flex items-center justify-center gap-2 py-2 text-xs rounded-lg transition-all cursor-pointer"
+            >
+              <app-icon name="link" class="size-4" />
+              Lien / URL
+            </button>
+            <button
+              type="button"
+              (click)="setCreationMode('FICHIER')"
+              [class]="creationMode() === 'FICHIER' ? 'bg-surface text-ink shadow-xs font-bold' : 'text-ink-muted hover:text-ink'"
+              class="flex-1 flex items-center justify-center gap-2 py-2 text-xs rounded-lg transition-all cursor-pointer"
+            >
+              <app-icon name="upload" class="size-4" />
+              Fichier
+            </button>
+          </div>
+
+          <!-- Titre -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-bold text-ink">Titre <span class="text-rose-500">*</span></label>
+            <input
+              [value]="fTitre()"
+              (input)="fTitre.set($any($event.target).value)"
+              placeholder="Ex : Guide Business Model Canvas"
+              class="w-full rounded-xl border border-line/60 bg-surface px-3 py-2.5 text-xs text-ink placeholder:text-ink-muted/60 focus:border-accent focus:outline-none"
+            />
+          </div>
+
+          <!-- Description -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-bold text-ink">Description</label>
+            <textarea
+              [value]="fDescription()"
+              (input)="fDescription.set($any($event.target).value)"
+              placeholder="Décrivez cette ressource en quelques mots…"
+              rows="2"
+              class="w-full rounded-xl border border-line/60 bg-surface px-3 py-2.5 text-xs text-ink placeholder:text-ink-muted/60 focus:border-accent focus:outline-none resize-none"
+            ></textarea>
+          </div>
+
+          <!-- URL (mode Lien) -->
+          @if (creationMode() === 'LIEN') {
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-bold text-ink">URL <span class="text-rose-500">*</span></label>
+              <input
+                [value]="fUrl()"
+                (input)="fUrl.set($any($event.target).value)"
+                type="url"
+                placeholder="https://example.com/ressource"
+                class="w-full rounded-xl border border-line/60 bg-surface px-3 py-2.5 text-xs text-ink placeholder:text-ink-muted/60 focus:border-accent focus:outline-none"
+              />
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-bold text-ink">Type</label>
+              <select
+                [value]="fType()"
+                (change)="fType.set($any($event.target).value)"
+                class="w-full rounded-xl border border-line/60 bg-surface px-3 py-2.5 text-xs text-ink focus:border-accent focus:outline-none cursor-pointer"
+              >
+                @for (t of TYPES; track t) {
+                  <option [value]="t">{{ TYPE_LABELS[t] }}</option>
+                }
+              </select>
+            </div>
+          }
+
+          <!-- Fichier (mode Fichier) -->
+          @if (creationMode() === 'FICHIER') {
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-bold text-ink">Fichier <span class="text-rose-500">*</span></label>
+              <label class="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-line/60 rounded-xl cursor-pointer hover:border-accent transition-colors bg-surface-muted/30">
+                @if (fFichierNom()) {
+                  <div class="flex items-center gap-2 text-xs text-ink font-semibold">
+                    <app-icon name="documents" class="size-4 text-accent" />
+                    <span class="truncate max-w-[200px]">{{ fFichierNom() }}</span>
+                  </div>
+                  <p class="text-[11px] text-ink-muted mt-1">Cliquez pour changer</p>
+                } @else {
+                  <app-icon name="upload" class="size-6 text-ink-muted mb-1.5" />
+                  <p class="text-xs font-semibold text-ink">Glissez ou cliquez pour choisir un fichier</p>
+                  <p class="text-[10px] text-ink-muted mt-0.5">PDF, DOC, XLS, PPT — max 50 Mo</p>
+                }
+                <input type="file" class="hidden" (change)="onFichierChange($event)" />
+              </label>
+            </div>
+          }
+
+          <!-- Portée / Visibilité -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-bold text-ink">Visibilité</label>
+            <select
+              [value]="fPortee()"
+              (change)="fPortee.set($any($event.target).value)"
+              class="w-full rounded-xl border border-line/60 bg-surface px-3 py-2.5 text-xs text-ink focus:border-accent focus:outline-none cursor-pointer"
+            >
+              @for (p of PORTEES; track p) {
+                <option [value]="p">{{ PORTEE_LABELS[p] }}</option>
+              }
+            </select>
+          </div>
+
+          <!-- Erreur -->
+          @if (saveError()) {
+            <div class="flex items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-xs text-rose-600">
+              <app-icon name="warning" class="size-4 shrink-0" />
+              <span>{{ saveError() }}</span>
+            </div>
+          }
+
+          <!-- Boutons -->
+          <div class="flex items-center justify-end gap-3 border-t border-line/60 pt-4 mt-2">
+            <app-button variant="secondary" size="sm" (click)="fermerCreation()">Annuler</app-button>
+            <app-button size="sm" [disabled]="isSaving()" (click)="sauvegarder()">
+              {{ isSaving() ? 'Enregistrement…' : 'Enregistrer' }}
+            </app-button>
+          </div>
+        </div>
+      </app-modal>
+    }
+
+    <!-- ═══════════════════════════════════════════════════════
+        Modal de détail (via AppModalComponent)
+    ══════════════════════════════════════════════════════════ -->
+    @if (showDetailModal() && ressourceSelectionnee()) {
+      <app-modal [title]="ressourceSelectionnee()!.titre" maxWidth="md" (close)="fermerDetail()">
+        <div class="space-y-4">
+          @let r = ressourceSelectionnee()!;
+
+          <div class="flex flex-wrap gap-2">
+            <app-badge status="info" size="sm">{{ TYPE_LABELS[r.type] }}</app-badge>
+            <app-badge status="neutral" size="sm">{{ PORTEE_LABELS[r.portee] }}</app-badge>
+          </div>
+
+          @if (r.description) {
+            <p class="text-xs text-ink-muted">{{ r.description }}</p>
+          }
+
+          @if (r.nomFichier) {
+            <div class="flex items-center gap-3 p-3 bg-surface-muted/50 rounded-xl border border-line/60">
+              <app-icon name="documents" class="size-5 text-accent" />
+              <div>
+                <p class="text-xs font-bold text-ink">{{ r.nomFichier }}</p>
+                <p class="text-[11px] text-ink-muted">{{ formatTaille(r.taille) }} · {{ r.mimeType }}</p>
+              </div>
+            </div>
+          }
+
+          @if (r.url) {
+            <app-button size="sm" class="w-full" (click)="ouvrirUrl(r.url)">
+              <app-icon name="external-link" class="size-4 mr-1.5" />
+              <span>Ouvrir la ressource</span>
+            </app-button>
+          }
+
+          <div class="pt-3 border-t border-line/60">
+            <p class="text-[11px] text-ink-muted">Ajoutée le {{ formatDate(r.createdAt) }}</p>
+          </div>
+        </div>
+      </app-modal>
+    }

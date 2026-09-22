@@ -6,7 +6,6 @@ export const STATUT_MISSION_CONFIG: Record<StatutMission, { status: BadgeStatus;
   EN_COURS: { status: 'primary', label: 'En cours' },
   SOUMIS: { status: 'warning', label: 'Soumis' },
   VALIDE: { status: 'success', label: 'Validée' },
-  VALIDEE: { status: 'success', label: 'Validée' },
   A_REVOIR: { status: 'danger', label: 'À revoir' },
 };
 

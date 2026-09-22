@@ -1,101 +1,91 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from './../../environments/environment';
-import { Projet } from '../models/projet.model';
+import { Cohorte } from '../models/cohorte.model';
+import {
+  Projet,
+  CreateProjetRequest,
+  UpdateProjetRequest,
+  PromouvoirProjetRequest,
+  PromotionGroupeeRequest,
+  PromotionGroupeeResultat,
+  ParticipationCohorteResponse,
+} from '../models/projet.model';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class ProjetService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = `${environment.apiUrl}/projets`;
 
-  /**
-   * Récupérer tous les projets de la structure active
-   * GET /api/projets
-   */
-  getProjets(): Observable<Projet[]> {
-    return this.http.get<Projet[]>(this.apiUrl);
+  getProjets(statutArchivage?: string): Observable<Projet[]> {
+    const params = statutArchivage ? new HttpParams().set('statutArchivage', statutArchivage) : undefined;
+    return this.http.get<Projet[]>(this.apiUrl, params ? { params } : {});
   }
 
-  /**
-   * Récupérer un projet par ID
-   * GET /api/projets/:id
-   */
   getById(id: string): Observable<Projet> {
-    console.log(id)
     return this.http.get<Projet>(`${this.apiUrl}/${id}`);
   }
 
-  /**
-   * Récupérer les projets rattachés à une cohorte
-   * GET /api/projets/cohorte/:cohorteId
-   */
   getByCohorte(cohorteId: string): Observable<Projet[]> {
     return this.http.get<Projet[]>(`${this.apiUrl}/cohorte/${cohorteId}`);
   }
 
-  /**
-   * Récupérer le projet principal d'un entrepreneur
-   * GET /api/projets/entrepreneur/:entrepreneurId
-   */
   getPrincipalByEntrepreneur(entrepreneurId: string): Observable<Projet> {
     return this.http.get<Projet>(`${this.apiUrl}/entrepreneur/${entrepreneurId}`);
   }
 
-  /**
-   * Récupérer les projets de l'entrepreneur connecté
-   * GET /api/projets/mes-projets
-   */
   getMesProjets(): Observable<Projet[]> {
     return this.http.get<Projet[]>(`${this.apiUrl}/mes-projets`);
   }
 
-  /**
-   * Mettre à jour l'étape du diagnostic
-   * PATCH /api/projets/:id/diagnostic
-   */
-  updateDiagnostic(projetId: string, etape: string): Observable<Projet> {
-    return this.http.patch<Projet>(`${this.apiUrl}/${projetId}/diagnostic`, { etape });
+  create(payload: CreateProjetRequest): Observable<Projet> {
+    return this.http.post<Projet>(this.apiUrl, payload);
   }
-  
+
+  updateProjet(id: string, changements: UpdateProjetRequest): Observable<Projet> {
+    return this.http.patch<Projet>(`${this.apiUrl}/${id}`, changements);
+  }
+
   updateNomProjet(projetId: string, nom: string): Observable<Projet> {
-  return this.http.patch<Projet>(`${this.apiUrl}/${projetId}/nom`, { nom });
-}
+    return this.http.patch<Projet>(`${this.apiUrl}/${projetId}/nom`, { nom });
+  }
 
-updateProjet(
-  id: string,
-  changements: Partial<Pick<Projet, 'nom' | 'description' | 'secteur'>>,
-): Observable<Projet> {
-  return this.http.patch<Projet>(`${this.apiUrl}/${id}`, changements);
-}
+  archiverProjet(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
 
-archiverProjet(id: string): Observable<void> {
-  return this.http.delete<void>(`${this.apiUrl}/${id}`);
-}
+  restaurerProjet(id: string): Observable<void> {
+    return this.http.patch<void>(`${this.apiUrl}/${id}/restaurer`, {});
+  }
 
-restaurerProjet(id: string): Observable<void> {
-  return this.http.patch<void>(`${this.apiUrl}/${id}/restaurer`, {});
-}
+  /** Promotion individuelle vers une cohorte cible. */
+  promouvoir(projetId: string, request: PromouvoirProjetRequest): Observable<Projet> {
+    return this.http.post<Projet>(`${this.apiUrl}/${projetId}/promouvoir`, request);
+  }
 
+  /** Alias : l'ancien appel passait { nouvelleCohorteId }. */
+  promouvoirProjet(
+    projetId: string,
+    request: PromouvoirProjetRequest | { nouvelleCohorteId: string; raison?: string; forcer?: boolean },
+  ): Observable<Projet> {
+    if ('cohorteCibleId' in request) {
+      return this.promouvoir(projetId, request);
+    }
+    return this.promouvoir(projetId, {
+      cohorteCibleId: request.nouvelleCohorteId,
+      raison: request.raison,
+      forcer: request.forcer ?? false,
+    });
+  }
 
-/**
- * Créer un projet (avec ou sans cohorte)
- * POST /api/projets
- */
-create(payload: {
-  nom: string;
-  description?: string;
-  secteur?: string;
-  cohorteId?: string | null;
-  entrepreneurId?: string | null;
-}): Observable<Projet> {
-  return this.http.post<Projet>(this.apiUrl, payload);
-}
+  /** Historique des participations aux cohortes (frise). */
+  getHistorique(projetId: string): Observable<ParticipationCohorteResponse[]> {
+    return this.http.get<ParticipationCohorteResponse[]>(`${this.apiUrl}/${projetId}/historique`);
+  }
 
-
-promouvoirProjet(projetId: string, nouvelleCohorteId: string | null): Observable<Projet> {
-  return this.http.post<Projet>(`${this.apiUrl}/${projetId}/promouvoir`, { nouvelleCohorteId });
-}
+  /** Cohortes éligibles à la promotion pour un projet. */
+  getCohortesEligibles(projetId: string): Observable<Cohorte[]> {
+    return this.http.get<Cohorte[]>(`${this.apiUrl}/${projetId}/cohortes-eligibles`);
+  }
 }

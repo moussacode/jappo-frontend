@@ -27,6 +27,11 @@ export class IncubateurLayout {
     icon: 'dashboard',
   },
   {
+    label: 'Parcours',
+    path: '/incubateur/parcours',
+    icon: 'layers',
+  },
+  {
     label: 'Cohortes',
     path: '/incubateur/cohortes',
     icon: 'cohortes',
@@ -34,9 +39,8 @@ export class IncubateurLayout {
   {
       label: 'Projets',
       path: '/incubateur/projets',
-      icon: 'folder', // 👈 Ajout du menu Projets
+      icon: 'folder',
     },
-  
   {
     label: 'Entrepreneurs',
     path: '/incubateur/entrepreneurs',
@@ -47,11 +51,6 @@ export class IncubateurLayout {
     path: '/incubateur/missions',
     icon: 'missions',
   },
-  // {
-  //   label: 'Rapports',
-  //   path: '/incubateur/rapports',
-  //   icon: 'documents',
-  // },
   {
     label: 'Assistant IA',
     path: '/incubateur/assistant-ia',
@@ -61,6 +60,11 @@ export class IncubateurLayout {
     label: 'Réunions',
     path: '/incubateur/reunions',
     icon: 'video',
+  },
+  {
+    label: 'Ressources',
+    path: '/incubateur/ressources',
+    icon: 'book-open',
   },
 ];
 }

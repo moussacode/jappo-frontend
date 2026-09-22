@@ -11,6 +11,15 @@ export interface DashboardStatsResponse {
   scoreMaturiteMoyen: number;
   projetsAttention: number;
   livrablesEnAttente: number;
+  projetsParPhase: ProjetsParPhaseResponse[];
+  projetsEnRetard: number;
+}
+
+export interface ProjetsParPhaseResponse {
+  phaseId: string;
+  nomPhase: string;
+  ordre: number;
+  nombre: number;
 }
 
 export interface AlerteProjetResponse {

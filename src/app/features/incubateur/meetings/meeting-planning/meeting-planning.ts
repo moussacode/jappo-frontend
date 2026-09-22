@@ -1,373 +1,334 @@
-import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Component, inject, signal, DestroyRef, OnInit } from '@angular/core';
+import { Router, ActivatedRoute, RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+
 import { MeetingService } from '../../../../core/services/meeting.service';
 import { CohorteService } from '../../../../core/services/cohorte.service';
 import { EntrepreneurService } from '../../../../core/services/entrepreneur.service';
-import { Meeting, CreateMeetingRequest, MeetingType, MeetingMode } from '../../../../core/models/meeting.model';
+
+import { CreateMeetingRequest, MeetingMode } from '../../../../core/models/meeting.model';
 import { Cohorte } from '../../../../core/models/cohorte.model';
-import { Observable } from 'rxjs';
+
+import { Icon } from '../../../../shared/components/icon/icon';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
-import { CardComponent } from '../../../../shared/components/card/card.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { CardComponent } from '../../../../shared/components/card/card.component';
+
+type TypeReunion = 'INDIVIDUELLE' | 'GROUPE';
 
 @Component({
   selector: 'app-meeting-planning',
   standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    ButtonComponent,
-    CardComponent,
-    PageHeaderComponent
-  ],
+  imports: [RouterLink, FormsModule, Icon, ButtonComponent, PageHeaderComponent, CardComponent],
   template: `
-    <div class="flex flex-col gap-6 p-3 sm:p-4 md:p-6 lg:p-8 max-w-4xl mx-auto w-full">
-      <app-page-header
-        title="Nouvelle réunion"
-        subtitle="Planifiez une nouvelle réunion vidéo"
-      >
-        <app-button variant="secondary" (click)="cancel()">
-          Annuler
-        </app-button>
-      </app-page-header>
+<div class="mx-auto flex w-full max-w-2xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
 
-      <app-card>
-        <form [formGroup]="meetingForm" (ngSubmit)="onSubmit()" class="flex flex-col gap-6 p-4 sm:p-6">
-          <!-- Titre -->
-          <div class="flex flex-col gap-2">
-            <label class="text-xs font-semibold text-ink">Titre</label>
-            <input
-              type="text"
-              formControlName="title"
-              class="rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs sm:text-sm text-ink focus:border-accent focus:outline-none transition-colors"
-              placeholder="Titre de la réunion"
-            />
-            @if (meetingForm.get('title')?.touched && meetingForm.get('title')?.invalid) {
-              <span class="text-xs text-rose-600">Le titre est obligatoire</span>
-            }
-          </div>
+  <app-page-header
+    title="Planifier une réunion"
+    subtitle="Créez une réunion individuelle ou de groupe."
+    breadcrumb="Incubateur > Réunions > Planifier"
+  >
+    <app-button variant="secondary" size="sm" routerLink="/incubateur/reunions">
+      <app-icon name="arrow-left" class="size-4 mr-1.5"/>Retour
+    </app-button>
+  </app-page-header>
 
-          <!-- Description -->
-          <div class="flex flex-col gap-2">
-            <label class="text-xs font-semibold text-ink">Description (optionnel)</label>
-            <textarea
-              formControlName="description"
-              rows="3"
-              class="rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs sm:text-sm text-ink focus:border-accent focus:outline-none transition-colors resize-none"
-              placeholder="Description de la réunion"
-            ></textarea>
-          </div>
+  <app-card padding="lg" class="shadow-xs border border-line/60">
+    <div class="space-y-5">
 
-          <!-- Type de réunion -->
-          <div class="flex flex-col gap-2">
-            <label class="text-xs font-semibold text-ink">Type de réunion</label>
+      <!-- Titre -->
+      <div class="flex flex-col gap-1.5">
+        <label for="titre-reunion" class="text-xs font-bold text-ink">Titre <span class="text-rose-500">*</span></label>
+        <input
+          id="titre-reunion"
+          [(ngModel)]="titre"
+          type="text"
+          placeholder="Ex. Point hebdomadaire"
+          class="w-full rounded-xl border border-line/60 bg-surface px-3.5 py-2.5 text-xs text-ink placeholder:text-ink-muted/60 focus:border-accent focus:outline-none transition-colors"
+        />
+      </div>
+
+      <!-- Type -->
+      <div class="flex flex-col gap-1.5">
+        <label class="text-xs font-bold text-ink">Type de réunion <span class="text-rose-500">*</span></label>
+        <div class="grid grid-cols-2 gap-3">
+          <label
+            class="flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer transition-all"
+            [class]="typeReunion() === 'INDIVIDUELLE' ? 'border-accent bg-accent/5' : 'border-line/60 hover:border-line'"
+          >
+            <input type="radio" value="INDIVIDUELLE" [checked]="typeReunion() === 'INDIVIDUELLE'" (change)="typeReunion.set('INDIVIDUELLE')" class="text-accent focus:ring-accent"/>
+            <div class="min-w-0">
+              <p class="text-xs font-bold text-ink">Individuelle</p>
+              <p class="text-[11px] text-ink-muted mt-0.5">1:1 avec un entrepreneur</p>
+            </div>
+          </label>
+          <label
+            class="flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer transition-all"
+            [class]="typeReunion() === 'GROUPE' ? 'border-accent bg-accent/5' : 'border-line/60 hover:border-line'"
+          >
+            <input type="radio" value="GROUPE" [checked]="typeReunion() === 'GROUPE'" (change)="typeReunion.set('GROUPE')" class="text-accent focus:ring-accent"/>
+            <div class="min-w-0">
+              <p class="text-xs font-bold text-ink">Groupe</p>
+              <p class="text-[11px] text-ink-muted mt-0.5">Tous les projets d'une cohorte</p>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Individuelle : sélection entrepreneur -->
+      @if (typeReunion() === 'INDIVIDUELLE') {
+        <div class="flex flex-col gap-1.5">
+          <label for="entrepreneur-select" class="text-xs font-bold text-ink">Entrepreneur <span class="text-rose-500">*</span></label>
+          @if (chargementEntrepreneurs()) {
+            <p class="text-xs text-ink-muted animate-pulse">Chargement des entrepreneurs...</p>
+          } @else {
             <select
-              formControlName="type"
-              class="rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs sm:text-sm text-ink focus:border-accent focus:outline-none transition-colors"
-              (change)="onTypeChange()"
+              id="entrepreneur-select"
+              [(ngModel)]="participantId"
+              class="w-full rounded-xl border border-line/60 bg-surface px-3.5 py-2.5 text-xs text-ink focus:border-accent focus:outline-none transition-colors"
             >
-              <option value="INDIVIDUAL">Individuelle (Coach + Entrepreneur)</option>
-              <option value="GROUP">Groupe (Coach + Cohorte)</option>
+              <option value="">-- Choisir un entrepreneur --</option>
+              @for (e of entrepreneurs(); track e.id) {
+                <option [value]="e.id">{{ e.prenom }} {{ e.nom }}</option>
+              }
             </select>
-          </div>
+          }
+        </div>
+      }
 
-          <!-- Mode de réunion -->
-          <div class="flex flex-col gap-2">
-            <label class="text-xs font-semibold text-ink">Mode de réunion</label>
+      <!-- Groupe : sélection cohorte -->
+      @if (typeReunion() === 'GROUPE') {
+        <div class="flex flex-col gap-1.5">
+          <label for="cohorte-select" class="text-xs font-bold text-ink">Cohorte <span class="text-rose-500">*</span></label>
+          @if (chargementCohortes()) {
+            <p class="text-xs text-ink-muted animate-pulse">Chargement des cohortes...</p>
+          } @else {
             <select
-              formControlName="mode"
-              class="rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs sm:text-sm text-ink focus:border-accent focus:outline-none transition-colors"
-              (change)="onModeChange()"
+              id="cohorte-select"
+              [(ngModel)]="cohorteId"
+              class="w-full rounded-xl border border-line/60 bg-surface px-3.5 py-2.5 text-xs text-ink focus:border-accent focus:outline-none transition-colors"
             >
-              <option value="ONLINE">En ligne (vidéoconférence)</option>
-              <option value="PRESENTIEL">Présentiel (rencontrer en personne)</option>
+              <option value="">-- Choisir une cohorte --</option>
+              @for (c of cohortes(); track c.id) {
+                <option [value]="c.id">{{ c.nom }} — {{ c.phase?.nom ?? '' }}</option>
+              }
             </select>
-          </div>
-
-          <!-- Participant (INDIVIDUAL uniquement) -->
-          @if (meetingForm.get('type')?.value === 'INDIVIDUAL') {
-            <div class="flex flex-col gap-2">
-              <label class="text-xs font-semibold text-ink">Entrepreneur</label>
-              <select
-                formControlName="participantId"
-                class="rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs sm:text-sm text-ink focus:border-accent focus:outline-none transition-colors"
-              >
-                <option value="">Sélectionner un entrepreneur</option>
-                @for (entrepreneur of entrepreneurs(); track entrepreneur.id) {
-                  <option [value]="entrepreneur.id">{{ entrepreneur.prenom }} {{ entrepreneur.nom }}</option>
-                }
-              </select>
-              @if (meetingForm.get('participantId')?.touched && meetingForm.get('participantId')?.invalid) {
-                <span class="text-xs text-rose-600">Veuillez sélectionner un entrepreneur</span>
-              }
-            </div>
           }
-
-          <!-- Cohorte (GROUP uniquement) -->
-          @if (meetingForm.get('type')?.value === 'GROUP') {
-            <div class="flex flex-col gap-2">
-              <label class="text-xs font-semibold text-ink">Cohorte</label>
-              <select
-                formControlName="cohortId"
-                class="rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs sm:text-sm text-ink focus:border-accent focus:outline-none transition-colors"
-              >
-                <option value="">Sélectionner une cohorte</option>
-                @for (cohort of cohortes(); track cohort.id) {
-                  <option [value]="cohort.id">{{ cohort.nom }}</option>
-                }
-              </select>
-              @if (meetingForm.get('cohortId')?.touched && meetingForm.get('cohortId')?.invalid) {
-                <span class="text-xs text-rose-600">Veuillez sélectionner une cohorte</span>
-              }
-            </div>
+          @if (cohorteId()) {
+            <p class="text-[11px] text-ink-muted mt-0.5">
+              Les participants seront automatiquement les entrepreneurs des projets actifs de cette cohorte.
+            </p>
           }
+        </div>
+      }
 
-          <!-- Date et heure -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div class="flex flex-col gap-2">
-              <label class="text-xs font-semibold text-ink">Date</label>
-              <input
-                type="date"
-                formControlName="scheduledDate"
-                class="rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs sm:text-sm text-ink focus:border-accent focus:outline-none transition-colors"
-              />
-              @if (meetingForm.get('scheduledDate')?.touched && meetingForm.get('scheduledDate')?.invalid) {
-                <span class="text-xs text-rose-600">La date est obligatoire</span>
-              }
-            </div>
+      <!-- Mode -->
+      <div class="flex flex-col gap-1.5">
+        <label class="text-xs font-bold text-ink">Mode</label>
+        <div class="flex gap-4">
+          <label class="flex items-center gap-2 cursor-pointer text-xs font-medium text-ink">
+            <input type="radio" value="ONLINE" [checked]="mode() === 'ONLINE'" (change)="mode.set('ONLINE')" class="text-accent"/>
+            En ligne
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer text-xs font-medium text-ink">
+            <input type="radio" value="PRESENTIEL" [checked]="mode() === 'PRESENTIEL'" (change)="mode.set('PRESENTIEL')" class="text-accent"/>
+            Présentiel
+          </label>
+        </div>
+      </div>
+      @if (mode() === 'PRESENTIEL') {
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
-            <div class="flex flex-col gap-2">
-              <label class="text-xs font-semibold text-ink">Heure</label>
-              <input
-                type="time"
-                formControlName="scheduledTime"
-                class="rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs sm:text-sm text-ink focus:border-accent focus:outline-none transition-colors"
-              />
-            </div>
-          </div>
+    <div class="flex flex-col gap-1.5">
+      <label for="room-input" class="text-xs font-bold text-ink">
+        Salle <span class="text-rose-500">*</span>
+      </label>
 
-          <!-- Lieu et adresse (PRESENTIEL uniquement) -->
-          @if (meetingForm.get('mode')?.value === 'PRESENTIEL') {
-            <div class="flex flex-col gap-2">
-              <label class="text-xs font-semibold text-ink">Lieu</label>
-              <input
-                type="text"
-                formControlName="location"
-                class="rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs sm:text-sm text-ink focus:border-accent focus:outline-none transition-colors"
-                placeholder="Ex: Salle de réunion A, Bureau central"
-              />
-            </div>
-
-            <div class="flex flex-col gap-2">
-              <label class="text-xs font-semibold text-ink">Adresse</label>
-              <textarea
-                formControlName="address"
-                rows="2"
-                class="rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs sm:text-sm text-ink focus:border-accent focus:outline-none transition-colors resize-none"
-                placeholder="Adresse complète du lieu"
-              ></textarea>
-            </div>
-          }
-
-          <!-- Durée -->
-          <div class="flex flex-col gap-2">
-            <label class="text-xs font-semibold text-ink">Durée (minutes)</label>
-            <input
-              type="number"
-              formControlName="durationMinutes"
-              min="15"
-              max="180"
-              class="rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs sm:text-sm text-ink focus:border-accent focus:outline-none transition-colors"
-              placeholder="60"
-            />
-            @if (meetingForm.get('durationMinutes')?.touched && meetingForm.get('durationMinutes')?.invalid) {
-              <span class="text-xs text-rose-600">La durée doit être positive</span>
-            }
-          </div>
-
-          <!-- Actions -->
-          <div class="flex gap-3 justify-end pt-4 border-t border-line">
-            <app-button
-              variant="secondary"
-              type="button"
-              (click)="cancel()"
-            >
-              Annuler
-            </app-button>
-            <app-button
-              variant="primary"
-              type="submit"
-              [disabled]="submitting()"
-            >
-              @if (submitting()) {
-                Création...
-              } @else {
-                Créer la réunion
-              }
-            </app-button>
-          </div>
-        </form>
-      </app-card>
+      <input
+        id="room-input"
+        [(ngModel)]="roomIdentifier"
+        type="text"
+        placeholder="Ex. Salle de réunion A"
+        class="w-full rounded-xl border border-line/60 bg-surface px-3.5 py-2.5 text-xs text-ink placeholder:text-ink-muted/60 focus:border-accent focus:outline-none transition-colors"
+      />
     </div>
+
+    <div class="flex flex-col gap-1.5">
+      <label for="address-input" class="text-xs font-bold text-ink">
+        Adresse <span class="text-rose-500">*</span>
+      </label>
+
+      <input
+        id="address-input"
+        [(ngModel)]="address"
+        type="text"
+        placeholder="Ex. Cité Keur Gorgui, Dakar"
+        class="w-full rounded-xl border border-line/60 bg-surface px-3.5 py-2.5 text-xs text-ink placeholder:text-ink-muted/60 focus:border-accent focus:outline-none transition-colors"
+      />
+    </div>
+
+  </div>
+}
+
+      <!-- Date et durée -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="flex flex-col gap-1.5">
+          <label for="scheduled-date" class="text-xs font-bold text-ink">Date et heure <span class="text-rose-500">*</span></label>
+          <input
+            id="scheduled-date"
+            [(ngModel)]="scheduledAt"
+            type="datetime-local"
+            class="w-full rounded-xl border border-line/60 bg-surface px-3.5 py-2.5 text-xs text-ink focus:border-accent focus:outline-none transition-colors"
+          />
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label for="duree-input" class="text-xs font-bold text-ink">Durée (min) <span class="text-rose-500">*</span></label>
+          <input
+            id="duree-input"
+            [(ngModel)]="dureeMinutes"
+            type="number"
+            min="5"
+            max="480"
+            placeholder="60"
+            class="w-full rounded-xl border border-line/60 bg-surface px-3.5 py-2.5 text-xs text-ink focus:border-accent focus:outline-none transition-colors"
+          />
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div class="flex flex-col gap-1.5">
+        <label for="description-input" class="text-xs font-bold text-ink">Description</label>
+        <textarea
+          id="description-input"
+          [(ngModel)]="description"
+          rows="3"
+          placeholder="Ordre du jour optionnel..."
+          class="w-full rounded-xl border border-line/60 bg-surface px-3.5 py-2.5 text-xs text-ink placeholder:text-ink-muted/60 focus:border-accent focus:outline-none resize-none transition-colors"
+        ></textarea>
+      </div>
+
+      <!-- Erreur -->
+      @if (erreur()) {
+        <div class="flex items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-xs text-rose-600" role="alert">
+          <app-icon name="warning" class="size-4 shrink-0" />
+          <span>{{ erreur() }}</span>
+        </div>
+      }
+
+      <!-- Actions -->
+      <div class="flex items-center justify-end gap-3 pt-4 border-t border-line/60">
+        <app-button variant="secondary" size="sm" routerLink="/incubateur/reunions">Annuler</app-button>
+        <app-button size="sm" [disabled]="creation()" (click)="planifier()">
+          {{ creation() ? 'Création...' : 'Planifier' }}
+        </app-button>
+      </div>
+
+    </div>
+  </app-card>
+</div>
   `,
 })
-export class MeetingPlanningComponent {
-  private formBuilder = inject(FormBuilder);
-  private meetingService = inject(MeetingService);
-  private cohorteService = inject(CohorteService);
-  private entrepreneurService = inject(EntrepreneurService);
-  private router = inject(Router);
+export class MeetingPlanningComponent implements OnInit {
+  private readonly meetingService = inject(MeetingService);
+  private readonly cohorteService = inject(CohorteService);
+  private readonly entrepreneurService = inject(EntrepreneurService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
 
-  meetingForm: FormGroup = this.formBuilder.group({});
-  submitting = signal(false);
-  entrepreneurs = signal<any[]>([]);
-  cohortes = signal<Cohorte[]>([]);
+  protected roomIdentifier = '';
+protected address = '';
+
+  protected readonly typeReunion = signal<TypeReunion>('INDIVIDUELLE');
+  protected readonly mode = signal<MeetingMode>('ONLINE');
+  protected readonly cohortes = signal<Cohorte[]>([]);
+  protected readonly entrepreneurs = signal<any[]>([]);
+  protected readonly chargementCohortes = signal(false);
+  protected readonly chargementEntrepreneurs = signal(false);
+  protected readonly creation = signal(false);
+  protected readonly erreur = signal<string | null>(null);
+
+  protected titre = '';
+  protected participantId = '';
+  protected cohorteId = signal('');
+  protected scheduledAt = '';
+  protected dureeMinutes: number = 60;
+  protected description = '';
 
   ngOnInit(): void {
-    this.initForm();
-    this.loadEntrepreneurs();
-    this.loadCohortes();
-  }
-
-  private initForm(): void {
-    this.meetingForm = this.formBuilder.group({
-      title: ['', Validators.required],
-      description: [''],
-      type: ['INDIVIDUAL' as MeetingType, Validators.required],
-      mode: ['ONLINE' as MeetingMode, Validators.required],
-      participantId: [''],
-      cohortId: [''],
-      location: [''],
-      address: [''],
-      scheduledDate: ['', Validators.required],
-      scheduledTime: ['', Validators.required],
-      durationMinutes: [60, [Validators.required, Validators.min(15)]]
-    });
-  }
-
-  private loadEntrepreneurs(): void {
-    this.entrepreneurService.getEntrepreneurs().subscribe({
-      next: (entrepreneurs) => this.entrepreneurs.set(entrepreneurs),
-      error: (err) => console.error('Failed to load entrepreneurs:', err)
-    });
-  }
-
-  private loadCohortes(): void {
-    this.cohorteService.getActiveCohortes().subscribe({
-      next: (cohortes) => this.cohortes.set(cohortes),
-      error: (err) => console.error('Failed to load cohortes:', err)
-    });
-  }
-
-  onTypeChange(): void {
-    const type = this.meetingForm.get('type')?.value;
-
-    if (type === 'INDIVIDUAL') {
-      this.meetingForm.get('cohortId')?.setValue('');
-      this.meetingForm.get('cohortId')?.clearValidators();
-      this.meetingForm.get('participantId')?.setValidators([Validators.required]);
-    } else if (type === 'GROUP') {
-      this.meetingForm.get('participantId')?.setValue('');
-      this.meetingForm.get('participantId')?.clearValidators();
-      this.meetingForm.get('cohortId')?.setValidators([Validators.required]);
+    const cohorteIdParam = this.route.snapshot.queryParamMap.get('cohorteId');
+    if (cohorteIdParam) {
+      this.cohorteId.set(cohorteIdParam);
+      this.typeReunion.set('GROUPE');
     }
 
-    this.meetingForm.get('participantId')?.updateValueAndValidity();
-    this.meetingForm.get('cohortId')?.updateValueAndValidity();
+    this.chargementCohortes.set(true);
+    this.cohorteService.getActiveCohortes()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (c) => { this.cohortes.set(c); this.chargementCohortes.set(false); },
+        error: () => this.chargementCohortes.set(false)
+      });
+
+    this.chargementEntrepreneurs.set(true);
+    this.entrepreneurService.getEntrepreneurs()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (e: any[]) => { this.entrepreneurs.set(e); this.chargementEntrepreneurs.set(false); },
+        error: () => this.chargementEntrepreneurs.set(false)
+      });
   }
 
-  onModeChange(): void {
-    const mode = this.meetingForm.get('mode')?.value;
+  
 
-    if (mode === 'ONLINE') {
-      this.meetingForm.get('location')?.setValue('');
-      this.meetingForm.get('address')?.setValue('');
-      this.meetingForm.get('location')?.clearValidators();
-      this.meetingForm.get('address')?.clearValidators();
-    } else if (mode === 'PRESENTIEL') {
-      this.meetingForm.get('location')?.setValidators([Validators.required]);
-      this.meetingForm.get('address')?.setValidators([Validators.required]);
-    }
+  protected planifier(): void {
+    this.erreur.set(null);
+    if (!this.titre.trim()) { this.erreur.set('Le titre est obligatoire.'); return; }
+    if (!this.scheduledAt) { this.erreur.set('La date et l\'heure sont obligatoires.'); return; }
+    if (!this.dureeMinutes || this.dureeMinutes < 1) { this.erreur.set('La durée est obligatoire.'); return; }
+    if (this.typeReunion() === 'INDIVIDUELLE' && !this.participantId) { this.erreur.set('Sélectionnez un entrepreneur.'); return; }
+    if (this.typeReunion() === 'GROUPE' && !this.cohorteId()) { this.erreur.set('Sélectionnez une cohorte.'); return; }
+if (this.mode() === 'PRESENTIEL' && !this.roomIdentifier.trim()) {
+  this.erreur.set('La salle est obligatoire pour une réunion en présentiel.');
+  return;
+}
 
-    this.meetingForm.get('location')?.updateValueAndValidity();
-    this.meetingForm.get('address')?.updateValueAndValidity();
-  }
+if (this.mode() === 'PRESENTIEL' && !this.address.trim()) {
+  this.erreur.set("L'adresse est obligatoire pour une réunion en présentiel.");
+  return;
+}
+    this.creation.set(true);
 
-  onSubmit(): void {
-    if (this.meetingForm.invalid) {
-      this.meetingForm.markAllAsTouched();
-      return;
-    }
-    
- 
-    this.submitting.set(true);
-    
- 
-    const request: CreateMeetingRequest = {
-      title: this.meetingForm.value.title!,
-      description: this.meetingForm.value.description,
-      type: this.meetingForm.value.type!,
-      mode: this.meetingForm.value.mode!,
-      participantId: this.meetingForm.value.participantId || undefined,
-      cohortId: this.meetingForm.value.cohortId || undefined,
-      location: this.meetingForm.value.location || undefined,
-      address: this.meetingForm.value.address || undefined,
-      scheduledAt: this.combineDateTime(
-        this.meetingForm.value.scheduledDate!,
-        this.meetingForm.value.scheduledTime!
-      ),
-      durationMinutes: this.meetingForm.value.durationMinutes!
-    };
+    const req: CreateMeetingRequest = {
+  title: this.titre.trim(),
+  description: this.description.trim() || undefined,
+  type: this.typeReunion() === 'INDIVIDUELLE' ? 'INDIVIDUAL' : 'GROUP',
+  mode: this.mode(),
+  scheduledAt: this.scheduledAt,
+  durationMinutes: this.dureeMinutes,
 
-    console.log('=== CREATE MEETING ===');
-console.log('type:', this.meetingForm.value.type);
-console.log('participantId:', this.meetingForm.value.participantId);
-console.log('cohortId:', this.meetingForm.value.cohortId);
-console.log('scheduledAt:', this.combineDateTime(
-  this.meetingForm.value.scheduledDate,
-  this.meetingForm.value.scheduledTime
-));
-console.log('request:', request);
-    console.log('Create meeting request:', request);
-    console.log('participantId typeof:', typeof request.participantId, 'value:', request.participantId);
-console.log('cohortId typeof:', typeof request.cohortId, 'value:', request.cohortId);
-  console.log('ENTREPRENEUR SELECTIONNE:', 
-  this.meetingForm.value.participantId
-);
-
-console.log('ENTREPRENEURS:', this.entrepreneurs());
-
-    this.meetingService.createMeeting(request).subscribe({
-      next: (meeting) => {
-        this.submitting.set(false);
-        this.router.navigate(['/incubateur/reunions', meeting.id]);
-      },
-      error: (err) => {
-        this.submitting.set(false);
-        console.error('Failed to create meeting:', err);
-        console.error('BODY ERREUR:', err.error);
+  ...(this.mode() === 'PRESENTIEL'
+    ? {
+        roomIdentifier: this.roomIdentifier.trim(),
+        address: this.address.trim(),
       }
-    });
-}
+    : {}),
 
- private combineDateTime(dateString: string, timeString: string): string {
-  if (!dateString || !timeString) {
-    throw new Error('La date et l\'heure sont obligatoires.');
-  }
+  ...(this.typeReunion() === 'INDIVIDUELLE'
+    ? { participantId: this.participantId }
+    : {}),
 
-  const isoString = `${dateString}T${timeString}:00`;
-  const date = new Date(isoString);
+  ...(this.typeReunion() === 'GROUPE'
+    ? { cohortId: this.cohorteId() }
+    : {}),
+};
 
-  if (Number.isNaN(date.getTime())) {
-    throw new Error('Date ou heure invalide.');
-  }
-
-  return isoString; // "2026-09-17T23:26:00" — compatible avec LocalDateTime.parse() côté backend
-}
-
-  cancel(): void {
-    this.router.navigate(['/incubateur/reunions']);
+    this.meetingService.createMeeting(req)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => { this.creation.set(false); this.router.navigate(['/incubateur/reunions']); },
+        error: (err) => { this.creation.set(false); this.erreur.set(err?.error?.message ?? 'Erreur lors de la création.'); },
+      });
   }
 }

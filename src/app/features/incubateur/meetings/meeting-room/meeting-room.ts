@@ -6,6 +6,8 @@ import { MeetingRoomService, MeetingParticipantView } from '../../../../core/ser
 import { Meeting } from '../../../../core/models/meeting.model';
 import { BadgeComponent } from '../../../../shared/components/badge/badge';
 import { Icon } from '../../../../shared/components/icon/icon';
+import { CardComponent } from '../../../../shared/components/card/card.component';
+import { ButtonComponent } from '../../../../shared/components/button/button.component';
 
 @Component({
   selector: 'app-meeting-room',
@@ -13,69 +15,53 @@ import { Icon } from '../../../../shared/components/icon/icon';
   imports: [
     CommonModule,
     BadgeComponent,
-    Icon
-  ],
+    Icon,
+    CardComponent,
+    ButtonComponent
+],
   template: `
     <div class="flex flex-col h-screen w-full bg-neutral-950 font-sans overflow-hidden">
       
       <!-- ========================================== -->
       <!-- 1. VUE PRÉSENTIEL                          -->
       <!-- ========================================== -->
-      @if (meeting()?.mode === 'PRESENTIEL') {
-        <div class="flex-1 flex items-center justify-center p-6 bg-surface/50 backdrop-blur-sm">
-          <div class="bg-white rounded-3xl p-10 max-w-2xl w-full shadow-2xl shadow-black/5 border border-line/50 relative overflow-hidden">
-            
-            <!-- Élément de design décoratif -->
-            <div class="absolute top-0 left-0 w-full h-2 bg-accent"></div>
+    @if (meeting()?.mode === 'PRESENTIEL') {
+  <div class="mx-auto flex w-full max-w-2xl flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <app-card padding="lg" >
+      
+      <!-- En-tête -->
+      <div>
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-muted text-ink-muted text-[11px] font-bold uppercase mb-2 border border-line/60">
+          Rendez-vous physique
+        </span>
+        <h1 class="text-xl font-bold text-ink">{{ meeting()?.title }}</h1>
+        @if (meeting()?.description) {
+          <p class="text-xs text-ink-muted mt-1">{{ meeting()?.description }}</p>
+        }
+      </div>
 
-            <div class="mb-8">
-              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-muted text-ink-muted text-xs font-semibold tracking-wide uppercase mb-4">
-                <span class="w-2 h-2 rounded-full bg-accent"></span>
-                Rendez-vous physique
-              </span>
-              <h1 class="text-3xl font-bold text-ink leading-tight mb-3">{{ meeting()?.title }}</h1>
-              <p class="text-ink-muted text-lg">{{ meeting()?.description }}</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-surface rounded-2xl p-6 border border-line/50">
-              <div class="flex items-start gap-4">
-                <div class="p-3 bg-white rounded-xl shadow-sm border border-line">
-                  <!-- L'icône location -->
-                  <svg class="w-6 h-6 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                  </svg>
-                </div>
-                <div>
-                  <h3 class="text-sm font-bold text-ink mb-1">Lieu & Adresse</h3>
-                  <p class="text-ink-muted font-medium">{{ meeting()?.location || 'Non spécifié' }}</p>
-                  @if (meeting()?.address) {
-                    <p class="text-sm text-ink-muted mt-1">{{ meeting()?.address }}</p>
-                  }
-                </div>
-              </div>
-
-              <div class="flex items-start gap-4">
-                <div class="p-3 bg-white rounded-xl shadow-sm border border-line">
-                  <app-icon name="calendar" class="w-6 h-6 text-accent"></app-icon>
-                </div>
-                <div>
-                  <h3 class="text-sm font-bold text-ink mb-1">Date & Heure</h3>
-                  <p class="text-ink-muted font-medium">{{ meeting()?.scheduledAt ? formatDate(meeting()!.scheduledAt) : 'Non spécifié' }}</p>
-                  <p class="text-sm text-ink-muted mt-1">Durée : {{ meeting()?.durationMinutes }} min</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="mt-10 flex justify-end">
-              <button type="button" (click)="navigateBack()"
-                class="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 font-semibold bg-white text-ink border-2 border-line hover:border-ink hover:bg-surface-muted transition-all duration-200 active:scale-95">
-                Retour au tableau de bord
-              </button>
-            </div>
-          </div>
+      <!-- Infos -->
+      <div class="flex flex-col gap-3 rounded-xl  bg-surface-muted/30 p-4 text-xs text-ink">
+        <div class="flex items-center gap-2">
+        
+          <span><strong>Lieu :</strong> {{ meeting()?.location || 'Non spécifié' }} {{ meeting()?.address ? '(' + meeting()?.address + ')' : '' }}</span>
         </div>
-      } 
+        <div class="flex items-center gap-2">
+          <app-icon name="calendar" class="size-4 text-accent shrink-0" />
+          <span><strong>Date :</strong> {{ meeting()?.scheduledAt ? formatDate(meeting()!.scheduledAt) : 'Non spécifié' }} ({{ meeting()?.durationMinutes }} min)</span>
+        </div>
+      </div>
+
+      <!-- Action -->
+      <div class="flex justify-end pt-2 border-t border-line/60">
+        <app-button variant="secondary" size="sm" (click)="navigateBack()">
+          Retour
+        </app-button>
+      </div>
+
+    </app-card>
+  </div>
+}
       
       <!-- ========================================== -->
       <!-- 2. VUE EN LIGNE (VIDÉO)                    -->
@@ -220,7 +206,7 @@ import { Icon } from '../../../../shared/components/icon/icon';
                 Réessayer
               </button>
               <button type="button" (click)="navigateBack()"
-                class="w-full inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 font-semibold bg-white text-ink border-2 border-line hover:bg-surface-muted transition-all active:scale-95">
+                class="w-full inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 font-semibold   hover:bg-surface-muted transition-all active:scale-95">
                 Annuler
               </button>
             </div>
