@@ -1,7 +1,7 @@
 export interface NoteCoach {
   id: string;
-  entrepreneurId: string;
-  auteurId: string; // MembreEquipe.id
+  projetId: string;
+  auteurId: string;
   contenu: string;
   dateCreation: string;
 }

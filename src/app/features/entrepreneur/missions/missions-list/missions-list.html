@@ -1,0 +1,87 @@
+<div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
+  
+  <!-- En-tête Page Unifié -->
+  <app-page-header
+    title="Mes activités"
+    [subtitle]="loading() ? 'Chargement de vos activités...' : missionsFiltrees().length + ' activite(s) affichée(s) sur ' + allMissions().length"
+  />
+
+  <!-- Barre de contrôles : Filtres Statuts (TabFilter) + Recherche -->
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <app-tab-filter
+      [options]="optionsFiltreStatut()"
+      [value]="filtreStatut()"
+      (valueChange)="filtreStatut.set($event)"
+    />
+
+    <div class="relative w-full sm:w-72">
+      <input
+        type="text"
+        [formControl]="searchControl"
+        placeholder="Rechercher par titre, cohorte..."
+        class="w-full rounded-xl border border-line/60 bg-surface py-2.5 pl-9 pr-4 text-xs text-ink placeholder:text-ink-muted/60 transition-colors focus:border-accent focus:outline-none"
+      />
+      <app-icon name="search" class="absolute left-3 top-3 size-4 text-ink-muted" />
+    </div>
+  </div>
+
+  <!-- Skeleton Loader -->
+  @if (loading()) {
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+        <div class="h-36 rounded-2xl border border-line/60 bg-surface-muted/30 animate-pulse p-5"></div>
+      }
+    </div>
+  } @else {
+    
+    <!-- Grille de cartes unifiée -->
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      @for (mission of missionsFiltrees(); track mission.id) {
+        <app-entity-card
+          [title]="mission.titre"
+          [subtitle]="mission.nomCohorte || 'Mission de cohorte'"
+          [routerLink]="['/entrepreneur/missions', mission.id]"
+          [badgeLabel]="statutBadge(mission.statut).label"
+          [badgeStatus]="statutBadge(mission.statut).status"
+        >
+          <!-- Corps de la carte -->
+          <div card-body class="flex flex-col gap-2">
+            @if (livrableStatusBadge(mission); as livrableBadge) {
+              <app-badge [status]="livrableBadge.status" size="sm" class="w-fit">
+                {{ livrableBadge.label }}
+              </app-badge>
+            }
+            @if (mission.description) {
+              <p class="text-xs text-ink-muted line-clamp-2 leading-relaxed">
+                {{ mission.description }}
+              </p>
+            } @else {
+              <p class="text-xs text-ink-muted/50 italic">Aucune description détaillée.</p>
+            }
+          </div>
+
+          <!-- Pied de carte -->
+          <div card-footer class="w-full flex items-center justify-between text-[11px] text-ink-muted">
+            <span class="flex items-center gap-1.5">
+              <app-icon name="calendar" class="size-3.5" />
+              <span>{{ mission.dateEcheance ? ('Échéance : ' + (mission.dateEcheance | date:'dd/MM/yyyy')) : 'Aucune échéance' }}</span>
+            </span>
+          </div>
+        </app-entity-card>
+      } @empty {
+        <div class="col-span-full">
+          <app-card padding="none" class=" border border-line/60">
+            <div class="p-8 sm:p-12">
+              <app-empty-state
+                title="Aucune mission trouvée"
+                description="Ajustez votre recherche ou changez de filtre pour voir vos jalons."
+                iconName="missions"
+              />
+            </div>
+          </app-card>
+        </div>
+      }
+    </div>
+
+  }
+</div>

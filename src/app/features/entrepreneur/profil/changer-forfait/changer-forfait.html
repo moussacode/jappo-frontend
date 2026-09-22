@@ -1,0 +1,40 @@
+<div class="flex flex-col gap-6 p-8">
+      <a routerLink="/entrepreneur/profil" class="text-sm font-medium text-neutral-500 hover:text-neutral-700">
+        ← Mon profil
+      </a>
+
+      <div>
+        <h1 class="text-2xl font-semibold text-neutral-900">Changer de forfait</h1>
+        <p class="mt-1 text-sm text-neutral-500">Choisis la formule adaptée à ton rythme</p>
+      </div>
+
+      <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+        <div class="rounded-[var(--radius-token-md)] border border-neutral-200 bg-white p-6">
+          <h2 class="text-lg font-semibold text-neutral-900">Gratuit</h2>
+          <p class="mt-2 text-3xl font-semibold text-neutral-900">0 FCFA</p>
+          <ul class="mt-4 flex flex-col gap-2 text-sm text-neutral-700">
+            <li>· Parcours de base en 8 étapes</li>
+            <li>· Génération de documents limitée</li>
+            <li>· Assistant IA standard</li> 
+            <br>
+          </ul>
+        </div>
+
+        <div class="rounded-[var(--radius-token-md)] border-2 border-brand-500 bg-brand-50 p-6">
+          <h2 class="text-lg font-semibold text-brand-500">Premium</h2>
+          <p class="mt-2 text-3xl font-semibold text-neutral-900">3 000 FCFA<span class="text-base font-normal text-neutral-500">/mois</span></p>
+          <ul class="mt-4 flex flex-col gap-2 text-sm text-neutral-700">
+            <li>· IA avancée, sans limite</li>
+            <li>· Génération illimitée de documents</li>
+            <li>· Suivi prioritaire par les coachs</li> <br>
+          </ul>
+          <app-button [fullWidth]="true" class="mt-5" [disabled]="confirmation()" (click)="confirmer()">
+            {{ confirmation() ? 'Confirmation en cours…' : 'Passer à Premium' }}
+          </app-button>
+        </div>
+      </div>
+
+      @if (confirme()) {
+        <p class="text-sm text-success-500">✓ Ton passage en Premium a été confirmé.</p>
+      }
+    </div>

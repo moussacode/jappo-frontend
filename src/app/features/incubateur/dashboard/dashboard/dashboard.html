@@ -1,0 +1,224 @@
+ <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 sm:gap-8 p-3 sm:p-4 md:p-6 lg:p-8">
+      
+      <!-- En-tête Page Unifié avec PageHeaderComponent -->
+      <!-- Salutation personnalisée -->
+<div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+  <div>
+    <h1 class="text-xl font-bold text-ink sm:text-2xl">{{ salutation() }}</h1>
+    <p class="text-xs text-ink-muted mt-1">Voici ce qui se passe dans vos programmes · {{ nomStructure() }}</p>
+  </div>
+  <app-button size="sm" [fullWidthMobile]="true" (click)="showInviteModal.set(true)">
+    <app-icon name="plus" class="size-3.5" />
+    <span>Inviter des entrepreneurs</span>
+  </app-button>
+</div>
+
+      <!-- SKELETON LOADER -->
+      @if (isLoading()) {
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-pulse">
+          @for (i of [1, 2, 3, 4]; track i) {
+            <app-card padding="md" class="h-28 animate-pulse bg-line/20">
+              <div class="h-4 w-1/2 rounded bg-line mb-3"></div>
+              <div class="h-8 w-1/3 rounded bg-line"></div>
+            </app-card>
+          }
+        </div>
+        <app-card padding="md" class="h-64 animate-pulse bg-line/20" />
+      } @else {
+
+        <!-- 1. CARTES KPIS -->
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <app-kpi-card
+            label="Entrepreneurs suivis"
+            [value]="stats()?.entrepreneursActifs || 0"
+            [note]="(stats()?.totalEntrepreneurs || 0) + ' membre(s) au total'"
+            noteVariant="neutral"
+          />
+          <app-kpi-card
+            label="Cohortes actives"
+            [value]="cohortesActives().length  || 0"
+            note="Programmes en cours"
+            noteVariant="brand"
+          />
+          <app-kpi-card
+            label="Score de maturité moyen"
+            [value]="(stats()?.scoreMaturiteMoyen || 0) + '%'"
+            note="Moyenne sur tous les projets"
+            noteVariant="brand"
+          />
+          <app-kpi-card
+            label="Livrables à revoir"
+            [value]="stats()?.livrablesEnAttente || 0"
+            note="En attente d'évaluation"
+            noteVariant="neutral"
+          />
+        </div>
+
+        <!-- 2. QUICK ACTIONS PRIORITAIRES -->
+        <!-- <div class="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4 sm:p-5 shadow-xs">
+          <div class="flex items-center gap-2 text-ink font-bold text-xs uppercase tracking-wider">
+            <app-icon name="sparkles" class="size-4 text-accent" />
+            <span>Actions rapides</span>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <a
+              
+              class="flex flex-col items-center gap-2 rounded-xl border border-line bg-surface-muted/30 p-4 transition-all hover:border-accent hover:bg-accent/5 cursor-pointer shadow-2xs text-center"
+            >
+              <app-icon name="plus" class="size-5 text-accent" />
+              <span class="text-xs font-medium text-ink">Créer une cohorte</span>
+            </a>
+            <a
+              routerLink="/incubateur/missions/attribuer"
+              class="flex flex-col items-center gap-2 rounded-xl border border-line bg-surface-muted/30 p-4 transition-all hover:border-accent hover:bg-accent/5 cursor-pointer shadow-2xs text-center"
+            >
+              <app-icon name="missions" class="size-5 text-accent" />
+              <span class="text-xs font-medium text-ink">Créer une mission</span>
+            </a>
+            <button
+              (click)="showInviteModal.set(true)"
+              class="flex flex-col items-center gap-2 rounded-xl border border-line bg-surface-muted/30 p-4 transition-all hover:border-accent hover:bg-accent/5 cursor-pointer shadow-2xs text-center"
+            >
+              <app-icon name="entrepreneurs" class="size-5 text-accent" />
+              <span class="text-xs font-medium text-ink">Inviter des entrepreneurs</span>
+            </button>
+            <a
+              routerLink="/incubateur/reunions/nouvelle"
+              class="flex flex-col items-center gap-2 rounded-xl border border-line bg-surface-muted/30 p-4 transition-all hover:border-accent hover:bg-accent/5 cursor-pointer shadow-2xs text-center"
+            >
+              <app-icon name="video" class="size-5 text-accent" />
+              <span class="text-xs font-medium text-ink">Planifier une réunion</span>
+            </a>
+          </div>
+        </div> -->
+
+        <!-- 3. ALERTES PROJETS (Score maturité < 40%) -->
+        @if (alertesProjets().length > 0) {
+          <div class="flex flex-col gap-3 rounded-2xl border border-warning/30 bg-warning/5 p-4 sm:p-5 shadow-xs">
+            <div class="flex items-center gap-2 text-ink font-bold text-xs uppercase tracking-wider">
+              <app-icon name="warning" class="size-4 text-warning" />
+              <span>Projets nécessitant une attention ({{ alertesProjets().length }})</span>
+            </div>
+            <div class="divide-y divide-line">
+              @for (alerte of alertesProjets(); track alerte.projetId) {
+                <a
+                  [routerLink]="['/incubateur/projets', alerte.projetId]"
+                  class="flex flex-col sm:flex-row items-start sm:items-center justify-between py-3 gap-3 sm:gap-4 hover:bg-warning/10 transition-colors rounded-lg px-2 cursor-pointer"
+                >
+                  <div class="flex items-center gap-3 min-w-0">
+                    <div class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-warning/20 border border-warning/30 text-warning">
+                      <app-icon name="warning" class="size-4" />
+                    </div>
+                    <div class="flex flex-col min-w-0">
+                      <span class="text-xs font-bold text-ink truncate">{{ alerte.nomProjet }}</span>
+                      <span class="text-[11px] text-ink-muted truncate">
+                        Par <strong>{{ alerte.nomEntrepreneur }}</strong> 
+                      </span>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <span class="text-xs font-bold text-warning">{{ alerte.scoreMaturite }}%</span>
+                    <span class="text-[11px] text-ink-muted">{{ alerte.raisonAlerte }}</span>
+                    <app-icon name="chevron-right" class="size-3.5 text-ink-muted" />
+                  </div>
+                </a>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- 2. BLOC COHORTES ACTIVES (CLICABLES) -->
+        @if (cohortesActives().length > 0) {
+          <div class="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4 sm:p-5 shadow-xs">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2 text-ink font-bold text-xs uppercase tracking-wider">
+                <app-icon name="cohortes" class="size-4 text-accent" />
+                <span>Cohortes Actives ({{ cohortesActives().length }})</span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-1">
+              @for (c of cohortesActives(); track c.id) {
+                <a
+                  [routerLink]="['/incubateur/cohortes']"
+                  [queryParams]="{ cohorteId: c.id }"
+                  class="group flex items-center justify-between rounded-xl border border-line bg-surface-muted/30 p-3.5 transition-all hover:border-accent hover:bg-accent/5 cursor-pointer shadow-2xs"
+                >
+                  <div class="flex flex-col min-w-0">
+                    <span class="text-xs font-bold text-ink truncate transition-colors group-hover:text-accent">{{ c.nom }}</span>
+                    <span class="text-[11px] text-ink-muted truncate">{{ c.description || 'Aucune description' }}</span>
+                  </div>
+                  <div class="flex items-center gap-2 shrink-0">
+                   
+                    <app-icon name="chevron-right" class="size-3.5 text-ink-muted transition-transform group-hover:translate-x-0.5 group-hover:text-accent" />
+                  </div>
+                </a>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- 3. ACTIVITÉ RÉCENTE (DERNIERS LIVRABLES DÉPOSÉS) -->
+        <app-card padding="none" class="w-full min-w-0">
+          <div class="flex items-center justify-between border-b border-line px-4 py-3 sm:px-6 sm:py-4 bg-surface-muted/30">
+            <div class="flex items-center gap-2 min-w-0">
+              <app-icon name="missions" class="size-4 text-ink-muted shrink-0" />
+              <h2 class="text-sm font-bold text-ink truncate">Activité récente (Derniers livrables déposés)</h2>
+            </div>
+          </div>
+
+          <div class="divide-y divide-line">
+            @for (l of livrablesRecents(); track l.livrableId) {
+              <a
+                [routerLink]="l.missionId ? ['/incubateur/missions', l.missionId] : null"
+                class="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-3 sm:px-6 sm:py-4 hover:bg-surface-muted/40 transition-colors gap-3 sm:gap-4 group cursor-pointer"
+              >
+                <div class="flex items-center gap-3 min-w-0">
+                  <div class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-surface-muted border border-line text-ink-muted group-hover:border-accent/40 group-hover:text-accent transition-colors">
+                    <app-icon name="missions" class="size-4" />
+                  </div>
+                  <div class="flex flex-col min-w-0">
+                    <span class="text-xs font-bold text-ink truncate group-hover:text-accent transition-colors">{{ l.nomLivrable }}</span>
+                    <span class="text-[11px] text-ink-muted truncate">
+                      Par <strong>{{ l.nomEntrepreneur }}</strong> ({{ l.nomProjet }})
+                    </span>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-2 sm:gap-3 shrink-0 w-full sm:w-auto justify-between sm:justify-end">
+                  <span class="text-[11px] text-ink-muted">
+                    {{ l.dateDepot ? (l.dateDepot | date:'dd/MM/yyyy à HH:mm') : '' }}
+                  </span>
+                  <div class="flex items-center gap-2">
+                    <app-badge [status]="badgeLivrableStatus(l.statut)" size="sm">
+                      {{ formaterStatutLivrable(l.statut) }}
+                    </app-badge>
+                    <app-icon name="chevron-right" class="size-3.5 text-ink-muted transition-transform group-hover:translate-x-0.5 group-hover:text-accent" />
+                  </div>
+                </div>
+              </a>
+            } @empty {
+              <div class="p-6 sm:p-8">
+                <app-empty-state
+                  title="Aucun livrable récemment déposé"
+                  description="Les livrables soumis par les entrepreneurs de vos cohortes apparaîtront ici."
+                  iconName="missions"
+                />
+              </div>
+            }
+          </div>
+        </app-card>
+
+      }
+
+      @if (showInviteModal()) {
+        <app-inviter-entrepreneur-modal
+          (close)="showInviteModal.set(false)"
+          (invited)="chargerDonneesDashboard()"
+        />
+      }
+
+
+      
+
+    </div>

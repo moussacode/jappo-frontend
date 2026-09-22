@@ -1,47 +1,146 @@
-<div class="flex min-h-screen items-center justify-center bg-neutral-25 p-6">
-      <div class="w-full max-w-[440px] rounded-[var(--radius-token-lg)] border border-neutral-200 bg-white p-10">
-        <span class="text-2xl font-semibold text-brand-500">JAPPO</span>
+<div class="flex h-screen w-full overflow-hidden bg-surface-muted">
+  <div class="mx-auto flex h-full w-full">
+    
+    <!-- BANNIÈRE GAUCHE : Illustration & Branding -->
+    <div class="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-surface-dark p-8 text-white lg:flex">
+      <!-- Image de fond avec overlay -->
+      <img
+        src="/connexion.jpg"
+        alt="Background Illustration"
+        class="absolute inset-0 h-full w-full object-cover opacity-95"
+      />
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/40"></div>
 
-        <div class="mt-6 mb-6">
-          <h1 class="text-xl font-semibold text-neutral-900">Content de te revoir</h1>
-          <p class="mt-1 text-sm text-neutral-500">Connecte-toi pour retrouver ton parcours</p>
+      <!-- Branding top -->
+      <div class="relative z-10 flex items-center gap-2">
+        <img src="/logo.png" alt="JAPPO" class="h-7 w-auto" />
+      </div>
+
+      <!-- Footer Gauche -->
+      <div class="relative z-10 text-xs text-white/50">
+        © 2026 JAPPO Inc. | Tous droits réservés
+      </div>
+    </div>
+
+    <!-- CÔTÉ DROIT : Formulaire de connexion -->
+    <div class="flex h-full w-full items-center justify-center overflow-y-auto bg-surface-muted/30 p-4 sm:p-8 lg:w-1/2">
+      
+      <!-- Utilisation du composant app-card -->
+      <app-card padding="md" class="w-full max-w-[380px]">
+        
+        <!-- Logo -->
+        <div class="flex items-center gap-2">
+          <img src="/logo.png" alt="JAPPO" class="h-7 w-auto object-contain" />
         </div>
 
-        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex flex-col gap-4">
-          <div class="flex flex-col gap-2">
-            <label for="email" class="text-xs font-medium text-neutral-500">ADRESSE EMAIL</label>
-            <input
+        <!-- En-tête -->
+        <div class="mt-4 mb-5">
+          <h1 class="text-lg font-semibold text-ink sm:text-xl">
+            Content de te revoir
+          </h1>
+          <p class="mt-0.5 text-xs text-ink-muted">
+            Entrez vos identifiants pour accéder à votre espace.
+          </p>
+        </div>
+
+        <!-- Banner Erreur -->
+        @if (errorMessage()) {
+          <div class="mb-4 flex items-center gap-2.5 rounded-xl bg-rose-500/10 p-2.5 text-xs text-rose-600 border border-rose-500/20">
+            <span>{{ errorMessage() }}</span>
+          </div>
+        }
+
+        <!-- Formulaire -->
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex flex-col gap-3.5">
+
+          <!-- Email -->
+          <app-form-field
+            label="Adresse email"
+            inputId="email"
+            [error]="form.controls.email.touched && form.controls.email.errors?.['required'] ? 'L\'email est obligatoire' : (form.controls.email.touched && form.controls.email.errors?.['email'] ? 'Adresse email invalide' : undefined)"
+          >
+            <app-input
               id="email"
               type="email"
               formControlName="email"
               placeholder="awa.ndiaye@email.com"
-              class="rounded-[var(--radius-token-sm)] border border-neutral-200 px-3.5 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
+              [invalid]="form.controls.email.touched && form.controls.email.invalid"
             />
+          </app-form-field>
+
+          <!-- Mot de passe -->
+          <app-form-field
+            label="Mot de passe"
+            inputId="motDePasse"
+            [error]="form.controls.motDePasse.touched && form.controls.motDePasse.errors?.['required'] ? 'Le mot de passe est obligatoire' : undefined"
+          >
+            <div class="relative">
+              <app-input
+                id="motDePasse"
+                [type]="showPassword() ? 'text' : 'password'"
+                formControlName="motDePasse"
+                placeholder="••••••••"
+                [invalid]="form.controls.motDePasse.touched && form.controls.motDePasse.invalid"
+              />
+              
+              <button
+                type="button"
+                (click)="togglePasswordVisibility()"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink transition-colors cursor-pointer"
+              >
+                <app-icon [name]="passwordIcon" class="size-4" />
+              </button>
+            </div>
+          </app-form-field>
+
+          <!-- Mot de passe oublié -->
+          <div class="flex justify-end">
+            <a
+              routerLink="/mot-de-passe-oublie"
+              class="text-xs text-ink-muted transition-colors hover:text-accent"
+            >
+              Mot de passe oublié ?
+            </a>
           </div>
 
-          <div class="flex flex-col gap-2">
-            <label for="motDePasse" class="text-xs font-medium text-neutral-500">MOT DE PASSE</label>
-            <input
-              id="motDePasse"
-              type="password"
-              formControlName="motDePasse"
-              placeholder="••••••••"
-              class="rounded-[var(--radius-token-sm)] border border-neutral-200 px-3.5 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
-            />
-          </div>
-
-          @if (errorMessage()) {
-            <p class="text-sm text-danger-500">{{ errorMessage() }}</p>
-          }
-
-          <app-button type="submit" [disabled]="form.invalid || submitting()">
+          <!-- Bouton Connexion -->
+          <app-button
+            type="submit"
+            [fullWidth]="true"
+            [disabled]="form.invalid || submitting()"
+            class="w-full"
+          >
             {{ submitting() ? 'Connexion en cours…' : 'Se connecter' }}
           </app-button>
+
+          <!-- Séparateur -->
+          <div class="relative my-1 flex items-center justify-center">
+            <div class="absolute inset-0 flex items-center">
+              <div class="w-full border-t border-line"></div>
+            </div>
+            <span class="relative bg-surface px-3 text-[11px] text-ink-muted">
+              Ou continuer avec
+            </span>
+          </div>
+
+          <!-- Social Login (Google) -->
+          <div #googleButtonContainer class="flex justify-center"></div>
+
         </form>
 
-        <p class="mt-4 text-center text-sm text-neutral-500">
-          Pas encore de compte ?
-          <a routerLink="/inscription" class="font-medium text-brand-500">Créer un compte</a>
+        <!-- Inscription -->
+        <p class="mt-5 text-center text-xs text-ink-muted">
+          Vous êtes un incubateur ?
+          <a
+            routerLink="/inscription/incubateur"
+            class="font-semibold text-ink transition-colors hover:underline"
+          >
+            Créer un espace incubateur
+          </a>
         </p>
-      </div>
+
+      </app-card>
     </div>
+
+  </div>
+</div>

@@ -1,0 +1,368 @@
+	
+<div class="min-h-screen bg-surface text-ink selection:bg-accent/20 font-sans antialiased">
+
+  <!-- ═══════════════════════════════════
+       NAVBAR — glassmorphism sobre
+  ═══════════════════════════════════ -->
+  <header class="sticky top-0 z-50 border-b border-line/60 bg-surface/80 backdrop-blur-xl">
+    <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 sm:px-8">
+      <div class="flex items-center gap-3">
+        <img src="/logo.png" alt="JAPPO" class="h-7 w-auto object-contain" />
+      </div>
+      <nav class="hidden md:flex items-center gap-8 text-xs font-medium text-ink-muted">
+        <a href="#features"    class="hover:text-ink transition-colors">Fonctionnalités</a>
+        <a href="#ia"          class="hover:text-ink transition-colors">Jappo IA</a>
+        <a href="#workflow"    class="hover:text-ink transition-colors">Workflow</a>
+        <a href="#ecosysteme"  class="hover:text-ink transition-colors">Avis</a>
+      </nav>
+      <div class="flex items-center gap-3">
+        <a routerLink="/connexion"
+           class="hidden sm:block text-xs font-medium text-ink-muted hover:text-ink transition-colors px-3 py-2">
+          Se connecter
+        </a>
+        <a routerLink="/inscription/incubateur"
+           class="inline-flex items-center gap-1.5 rounded-[var(--radius-button)] bg-[var(--color-action-fill)] dark:bg-white px-4 py-2 text-xs font-semibold text-white dark:text-[var(--color-charcoal)] hover:opacity-90 transition-opacity">
+          Créer un espace
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════
+       HERO — glassmorphism + gradient
+  ═══════════════════════════════════ -->
+  <section class="relative overflow-hidden pt-20 pb-24 sm:pt-32 sm:pb-32 border-b border-line">
+
+    <!-- Fond gradient radial subtil -->
+    <div class="pointer-events-none absolute inset-0 -z-10">
+      <div class="absolute top-0 left-1/2 -translate-x-1/2 h-[500px] w-[900px] rounded-full bg-accent/8 blur-[140px]"></div>
+      <div class="absolute bottom-0 right-0 h-[300px] w-[400px] rounded-full bg-[var(--color-lavender)]/5 blur-[100px]"></div>
+    </div>
+
+    <div class="mx-auto max-w-5xl px-6 text-center">
+
+      <!-- Badge -->
+      <!-- <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-accent/20 bg-accent/5 text-xs font-medium text-accent mb-8 animate-fade-in">
+        <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-accent"></span></span>
+        Piloté par l'IA · Conçu pour les incubateurs
+      </div> -->
+
+      <!-- Titre -->
+      <h1 class="text-4xl font-bold tracking-tight text-ink sm:text-6xl lg:text-7xl leading-[1.08] mb-6">
+        L'infrastructure de pilotage<br class="hidden sm:inline" />
+        <span class="bg-gradient-to-r from-[var(--color-electric-blue)] to-[var(--color-lavender)] bg-clip-text text-transparent">
+          pour vos porteurs de projets.
+        </span>
+      </h1>
+
+      <p class="mx-auto max-w-2xl text-base sm:text-lg text-ink-muted leading-relaxed mb-10">
+        Centralisez le suivi des incubés, évaluez les scores de maturité en temps réel et orchestrez vos cohortes avec une précision chirurgicale.
+      </p>
+
+      <!-- CTAs -->
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+        <a routerLink="/inscription/incubateur"
+           class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-[var(--radius-button)] bg-[var(--color-action-fill)] dark:bg-white px-6 py-3 text-sm font-semibold text-white dark:text-[var(--color-charcoal)] hover:opacity-90 transition-opacity shadow-lg shadow-ink/10">
+          Lancer mon incubateur
+          <app-icon name="arrow-right" class="size-4"></app-icon>
+        </a>
+        <a href="#features"
+           class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-[var(--radius-button)] border border-line bg-surface px-6 py-3 text-sm font-medium text-ink hover:bg-surface-muted transition-colors">
+          Découvrir la plateforme
+        </a>
+      </div>
+
+      <!-- Dashboard preview card (glassmorphism) -->
+      <div class="mt-20 relative max-w-4xl mx-auto">
+
+        <!-- Carte flottante gauche -->
+        <div class="hidden md:flex animate-float absolute -top-6 -right-6 z-20 items-center gap-3 rounded-2xl border border-line bg-surface/90 backdrop-blur-xl px-4 py-3 shadow-xl shadow-ink/8">
+          <div class="h-8 w-8 rounded-full border border-[var(--color-vivid-green)]/30 flex items-center justify-center text-[var(--color-vivid-green)]">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <path class="animate-check" d="M20 6L9 17l-5-5" />
+            </svg>
+          </div>
+          <div class="text-left">
+            <p class="text-xs font-semibold text-ink">Livrable validé</p>
+            <p class="text-[11px] text-ink-muted">Business Model Canvas</p>
+          </div>
+        </div>
+
+        <!-- Carte flottante droite -->
+        <div class="hidden md:flex animate-float-delayed absolute -bottom-5 -left-8 z-20 items-center gap-3 rounded-2xl border border-line bg-surface/90 backdrop-blur-xl px-4 py-3 shadow-xl shadow-ink/8">
+          <div class="h-9 w-9 rounded-xl border border-accent/20 flex items-end justify-center p-2 gap-1 text-accent shrink-0">
+            <span class="w-1 bg-accent rounded-full h-full animate-bar-1"></span>
+            <span class="w-1 bg-accent rounded-full h-full animate-bar-2"></span>
+            <span class="w-1 bg-accent rounded-full h-full animate-bar-3"></span>
+          </div>
+          <div class="text-left">
+            <p class="text-xs font-semibold text-ink">Maturité du projet</p>
+            <p class="text-[11px] font-semibold text-[var(--color-vivid-green)]">82% atteint</p>
+          </div>
+        </div>
+
+        <!-- Image dashboard -->
+        <div class="relative rounded-[var(--radius-card-lg)] border border-line bg-surface p-2 shadow-2xl shadow-ink/8 overflow-hidden ring-1 ring-line/50">
+          <div class="rounded-[calc(var(--radius-card-lg)-4px)] overflow-hidden border border-line bg-surface-muted/30">
+            <img src="/dashboard-preview.png" alt="Jappo Dashboard" class="w-full h-auto object-cover" loading="lazy" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════
+       FONCTIONNALITÉS PRINCIPALES
+  ═══════════════════════════════════ -->
+  <section id="features" class="py-24 border-b border-line">
+    <div class="mx-auto max-w-7xl px-6 sm:px-8">
+      <div class="max-w-2xl mb-16">
+        <p class="text-xs font-semibold uppercase tracking-wider text-accent mb-3">Architecture & Puissance</p>
+        <h2 class="text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+          Tout ce dont un incubateur moderne a besoin.
+        </h2>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        @for (feature of features; track feature.title) {
+          <div class="group rounded-[var(--radius-card-lg)] border border-line bg-surface p-8 flex flex-col justify-between transition-all duration-200 hover:border-line-strong hover:shadow-md hover:-translate-y-0.5">
+            <div>
+              <div class="h-10 w-10 rounded-xl bg-surface-muted flex items-center justify-center text-ink mb-6 border border-line group-hover:border-accent/30 group-hover:text-accent transition-colors">
+                <app-icon [name]="feature.icon" class="size-5"></app-icon>
+              </div>
+              <h3 class="text-base font-semibold text-ink">{{ feature.title }}</h3>
+              <p class="mt-2 text-xs text-ink-muted leading-relaxed">{{ feature.description }}</p>
+            </div>
+            <div class="mt-8 pt-4 border-t border-line flex items-center text-xs font-medium text-ink">
+              <span>{{ feature.cta }}</span>
+              <app-icon name="arrow-right" class="size-3.5 ml-auto text-ink-muted group-hover:translate-x-1 transition-transform"></app-icon>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════
+       JAPPO INTELLIGENCE (IA)
+  ═══════════════════════════════════ -->
+  <section id="ia" class="py-24 border-b border-line relative overflow-hidden">
+    <!-- Fond glassmorphism -->
+    <div class="pointer-events-none absolute inset-0 -z-10">
+      <div class="absolute top-1/2 left-1/4 -translate-y-1/2 h-[400px] w-[400px] rounded-full bg-[var(--color-lavender)]/8 blur-[120px]"></div>
+    </div>
+
+    <div class="mx-auto max-w-7xl px-6 sm:px-8">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+        <div>
+          <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--color-lavender)]/30 bg-[var(--color-lavender)]/8 text-xs font-semibold text-[var(--color-lavender)] mb-6">
+            <app-icon name="sparkles" class="size-3.5"></app-icon>
+            Jappo Intelligence
+          </div>
+          <h2 class="text-3xl font-bold tracking-tight text-ink sm:text-4xl mb-4">
+            Un assistant IA qui connaît vos entrepreneurs.
+          </h2>
+          <p class="text-sm text-ink-muted leading-relaxed mb-8">
+            Jappo Intelligence analyse le contexte réel de vos cohortes, missions et livrables pour vous fournir des recommandations précises et actionnables — jamais des réponses génériques.
+          </p>
+          <ul class="space-y-3">
+            @for (point of iaPoints; track point) {
+              <li class="flex items-start gap-3 text-sm">
+                <div class="mt-0.5 h-5 w-5 rounded-full bg-[var(--color-lavender)]/10 text-[var(--color-lavender)] flex items-center justify-center text-[10px] font-bold shrink-0">✓</div>
+                <span class="text-ink-muted leading-relaxed">{{ point }}</span>
+              </li>
+            }
+          </ul>
+        </div>
+
+        <!-- Card démo IA (glassmorphism) -->
+        <div class="relative rounded-[var(--radius-card-lg)] border border-[var(--color-lavender)]/20 bg-surface/80 backdrop-blur-xl p-6 shadow-xl shadow-ink/5">
+          <div class="flex items-center gap-3 mb-4 pb-4 border-b border-line">
+            <div class="h-8 w-8 rounded-xl bg-[var(--color-lavender)]/10 flex items-center justify-center">
+              <app-icon name="sparkles" class="size-4 text-[var(--color-lavender)]"></app-icon>
+            </div>
+            <div>
+              <p class="text-xs font-semibold text-ink">Jappo Intelligence</p>
+              <p class="text-[10px] text-ink-muted">Assistant IA contextuel</p>
+            </div>
+            <div class="ml-auto flex gap-1">
+              <span class="h-2 w-2 rounded-full bg-[var(--color-vivid-green)] animate-pulse"></span>
+              <span class="text-[10px] text-ink-muted">En ligne</span>
+            </div>
+          </div>
+          <div class="space-y-3">
+            <div class="flex gap-2.5">
+              <div class="h-7 w-7 rounded-full bg-surface-muted border border-line flex items-center justify-center text-[10px] font-bold text-ink shrink-0">M</div>
+              <div class="rounded-xl rounded-tl-sm bg-surface-muted/60 px-3 py-2 text-xs text-ink max-w-[80%]">
+                Quelles startups de la Cohorte Alpha ont besoin d'attention cette semaine ?
+              </div>
+            </div>
+            <div class="flex gap-2.5 justify-end">
+              <div class="rounded-xl rounded-tr-sm bg-accent/10 border border-accent/20 px-3 py-2 text-xs text-ink max-w-[80%]">
+                <span class="font-semibold text-accent">3 startups</span> nécessitent une intervention : TechVision (maturité 28%), AgroLink (livrable en retard de 5 jours), et HealthPulse (aucune soumission depuis 2 semaines).
+              </div>
+              <div class="h-7 w-7 rounded-full bg-[var(--color-lavender)]/10 border border-[var(--color-lavender)]/20 flex items-center justify-center shrink-0">
+                <app-icon name="sparkles" class="size-3.5 text-[var(--color-lavender)]"></app-icon>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════
+       WORKFLOW — Parcours structuré
+  ═══════════════════════════════════ -->
+  <section id="workflow" class="py-24 border-b border-line bg-surface-muted/20">
+    <div class="mx-auto max-w-7xl px-6 sm:px-8 text-center">
+      <p class="text-xs font-semibold uppercase tracking-wider text-accent mb-3">Workflow</p>
+      <h2 class="text-3xl font-bold tracking-tight text-ink sm:text-4xl mb-4">
+        De l'idée au closing, un parcours structuré.
+      </h2>
+      <p class="text-sm text-ink-muted max-w-xl mx-auto mb-16">
+        Jappo guide chaque entrepreneur à travers des phases claires avec des livrables précis à chaque étape.
+      </p>
+
+      <div class="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Ligne de connexion (desktop) -->
+        <div class="hidden lg:block absolute top-8 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-transparent via-line to-transparent"></div>
+
+        @for (step of workflowSteps; track step.numero; let i = $index) {
+          <div class="flex flex-col items-center text-center gap-4">
+            <div class="relative h-16 w-16 rounded-2xl flex items-center justify-center text-lg font-bold border-2 z-10"
+                 [class]="step.actif ? 'bg-accent text-white border-accent shadow-lg shadow-accent/25' : 'bg-surface text-ink-muted border-line'">
+              {{ step.numero }}
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-ink">{{ step.titre }}</p>
+              <p class="text-xs text-ink-muted mt-1 leading-relaxed">{{ step.description }}</p>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════
+       COHORTES SECTION
+  ═══════════════════════════════════ -->
+  <section id="cohortes" class="py-24 border-b border-line">
+    <div class="mx-auto max-w-7xl px-6 sm:px-8">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-accent mb-3">Cycles de vie</p>
+          <h2 class="text-3xl font-bold tracking-tight text-ink sm:text-4xl mb-4">
+            Pilotez chaque cohorte de l'idée à la levée de fonds.
+          </h2>
+          <p class="text-sm text-ink-muted leading-relaxed mb-8">
+            Jappo structure l'accompagnement en organisant livrables, revues de comités et bilans d'étape dans une interface unifiée.
+          </p>
+          <div class="space-y-4">
+            @for (item of cohorteBenefits; track item.title) {
+              <div class="flex items-start gap-3">
+                <div class="mt-0.5 h-5 w-5 rounded-full bg-accent/10 text-accent flex items-center justify-center text-[10px] font-bold shrink-0">✓</div>
+                <div>
+                  <p class="text-xs font-semibold text-ink">{{ item.title }}</p>
+                  <p class="text-[11px] text-ink-muted">{{ item.desc }}</p>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="rounded-[var(--radius-card-lg)] border border-line bg-surface p-6 shadow-sm">
+          <p class="text-xs font-semibold text-ink mb-4">Aperçu d'une promotion active</p>
+          <div class="space-y-3">
+            @for (cohorte of demoCohortes; track cohorte.nom) {
+              <div class="p-3 rounded-xl border border-line bg-surface-muted/40 flex items-center justify-between hover:border-accent/30 transition-colors">
+                <div>
+                  <p class="text-xs font-medium text-ink">{{ cohorte.nom }}</p>
+                  <p class="text-[10px] text-ink-muted">{{ cohorte.detail }}</p>
+                </div>
+                <div class="text-right">
+                  <p class="text-xs font-semibold" [class]="cohorte.progression >= 70 ? 'text-accent' : 'text-ink-muted'">{{ cohorte.progression }}%</p>
+                  <div class="w-16 h-1 bg-line rounded-full mt-1 overflow-hidden">
+                    <div class="h-full bg-accent rounded-full transition-all" [style.width]="cohorte.progression + '%'"></div>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════
+       AVIS / TEMOIGNAGES
+  ═══════════════════════════════════ -->
+  <section id="ecosysteme" class="py-24 border-b border-line bg-surface-muted/20">
+    <div class="mx-auto max-w-7xl px-6 sm:px-8 text-center">
+      <p class="text-xs font-semibold uppercase tracking-wider text-accent mb-3">Retours d'expérience</p>
+      <h2 class="text-3xl font-bold tracking-tight text-ink sm:text-4xl mb-16">
+        Conçu pour amplifier l'impact de votre structure.
+      </h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+        @for (avis of temoignages; track avis.auteur) {
+          <div class="rounded-[var(--radius-card-lg)] border border-line bg-surface p-8 hover:border-line-strong transition-colors">
+            <p class="text-xs font-semibold text-ink mb-2">{{ avis.titre }}</p>
+            <p class="text-xs text-ink-muted leading-relaxed mb-6">{{ avis.contenu }}</p>
+            <div class="flex items-center gap-3">
+              <div class="h-8 w-8 rounded-full bg-surface-muted border border-line flex items-center justify-center text-xs font-bold text-ink">{{ avis.initiale }}</div>
+              <div>
+                <p class="text-xs font-semibold text-ink">{{ avis.auteur }}</p>
+                <p class="text-[10px] text-ink-muted">{{ avis.role }}</p>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════
+       CTA FINAL
+  ═══════════════════════════════════ -->
+  <section class="py-24 text-center relative overflow-hidden">
+    <div class="pointer-events-none absolute inset-0 -z-10">
+      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[300px] w-[600px] rounded-full bg-accent/6 blur-[100px]"></div>
+    </div>
+    <div class="mx-auto max-w-3xl px-6">
+      <h2 class="text-3xl font-bold tracking-tight text-ink sm:text-4xl mb-4">
+        Prêt à transformer la gestion de votre incubateur ?
+      </h2>
+      <p class="text-sm text-ink-muted mb-8">
+        Rejoignez les structures innovantes et pilotez vos porteurs de projets avec un outil taillé sur mesure.
+      </p>
+      <div class="flex flex-col sm:flex-row justify-center gap-3">
+        <a routerLink="/inscription/incubateur"
+           class="inline-flex items-center justify-center gap-2 rounded-[var(--radius-button)] bg-[var(--color-action-fill)] dark:bg-white px-8 py-3.5 text-sm font-semibold text-white dark:text-[var(--color-charcoal)] hover:opacity-90 transition-opacity shadow-lg shadow-ink/15">
+          Créer mon espace Incubateur
+          <app-icon name="arrow-right" class="size-4"></app-icon>
+        </a>
+        <a routerLink="/connexion"
+           class="inline-flex items-center justify-center rounded-[var(--radius-button)] border border-line bg-surface px-8 py-3.5 text-sm font-medium text-ink hover:bg-surface-muted transition-colors">
+          Déjà inscrit ? Se connecter
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════
+       FOOTER
+  ═══════════════════════════════════ -->
+  <footer class="border-t border-line py-12">
+    <div class="mx-auto max-w-7xl px-6 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-6 text-xs text-ink-muted">
+      <div class="flex items-center gap-3">
+        <img src="/logo.png" alt="JAPPO" class="h-5 w-auto object-contain grayscale opacity-60" />
+        <span>© 2026 Jappo Inc. Tous droits réservés.</span>
+      </div>
+      <div class="flex items-center gap-6">
+        <a routerLink="/connexion"              class="hover:text-ink transition-colors">Connexion</a>
+        <a routerLink="/inscription/incubateur" class="hover:text-ink transition-colors">Inscription</a>
+        <a href="#"                             class="hover:text-ink transition-colors">Confidentialité</a>
+      </div>
+    </div>
+  </footer>
+
+</div>

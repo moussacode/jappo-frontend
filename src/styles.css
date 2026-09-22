@@ -1,17 +1,20 @@
 /* You can add global styles to this file, and also import other style files */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
 
-@import 'tailwindcss';
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@import '@angular/cdk/overlay-prebuilt.css';
 
 @theme {
-  /* Brand — terracotta */
+  /* ===== Ancienne palette JAPPO — conservée telle quelle, utilisée
+     directement par les 21 écrans Entrepreneur déjà construits ===== */
   --color-brand-50: #FDF4F0;
   --color-brand-100: #FCE4D9;
   --color-brand-300: #F0A57E;
   --color-brand-500: #D9622E;
   --color-brand-600: #BF4F1F;
   --color-brand-700: #993E18;
-
-  /* Neutrals — warm gray */
   --color-neutral-0: #FFFFFF;
   --color-neutral-25: #FAFAF9;
   --color-neutral-50: #F5F4F2;
@@ -24,8 +27,6 @@
   --color-neutral-700: #3A3733;
   --color-neutral-800: #26241F;
   --color-neutral-900: #161513;
-
-  /* Semantic status */
   --color-success-100: #E1F5E9;
   --color-success-500: #2F9E5C;
   --color-warning-100: #FBF0DC;
@@ -34,19 +35,258 @@
   --color-danger-500: #D6432F;
   --color-info-100: #E3EEFA;
   --color-info-500: #3E7FBF;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
 
-  /* Typography */
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  /* ===== Palette Dub — nouvelle identité, utilisée par tout ce qu'on
+     construit à partir de maintenant (espace Incubateur) ===== */
+  --color-canvas-white: #ffffff;
+  --color-paper-mist: #f5f5f5;
+  --color-ash: #e5e5e5;
+  --color-smoke: #d4d4d4;
+  --color-pebble: #c8c8c8;
+  --color-midnight-ink: #0a0a0a;
+  --color-charcoal: #171717;
+  --color-graphite: #262626;
+  --color-slate: #404040;
+  --color-steel: #525252;
+  --color-fog: #737373;
+  --color-silver: #a3a3a3;
+  --color-electric-blue: #2563eb;
+  --color-deep-sapphire: #1e40af;
+  --color-soft-mint: #dcfce7;
+  --color-vivid-green: #16a34a;
+  --color-tangerine: #ea580c;
+  --color-lavender: #7c3aed;
+  --color-action-fill: #000000;
+  --color-sidebar-active: #dbeaff;
 
-  /* Radius */
+  /* Rayons — vocabulaire Dub (3 paliers stricts) */
+  --radius-button: 8px;
+  --radius-card: 12px;
+  --radius-card-lg: 16px;
+  --radius-input: 6px;
+  --radius-pill: 9999px;
+
+  /* Anciens tokens de rayon — conservés pour les écrans Entrepreneur existants */
   --radius-token-sm: 8px;
   --radius-token-md: 12px;
   --radius-token-lg: 16px;
+
+  /* Ombre unique — Dub privilégie les bordures 1px aux ombres */
+  --shadow-subtle: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
+
+  /* --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif; */
+  /* --font-display: "Satoshi", "Inter", ui-sans-serif, system-ui, sans-serif; */
+
+  /* ===== Couche sémantique — POINTE MAINTENANT VERS DUB.
+     C'est cette couche que les nouveaux écrans utilisent
+     (bg-surface, text-ink, border-line...), jamais les couleurs
+     brutes ci-dessus directement. ===== */
+  --color-surface: var(--color-canvas-white);
+  --color-surface-muted: var(--color-paper-mist);
+  --color-surface-subtle: var(--color-paper-mist);
+  --color-line: var(--color-ash);
+  --color-line-strong: var(--color-smoke);
+  --color-input-border: var(--color-midnight-ink);
+  --color-ink: var(--color-charcoal);
+  --color-ink-muted: var(--color-steel);
+  --color-ink-faint: var(--color-fog);
+  --color-accent: var(--color-electric-blue);
+  --color-accent-strong: var(--color-deep-sapphire);
+  --color-accent-soft: var(--color-sidebar-active);
 }
 
-html, body {
+.dark {
+  --color-surface: var(--color-charcoal);
+  --color-surface-muted: var(--color-midnight-ink);
+  --color-surface-subtle: var(--color-graphite);
+  --color-line: var(--color-slate);
+  --color-line-strong: var(--color-steel);
+  --color-input-border: var(--color-silver);
+  --color-ink: #fafafa;
+  --color-ink-muted: var(--color-silver);
+  --color-ink-faint: var(--color-fog);
+  --color-accent: #60a5fa;
+  --color-accent-strong: var(--color-electric-blue);
+  --color-accent-soft: #1e3a5f;
+  --color-action-fill: #fafafa;
+}
+
+html,
+body {
   height: 100%;
   font-family: var(--font-sans);
-  background-color: var(--color-neutral-25);
-  color: var(--color-neutral-900);
+  background-color: var(--color-surface-muted);
+  color: var(--color-ink);
+}
+
+
+/* Flottement des cartes */
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes float-delayed {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(8px); }
+}
+
+.animate-float {
+  animation: float-slow 5s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float-delayed 6s ease-in-out infinite 0.8s;
+}
+
+/* Effets Lottie-style en SVG */
+@keyframes pulse-ring {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.25); opacity: 0; }
+  100% { transform: scale(0.95); opacity: 0; }
+}
+
+@keyframes draw-check {
+  0% { stroke-dashoffset: 24; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes bar-grow {
+  0%, 100% { transform: scaleY(0.4); }
+  50% { transform: scaleY(1); }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 2.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  transform-origin: center;
+}
+
+.animate-check {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: draw-check 1.2s ease-out forwards infinite alternate;
+  animation-delay: 0.5s;
+}
+
+.animate-bar-1 { animation: bar-grow 2s ease-in-out infinite 0.1s; transform-origin: bottom; }
+.animate-bar-2 { animation: bar-grow 2s ease-in-out infinite 0.4s; transform-origin: bottom; }
+.animate-bar-3 { animation: bar-grow 2s ease-in-out infinite 0.2s; transform-origin: bottom; }
+
+
+/* Conteneur des onglets */
+.cohort-tabs {
+  border-bottom: none !important;
+  scrollbar-width: none;
+}
+
+.cohort-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+/* Tous les boutons */
+.cohort-tabs button {
+  position: relative;
+  border-bottom: 0 !important;
+}
+
+/* Supprime complètement les bordures transparentes */
+.cohort-tabs button.border-transparent {
+  border-bottom-color: transparent !important;
+}
+
+/* Onglet actif */
+.cohort-tabs button.border-accent {
+  border-bottom: 0 !important;
+}
+
+/* Petit indicateur uniquement sous l'onglet actif */
+.cohort-tabs button.border-accent::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 0;
+  height: 2px;
+  border-radius: 9999px;
+  background: var(--color-accent, #D9622E);
+}
+
+/* Évite que le bouton + soit considéré comme un onglet actif */
+.cohort-tabs > a {
+  border-bottom: 0 !important;
+}
+
+/* Scrollbar globale Jappo */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--color-line-strong);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   DARK MODE — corrections complémentaires
+═══════════════════════════════════════════════════════════════ */
+.dark {
+  --color-success-100: #052e16;
+  --color-success-500: #4ade80;
+  --color-warning-100: #1c1204;
+  --color-warning-500: #fbbf24;
+  --color-danger-100: #1c0505;
+  --color-danger-500: #f87171;
+  --color-info-100: #0a1628;
+  --color-info-500: #60a5fa;
+  color-scheme: dark;
+}
+.dark input:not([type="radio"]):not([type="checkbox"]),
+.dark select,
+.dark textarea {
+  background-color: var(--color-graphite);
+  color: var(--color-ink);
+  border-color: var(--color-line);
+}
+.dark *:focus-visible { outline-color: var(--color-accent); }
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE — utilitaires globaux
+═══════════════════════════════════════════════════════════════ */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+@media (max-width: 640px) {
+  .modal-container {
+    max-width: 100vw !important;
+    margin: 0 !important;
+    border-radius: 16px 16px 0 0 !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -1,0 +1,148 @@
+<div class="flex min-h-screen w-full items-center justify-center bg-surface-muted p-4 sm:p-6">
+  
+  <app-card padding="md" class="w-full max-w-md shrink-0">
+    
+    <!-- Header avec Logo & Déconnexion -->
+    <div class="flex items-center justify-between">
+      <img src="/logo.png" alt="JAPPO" class="h-7 w-auto object-contain" />
+      <button 
+        type="button" 
+        (click)="retourConnexion()" 
+        class="text-xs font-medium text-ink-muted hover:text-ink transition-colors cursor-pointer"
+      >
+        Déconnexion
+      </button>
+    </div>
+
+    @if (!affichageFormulaire() && memberships().length > 0) {
+      <!-- CAS 1 : SÉLECTION D'UNE STRUCTURE EXISTANTE -->
+      <div class="mt-6">
+        <h1 class="text-lg font-semibold text-ink sm:text-xl">Sélectionnez votre espace</h1>
+        <p class="mt-1 text-xs text-ink-muted">Choisissez l'incubateur ou la structure avec laquelle vous souhaitez travailler.</p>
+      </div>
+
+      <div class="mt-5 flex flex-col gap-3">
+        @for (m of memberships(); track m.structure.id) {
+          <button
+            type="button"
+            (click)="choisirStructure(m)"
+            class="group flex items-center justify-between rounded-xl border border-line p-4 text-left transition-all hover:border-accent hover:bg-surface-muted/60 cursor-pointer"
+          >
+            <div>
+              <p class="text-sm font-medium text-ink group-hover:text-accent transition-colors">{{ m.structure.nom }}</p>
+              <p class="mt-0.5 text-xs text-ink-muted">{{ m.structure.ville || 'Dakar' }}, {{ m.structure.pays || 'Sénégal' }}</p>
+            </div>
+            <app-badge [status]="m.role === 'ADMIN_STRUCTURE' ? 'success' : 'neutral'">
+              {{ m.role }}
+            </app-badge>
+          </button>
+        }
+      </div>
+
+      <div class="mt-6 pt-4 border-t border-line">
+        <button
+          type="button"
+          (click)="basculerModeFormulaire(true)"
+          class="w-full text-center text-xs font-semibold text-accent hover:underline cursor-pointer"
+        >
+          + Créer ou rejoindre une autre structure
+        </button>
+      </div>
+
+    } @else {
+      <!-- CAS 2 : CRÉATION D'UNE STRUCTURE -->
+      <div class="mt-6">
+        <h1 class="text-lg font-semibold text-ink sm:text-xl">Créer votre Incubateur</h1>
+        <p class="mt-1 text-xs text-ink-muted">Configurez votre structure pour gérer vos cohortes et entrepreneurs.</p>
+      </div>
+
+      <form [formGroup]="structureForm" (ngSubmit)="creerStructure()" class="mt-5 flex flex-col gap-3.5">
+        
+        <!-- Nom de la structure -->
+        <app-form-field label="Nom de la structure" inputId="nom" [error]="nomError" [required]="true">
+          <app-input
+            id="nom"
+            formControlName="nom"
+            placeholder="Ex: Fabrique 360"
+            [invalid]="structureForm.controls.nom.touched && structureForm.controls.nom.invalid"
+          />
+        </app-form-field>
+
+        <!-- Type de structure (Select unifié) -->
+        <app-form-field label="Type de structure" inputId="type">
+          <select 
+            id="type"
+            formControlName="type" 
+            class="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs text-ink focus:border-accent focus:outline-none transition-colors cursor-pointer"
+          >
+            <option value="incubateur">Incubateur</option>
+            <option value="accelerateur">Accélérateur</option>
+            <option value="coworking">Coworking</option>
+            <option value="association">Association</option>
+            <option value="autre">Autre</option>
+          </select>
+        </app-form-field>
+
+        <!-- Pays & Ville -->
+        <div class="grid grid-cols-2 gap-3">
+          <app-form-field label="Pays" inputId="pays" [error]="paysError" [required]="true">
+            <app-input
+              id="pays"
+              formControlName="pays"
+              placeholder="Sénégal"
+              [invalid]="structureForm.controls.pays.touched && structureForm.controls.pays.invalid"
+            />
+          </app-form-field>
+
+          <app-form-field label="Ville" inputId="ville" [error]="villeError" [required]="true">
+            <app-input
+              id="ville"
+              formControlName="ville"
+              placeholder="Dakar"
+              [invalid]="structureForm.controls.ville.touched && structureForm.controls.ville.invalid"
+            />
+          </app-form-field>
+        </div>
+
+        <!-- Description -->
+        <app-form-field label="Description (Optionnel)" inputId="description">
+          <textarea 
+            id="description"
+            formControlName="description" 
+            rows="2" 
+            placeholder="Présentez brièvement votre structure..."
+            class="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs text-ink placeholder:text-ink-muted/50 focus:border-accent focus:outline-none transition-colors resize-none"
+          ></textarea>
+        </app-form-field>
+
+        <!-- Banner Erreur API -->
+        @if (erreur()) {
+          <div class="rounded-xl border border-rose-500/20 bg-rose-500/10 p-2.5 text-xs text-rose-600">
+            {{ erreur() }}
+          </div>
+        }
+
+        <div class="mt-2 flex flex-col gap-2">
+          <app-button 
+            type="submit" 
+            [fullWidth]="true" 
+            [disabled]="structureForm.invalid || chargement()"
+          >
+            {{ chargement() ? 'Création en cours…' : 'Finaliser la création' }}
+          </app-button>
+
+          @if (memberships().length > 0) {
+            <button
+              type="button"
+              (click)="basculerModeFormulaire(false)"
+              class="w-full text-center text-xs font-medium text-ink-muted hover:text-ink transition-colors py-2 cursor-pointer"
+            >
+              Annuler et retourner au choix
+            </button>
+          }
+        </div>
+      </form>
+    }
+
+  </app-card>
+</div>
