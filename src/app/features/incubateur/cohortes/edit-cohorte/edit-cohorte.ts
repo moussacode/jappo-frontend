@@ -7,7 +7,8 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { CohorteService } from '../../../../core/services/cohorte.service';
-import { Cohorte, PhaseParcours, UpdateCohorteRequest } from '../../../../core/models/cohorte.model';
+import { Cohorte, Phase, UpdateCohorteRequest } from '../../../../core/models/cohorte.model';
+import { ParcoursService } from '../../../../core/services/parcours.service';
 
 import { Icon } from '../../../../shared/components/icon/icon';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
@@ -95,12 +96,15 @@ import { ModalComponent } from '../../../../shared/components/modal/modal.compon
           [required]="true"
         >
           <select
-            formControlName="phase"
+            formControlName="phaseId"
             class="w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-sm text-ink focus:border-accent focus:outline-none shadow-xs transition-all cursor-pointer"
           >
-            <option value="PRE_INCUBATION">Pré-incubation</option>
-            <option value="INCUBATION">Incubation</option>
-            <option value="POST_INCUBATION">Post-incubation / Accélération</option>
+            @if (phases().length === 0) {
+              <option value="">Aucune phase disponible</option>
+            }
+            @for (phase of phases(); track phase.id) {
+              <option [value]="phase.id">{{ phase.nom }}</option>
+            }
           </select>
         </app-form-field>
 
@@ -142,6 +146,7 @@ import { ModalComponent } from '../../../../shared/components/modal/modal.compon
 export class EditCohorteComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly cohorteService = inject(CohorteService);
+  private readonly parcoursService = inject(ParcoursService);
 
   // Inputs & Outputs
   cohorte = input.required<Cohorte>();
@@ -150,13 +155,14 @@ export class EditCohorteComponent implements OnInit {
 
   protected readonly enregistrementEnCours = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
+  protected readonly phases = signal<Phase[]>([]);
 
   protected readonly form = this.fb.nonNullable.group({
     nom: ['', [Validators.required, Validators.minLength(3)]],
     description: [''],
     dateDebut: [''],
     dateFin: [''],
-    phase: ['PRE_INCUBATION' as PhaseParcours, [Validators.required]],
+    phaseId: ['', [Validators.required]],
   });
 
   ngOnInit(): void {
@@ -167,8 +173,16 @@ export class EditCohorteComponent implements OnInit {
         description: c.description ?? '',
         dateDebut: c.dateDebut ?? '',
         dateFin: c.dateFin ?? '',
-        phase: c.phase ?? 'PRE_INCUBATION',
+        phaseId: c.phaseId ?? c.phase?.id ?? '',
       });
+      if (c.parcoursId) {
+        this.parcoursService.getParcoursById(c.parcoursId).subscribe({
+          next: (parcours) => this.phases.set(parcours.phases ?? []),
+          error: () => this.phases.set(c.phase ? [c.phase] : []),
+        });
+      } else if (c.phase) {
+        this.phases.set([c.phase]);
+      }
     }
   }
 
@@ -211,7 +225,7 @@ export class EditCohorteComponent implements OnInit {
       description: val.description.trim() || undefined,
       dateDebut: val.dateDebut || undefined,
       dateFin: val.dateFin || undefined,
-      phase: val.phase,
+      phaseId: val.phaseId,
     };
 
     this.cohorteService

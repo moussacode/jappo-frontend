@@ -4,13 +4,39 @@
   maxWidth="4xl"
   (close)="closeModal()"
 >
-  <div class="flex h-[75vh] min-h-0">
+  <div class="flex min-h-0 flex-col md:flex-row">
     <!-- ================================================================ -->
-    <!-- NAVIGATION -->
+    <!-- NAVIGATION MOBILE : tabs scrollables horizontalement -->
+    <!-- ================================================================ -->
+    <div class="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-line bg-surface-muted/30 px-3 py-2 md:hidden custom-scrollbar scrollbar-hide">
+      <button type="button" (click)="switchTab('general')"
+        class="shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors whitespace-nowrap"
+        [class]="activeTab() === 'general' ? 'bg-accent text-white' : 'text-ink-muted hover:text-ink'">
+        Général
+      </button>
+      <button type="button" (click)="switchTab('compte')"
+        class="shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors whitespace-nowrap"
+        [class]="activeTab() === 'compte' ? 'bg-accent text-white' : 'text-ink-muted hover:text-ink'">
+        Organisation
+      </button>
+      <button type="button" (click)="switchTab('equipe')"
+        class="shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors whitespace-nowrap"
+        [class]="activeTab() === 'equipe' ? 'bg-accent text-white' : 'text-ink-muted hover:text-ink'">
+        Équipe
+      </button>
+      <button type="button" (click)="switchTab('preferences')"
+        class="shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors whitespace-nowrap"
+        [class]="activeTab() === 'preferences' ? 'bg-accent text-white' : 'text-ink-muted hover:text-ink'">
+        Apparence
+      </button>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- NAVIGATION DESKTOP (sidebar latérale) -->
     <!-- ================================================================ -->
 
     <aside
-      class="hidden w-60 shrink-0 border-r border-line bg-surface-muted/30 p-3 md:flex md:flex-col"
+      class="hidden w-56 sm:w-60 shrink-0 border-r border-line bg-surface-muted/30 p-3 md:flex md:flex-col"
     >
       <div class="flex flex-col gap-1">
         <!-- Section -->
@@ -94,7 +120,7 @@
       <!-- ============================================================ -->
 
       @if (activeTab() === 'general') {
-        <section class="p-6 sm:p-8">
+        <section class="p-4 sm:p-6 md:p-8">
           <!-- En-tête -->
           <div class="mb-8">
             <h2 class="text-base font-semibold text-ink">Profil personnel</h2>
@@ -103,7 +129,7 @@
             </p>
           </div>
 
-          <div class="space-y-6 max-w-2xl">
+          <div class="space-y-4 sm:space-y-6 max-w-2xl">
             <!-- Photo / Initiales de profil -->
             <section
               class="flex items-center justify-between gap-4 rounded-xl border border-line bg-surface p-4 shadow-xs"
@@ -154,7 +180,7 @@
               }
 
               <!-- Champs -->
-              <div class="grid gap-4 p-4 sm:grid-cols-2">
+              <div class="grid gap-4 p-4 grid-cols-1 sm:grid-cols-2">
                 <!-- Prénom -->
                 <app-form-field
                   label="Prénom *"
@@ -184,10 +210,11 @@
               </div>
 
               <!-- Actions -->
-              <div class="flex justify-end border-t border-line px-4 py-3 bg-surface-muted/20">
+              <div class="flex justify-end border-t border-line px-4 py-3 bg-surface-muted/20 flex-col sm:flex-row gap-2 sm:gap-0">
                 <app-button
                   type="submit"
                   size="sm"
+                  [fullWidthMobile]="true"
                   [disabled]="profileForm.invalid || isSavingProfile()"
                 >
                   {{ isSavingProfile() ? 'Enregistrement…' : 'Enregistrer le profil' }}
@@ -203,7 +230,7 @@
       <!-- ============================================================ -->
 
       @if (activeTab() === 'compte') {
-        <section class="p-6">
+        <section class="p-4 sm:p-6">
           <!-- En-tête -->
           <div class="mb-8">
             <h2 class="text-base font-semibold text-ink">Informations de la structure</h2>
@@ -258,7 +285,7 @@
                 placeholder="contact@structure.com"
               />
             </app-form-field>
-            <div class="grid grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
   <div>
     <label class="text-xs font-medium text-ink-muted">Téléphone</label>
     <input type="tel" formControlName="telephone" class="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm" />
@@ -296,10 +323,11 @@
 </div>
 
             <!-- Actions -->
-            <div class="flex justify-end  pt-5">
+            <div class="flex justify-end pt-5 flex-col sm:flex-row gap-2 sm:gap-0">
               <app-button
                 type="submit"
                 size="sm"
+                [fullWidthMobile]="true"
                 [disabled]="structureForm.invalid || isSavingStructure()"
               >
                 @if (isSavingStructure()) {
@@ -324,7 +352,7 @@
 
       @if (activeTab() === 'equipe') {
         <div
-          class="mx-auto flex p-6 w-full max-w-2xl flex-col gap-7 animate-in fade-in duration-150"
+          class="mx-auto flex p-4 sm:p-6 w-full max-w-2xl flex-col gap-4 sm:gap-7 animate-in fade-in duration-150"
         >
           <!-- Header -->
           <div class="flex flex-col gap-1">
@@ -370,7 +398,7 @@
               </app-form-field>
 
               <!-- Rôle + bouton -->
-              <div class="grid grid-cols-[1fr_auto] items-end gap-2">
+              <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] items-end gap-2">
                 <!-- Rôle -->
                 <app-form-field label="Rôle" inputId="inviteRole">
                   <select
@@ -389,6 +417,7 @@
                 <app-button
                   type="button"
                   size="sm"
+                  [fullWidthMobile]="true"
                   [disabled]="isSendingInvitation()"
                   (click)="envoyerInvitation()"
                 >
@@ -485,7 +514,7 @@
     </div>
 
     <!-- Actions -->
-    <div class="flex shrink-0 items-center gap-2">
+    <div class="flex shrink-0 items-center gap-1 sm:gap-2">
       <!-- Status -->
       @if (m.statut === 'ACCEPTE') {
         <span
@@ -626,7 +655,7 @@
             </div>
 
             @if (inviteShareLink()) {
-              <div class="mt-4 flex gap-2">
+              <div class="mt-4 flex gap-2 flex-col sm:flex-row">
                 <div
                   class="flex min-w-0 flex-1 items-center rounded-xl border border-line bg-surface-muted/30 px-3"
                 >
@@ -712,7 +741,7 @@
       <!-- ============================================================ -->
 
       @if (activeTab() === 'preferences') {
-        <section class="p-6">
+        <section class="p-4 sm:p-6">
           <div class="flex max-w-xl flex-col gap-6 animate-in fade-in duration-150">
             <!-- En-tête -->
             <h2 class="text-lg font-bold text-ink">{{ 'parametres.preferences.titre' | translate }}</h2>
@@ -721,7 +750,7 @@
 </p>
             <!-- Apparence -->
             <section class="border-b border-line pb-5">
-              <div class="flex items-center justify-between gap-6">
+              <div class="flex items-center justify-between gap-4 sm:gap-6 flex-col sm:flex-row items-start sm:items-center">
                 <div class="min-w-0">
                   <p class="text-xs font-semibold text-ink">{{ 'parametres.apparence.titre' | translate }}</p>
 <p class="mt-1 text-[11px] text-ink-muted">
@@ -778,7 +807,7 @@
             </section>
             <!-- Langue -->
             <section>
-              <div class="flex items-center justify-between gap-6">
+              <div class="flex items-center justify-between gap-4 sm:gap-6 flex-col sm:flex-row items-start sm:items-center">
                 <div class="min-w-0">
                   <p class="text-xs font-semibold text-ink">{{ 'parametres.langue.titre' | translate }}</p>
 <p class="mt-1 text-[11px] text-ink-muted">

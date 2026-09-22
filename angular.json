@@ -17,6 +17,7 @@
           "builder": "@angular/build:application",
           "options": {
             "browser": "src/main.ts",
+            "polyfills": ["src/polyfills.ts"],
             "tsConfig": "tsconfig.app.json",
             "assets": [
               {
@@ -53,17 +54,22 @@
           "defaultConfiguration": "production"
         },
         "serve": {
-          "builder": "@angular/build:dev-server",
-          "configurations": {
-            "production": {
-              "buildTarget": "jappo-frontend:build:production"
-            },
-            "development": {
-              "buildTarget": "jappo-frontend:build:development"
-            }
-          },
-          "defaultConfiguration": "development"
-        },
+  "builder": "@angular/build:dev-server",
+  "options": {
+    "allowedHosts": [
+      "recoil-reverb-carless.ngrok-free.dev"
+    ]
+  },
+  "configurations": {
+    "production": {
+      "buildTarget": "jappo-frontend:build:production"
+    },
+    "development": {
+      "buildTarget": "jappo-frontend:build:development"
+    }
+  },
+  "defaultConfiguration": "development"
+},
         "test": {
           "builder": "@angular/build:unit-test"
         }

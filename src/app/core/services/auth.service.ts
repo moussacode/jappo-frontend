@@ -5,6 +5,7 @@ import {
   inject,
 } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { WebSocketService } from './websocket.service';
 import {
   Observable,
   tap,
@@ -100,13 +101,14 @@ export interface InvitationInfoResponse {
   email: string;
   nomStructure: string;
   logoStructure?: string;
-  compteExiste: boolean; // 🟢 Ajouté pour gérer les ré-invitations
+  compteExiste: boolean; // 
 }
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
+  private readonly webSocketService = inject(WebSocketService);
   private readonly http = inject(HttpClient);
   private readonly tokenStorage = inject(TokenStorageService);
   private readonly structureContext = inject(StructureContextService);
@@ -238,25 +240,87 @@ export class AuthService {
   }
 
   restoreSession(): Observable<AuthUser | null> {
-    if (!this.tokenStorage.hasToken()) {
-      this._authReady.set(true);
-      return of(null);
-    }
 
-    return this.me().pipe(
-      switchMap((user) =>
-        this.getMyStructures().pipe(map(() => user))
-      ),
-      catchError((error) => {
-        console.error('Erreur restauration session :', error);
-        this.logout();
-        return of(null);
-      }),
-      finalize(() => {
-        this._authReady.set(true);
-      })
+  if (!this.tokenStorage.hasToken()) {
+    this._authReady.set(true);
+    return of(null);
+  }
+
+  return this.me().pipe(
+
+    switchMap((user) =>
+      this.getMyStructures().pipe(
+        tap(() => {
+          this.initializeWebSocket();
+        }),
+        map(() => user)
+      )
+    ),
+
+    catchError((error) => {
+      console.error(
+        'Erreur restauration session :',
+        error
+      );
+
+      this.logout();
+
+      return of(null);
+    }),
+
+    finalize(() => {
+      this._authReady.set(true);
+    })
+  );
+}
+
+private initializeWebSocket(): void {
+
+  const user = this._currentUser();
+
+  const structureId =
+    this.structureContext.getActiveStructureId();
+
+  if (!user) {
+    console.warn(
+      '[WebSocket] Utilisateur absent, abonnement impossible.'
+    );
+    return;
+  }
+
+  /**
+   * Abonnement aux événements privés
+   * de l'utilisateur connecté.
+   */
+  this.webSocketService.subscribeToUser(
+    user.id
+  );
+
+  /**
+   * Abonnement aux événements
+   * de la structure active.
+   */
+  if (structureId) {
+
+    this.webSocketService.subscribeToStructure(
+      structureId
+    );
+
+  } else {
+
+    console.warn(
+      '[WebSocket] Aucune structure active.'
     );
   }
+
+  console.log(
+    '[WebSocket] Initialisé pour :',
+    {
+      userId: user.id,
+      structureId
+    }
+  );
+}
 
   logout(): void {
     this.tokenStorage.removeToken();

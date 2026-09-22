@@ -47,9 +47,9 @@ export type FiltreStatutMission = 'TOUTES' | 'EN_COURS' | 'A_REVOIR' | 'VALIDEE'
       <!-- En-tête Page Unifié -->
       <!-- En-tête Page Unifié -->
 <app-page-header
-  title="Missions & Jalons"
-  subtitle="Suivez et pilotez l'avancement des missions et livrables de la promotion."
-  breadcrumb="Incubateur > Suivi des missions"
+  title="Activites"
+  subtitle="Suivez et pilotez l'avancement des activites et livrables de la promotion."
+  breadcrumb="Incubateur > Suivi des activites"
 >
   <div class="flex items-center gap-2">
     <app-button size="sm" class="hidden sm:flex">
@@ -327,7 +327,7 @@ if (filtre === 'EN_COURS') {
 
 protected badgeStatus(statut: StatutMission): BadgeStatus {
   switch (statut) {
-    case 'VALIDEE':
+    
     case 'VALIDE':
       return 'success';
 
@@ -346,7 +346,7 @@ protected badgeStatus(statut: StatutMission): BadgeStatus {
 
 protected formaterStatut(statut: StatutMission): string {
   switch (statut) {
-    case 'VALIDEE':
+    
     case 'VALIDE':
       return 'Validée';
 

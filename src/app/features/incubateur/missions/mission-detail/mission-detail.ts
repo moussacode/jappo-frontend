@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit, DestroyRef } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, OnDestroy, DestroyRef } from '@angular/core';
 import { ActivatedRoute, RouterLink, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
@@ -77,17 +77,24 @@ interface CorrectionFormState {
               <app-badge [status]="statutBadge(m.statut).status" size="md">
                 {{ statutBadge(m.statut).label }}
               </app-badge>
-              
+
               @if (!isEditMode()) {
-                <app-button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  (click)="ouvrirEditMode()"
-                >
-                  <app-icon name="edit" class="size-3.5 mr-1" />
-                  <span>Modifier</span>
-                </app-button>
+                @if (!hasSubmittedLivrables()) {
+                  <app-button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    (click)="ouvrirEditMode()"
+                  >
+                    <app-icon name="edit" class="size-3.5 mr-1" />
+                    <span>Modifier</span>
+                  </app-button>
+                } @else {
+                  <div class="flex items-center gap-2 text-xs text-ink-muted">
+                    <app-icon name="lock" class="size-3.5" />
+                    <span>Édition verrouillée (livrables soumis)</span>
+                  </div>
+                }
               }
             </div>
           </div>
@@ -531,7 +538,7 @@ interface CorrectionFormState {
     </div>
   `,
 })
-export class MissionDetail implements OnInit {
+export class MissionDetail implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly missionService = inject(MissionService);
@@ -541,7 +548,13 @@ export class MissionDetail implements OnInit {
   private readonly missionId = this.route.snapshot.paramMap.get('id') ?? '';
 
   protected readonly mission = signal<Mission | undefined>(undefined);
-  protected readonly livrables = signal<LivrableResponse[]>([]);
+
+  /**
+   * Les livrables viennent directement du signal partagé du LivrableService.
+   * Ils se mettent à jour automatiquement via WebSocket.
+   */
+  protected readonly livrables = this.livrableService.livrables;
+
   protected readonly isLoading = signal<boolean>(true);
   protected readonly traitement = signal(false);
 
@@ -560,6 +573,11 @@ export class MissionDetail implements OnInit {
 
   // Gestion des tiroirs historiques dépliés
   protected readonly historiquesOuverts = signal<Record<string, boolean>>({});
+
+  // Vérifier si des livrables ont été soumis (empêche la modification de mission)
+  protected readonly hasSubmittedLivrables = computed(() => {
+    return this.livrables().length > 0;
+  });
 
   protected readonly breadcrumbItems = computed<BreadcrumbItem[]>(() => {
     const m = this.mission();
@@ -604,7 +622,17 @@ export class MissionDetail implements OnInit {
       return;
     }
 
-    this.chargerMissionEtLivrables();
+    // Déclare la mission active dans LivrableService :
+    // - charge les livrables initiaux
+    // - active l'écoute WebSocket pour cette mission
+    this.livrableService.setActiveMission(this.missionId);
+
+    this.chargerMission();
+  }
+
+  ngOnDestroy(): void {
+    // Libère le contexte mission pour éviter les mises à jour parasites
+    this.livrableService.clearActiveMission();
   }
 
   ouvrirLivrable(l: LivrableResponse): void {
@@ -615,7 +643,7 @@ export class MissionDetail implements OnInit {
     this.livrableService.ouvrirFichier(url);
   }
 
-  private chargerMissionEtLivrables(): void {
+  private chargerMission(): void {
     this.isLoading.set(true);
 
     this.missionService
@@ -630,28 +658,6 @@ export class MissionDetail implements OnInit {
           console.error('Erreur chargement mission:', err);
           this.isLoading.set(false);
         },
-      });
-
-    this.livrableService
-      .getLivrablesByMission(this.missionId)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (list) => {
-          const items = list || [];
-          this.livrables.set(items);
-          // Initialiser les formulaires
-          items.forEach((l) => {
-            if (!this.correctionForms[l.id]) {
-              this.correctionForms[l.id] = {
-                motif: '',
-                pointsACorriger: '',
-                ressourceRecommandee: '',
-                dateEcheance: '',
-              };
-            }
-          });
-        },
-        error: (err) => console.error('Erreur chargement livrables:', err),
       });
   }
 
@@ -756,7 +762,9 @@ export class MissionDetail implements OnInit {
       .subscribe({
         next: () => {
           this.traitement.set(false);
-          this.chargerMissionEtLivrables();
+          // Le WebSocket enverra LIVRABLE_VALIDE → rafraîchissement automatique via signal
+          // On recharge quand même par sécurité pour la cohérence immédiate (avant l'event WS)
+          this.livrableService.rechargerLivrablesMissionActive();
         },
         error: (err) => {
           console.error('Erreur validation livrable:', err);
@@ -786,7 +794,8 @@ export class MissionDetail implements OnInit {
         next: () => {
           this.traitement.set(false);
           this.fermerFormCorrection(livrableId);
-          this.chargerMissionEtLivrables();
+          // Le WebSocket enverra LIVRABLE_REJETE → rafraîchissement automatique via signal
+          this.livrableService.rechargerLivrablesMissionActive();
         },
         error: (err) => {
           console.error('Erreur demande de correction:', err);

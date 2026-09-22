@@ -91,7 +91,7 @@ private routerApresConnexion(memberships: any[]): void {
         this.router.navigate(['/incubateur/dashboard']);
         break;
       case 'COACH':
-        this.router.navigate(['/coach']);
+        this.router.navigate(['/incubateur/dashboard']);
         break;
       case 'ENTREPRENEUR':
         this.router.navigate(['/entrepreneur/dashboard']);

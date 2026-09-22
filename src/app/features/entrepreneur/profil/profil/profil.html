@@ -138,12 +138,12 @@
               </ul>
 
               <div class="mt-6">
-                <app-button [fullWidth]="true" size="md" [routerLink]="['/entrepreneur/profil/changer-forfait']">
-                  Passer à Premium — 3 000 FCFA/mois
+                <app-button [fullWidth]="true" size="md" [disabled]="true">
+                  Fonctionnalité bientôt disponible
                 </app-button>
               </div>
             } @else {
-              <p class="mt-2 text-xs text-ink leading-relaxed">
+              <p class="mt-2 text-xs text-ink-muted leading-relaxed">
                 Vous bénéficiez de toutes les fonctionnalités avancées. Merci de soutenir JAPPO !
               </p>
               @if (a.dateRenouvellement) {
@@ -152,7 +152,7 @@
                 </p>
               }
               <div class="mt-6">
-                <app-button variant="secondary" [fullWidth]="true" size="xs" [routerLink]="['/entrepreneur/profil/changer-forfait']">
+                <app-button variant="secondary" [fullWidth]="true" size="xs" [disabled]="true">
                   Gérer mon abonnement
                 </app-button>
               </div>

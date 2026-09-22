@@ -1,7 +1,7 @@
 <div class="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
   <a routerLink="/entrepreneur/missions" class="text-xs flex items-center gap-2 font-medium text-neutral-500 hover:text-neutral-700 transition-colors">
     <app-icon name="arrow-left" class="size-3 flex items-center justify-center text-neutral-700" />
-    Mes missions
+    Mes Activites
   </a>
 
   @if (mission(); as m) {
@@ -50,7 +50,7 @@
         <!-- Section Livrables Existants & Cycle de Révision -->
         @if (livrablesExistants().length > 0) {
           <div class="flex flex-col gap-4">
-            <h2 class="text-base font-semibold text-ink">Mon travail pour cette mission</h2>
+            <h2 class="text-base font-semibold text-ink">Mon travail pour cette activite</h2>
 
             @for (l of livrablesExistants(); track l.id) {
               <div class="rounded-xl border border-line bg-surface overflow-hidden shadow-xs">

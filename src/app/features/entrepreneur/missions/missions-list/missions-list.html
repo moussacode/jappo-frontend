@@ -2,8 +2,8 @@
   
   <!-- En-tête Page Unifié -->
   <app-page-header
-    title="Mes missions"
-    [subtitle]="loading() ? 'Chargement de vos missions...' : missionsFiltrees().length + ' mission(s) affichée(s) sur ' + allMissions().length"
+    title="Mes activités"
+    [subtitle]="loading() ? 'Chargement de vos activités...' : missionsFiltrees().length + ' activite(s) affichée(s) sur ' + allMissions().length"
   />
 
   <!-- Barre de contrôles : Filtres Statuts (TabFilter) + Recherche -->
@@ -19,7 +19,7 @@
         type="text"
         [formControl]="searchControl"
         placeholder="Rechercher par titre, cohorte..."
-        class="w-full rounded-xl border border-line bg-surface py-2.5 pl-9 pr-4 text-xs text-ink placeholder:text-ink-muted/60 transition-colors focus:border-accent focus:outline-none"
+        class="w-full rounded-xl border border-line/60 bg-surface py-2.5 pl-9 pr-4 text-xs text-ink placeholder:text-ink-muted/60 transition-colors focus:border-accent focus:outline-none"
       />
       <app-icon name="search" class="absolute left-3 top-3 size-4 text-ink-muted" />
     </div>
@@ -29,19 +29,12 @@
   @if (loading()) {
     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
       @for (i of [1, 2, 3, 4, 5, 6]; track i) {
-        <app-card padding="md" class="animate-pulse flex flex-col justify-between gap-4 h-36">
-          <div class="flex items-center justify-between">
-            <div class="h-4 w-1/3 rounded bg-line"></div>
-            <div class="h-4 w-16 rounded-full bg-line"></div>
-          </div>
-          <div class="h-5 w-3/4 rounded bg-line/60"></div>
-          <div class="h-4 w-1/2 rounded bg-line/40"></div>
-        </app-card>
+        <div class="h-36 rounded-2xl border border-line/60 bg-surface-muted/30 animate-pulse p-5"></div>
       }
     </div>
   } @else {
     
-    <!-- Grille de cartes unifiée (Même style que l'incubateur) -->
+    <!-- Grille de cartes unifiée -->
     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
       @for (mission of missionsFiltrees(); track mission.id) {
         <app-entity-card
@@ -53,6 +46,11 @@
         >
           <!-- Corps de la carte -->
           <div card-body class="flex flex-col gap-2">
+            @if (livrableStatusBadge(mission); as livrableBadge) {
+              <app-badge [status]="livrableBadge.status" size="sm" class="w-fit">
+                {{ livrableBadge.label }}
+              </app-badge>
+            }
             @if (mission.description) {
               <p class="text-xs text-ink-muted line-clamp-2 leading-relaxed">
                 {{ mission.description }}
@@ -72,13 +70,15 @@
         </app-entity-card>
       } @empty {
         <div class="col-span-full">
-          <div class="flex flex-col items-center justify-center rounded-2xl border border-line bg-surface p-12 text-center shadow-xs">
-            <div class="flex size-10 items-center justify-center rounded-full bg-surface-muted border border-line text-ink-muted mb-3">
-              <app-icon name="missions" class="size-5" />
+          <app-card padding="none" class=" border border-line/60">
+            <div class="p-8 sm:p-12">
+              <app-empty-state
+                title="Aucune mission trouvée"
+                description="Ajustez votre recherche ou changez de filtre pour voir vos jalons."
+                iconName="missions"
+              />
             </div>
-            <p class="text-xs sm:text-sm font-semibold text-ink">Aucune mission trouvée</p>
-            <p class="mt-1 text-xs text-ink-muted">Ajustez votre recherche ou changez de filtre pour voir vos jalons.</p>
-          </div>
+          </app-card>
         </div>
       }
     </div>

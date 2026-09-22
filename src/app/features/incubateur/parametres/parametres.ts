@@ -7,7 +7,7 @@ import { Icon } from "../../../shared/components/icon/icon";
 import { ButtonComponent } from "../../../shared/components/button/button.component";
 
 
-type OngletParam = 'compte' | 'equipe' | 'facturation' | 'notifications';
+type OngletParam = 'compte' | 'equipe';
 
 interface NavItem {
   id: OngletParam;
@@ -121,31 +121,6 @@ interface NavItem {
             </div>
           }
 
-          @if (onglet() === 'facturation') {
-            <div class="flex flex-col gap-6 rounded-[var(--radius-card-lg)] border border-line bg-surface p-6 shadow-[var(--shadow-subtle)] max-w-2xl">
-              <div>
-                <h2 class="text-base font-semibold text-ink">Abonnement et facturation</h2>
-                <p class="mt-0.5 text-xs text-ink-muted">Consultez votre formule active.</p>
-              </div>
-              @if (structure(); as s) {
-                <div class="rounded-2xl border border-line bg-surface-muted/30 p-5 flex items-center justify-between">
-                  <div>
-                    <p class="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Forfait actuel</p>
-                    <p class="mt-1 text-xl font-bold text-ink capitalize">{{ 'Standard' }}</p>
-                  </div>
-                  <app-button variant="secondary" size="xs">Changer de formule</app-button>
-                </div>
-              }
-            </div>
-          }
-
-          @if (onglet() === 'notifications') {
-            <div class="flex flex-col gap-6 rounded-[var(--radius-card-lg)] border border-line bg-surface p-6 shadow-[var(--shadow-subtle)] max-w-2xl">
-              <h2 class="text-base font-semibold text-ink">Préférences de notifications</h2>
-              <p class="text-xs text-ink-muted">Gérez vos alertes.</p>
-            </div>
-          }
-
         </div>
 
       </div>
@@ -165,8 +140,6 @@ export class Parametres implements OnInit {
   protected readonly navItems: NavItem[] = [
     { id: 'compte', label: 'Compte & Structure', icon: 'settings', section: 'Organisation' },
     { id: 'equipe', label: 'Équipe', icon: 'users', section: 'Organisation' },
-    { id: 'facturation', label: 'Facturation', icon: 'settings', section: 'Abonnement' },
-    { id: 'notifications', label: 'Notifications', icon: 'settings', section: 'Préférences' },
   ];
 
  

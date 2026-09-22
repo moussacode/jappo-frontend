@@ -11,6 +11,7 @@
   "private": true,
   "packageManager": "npm@11.6.2",
   "dependencies": {
+    "@angular/cdk": "^21.2.14",
     "@angular/common": "^21.2.0",
     "@angular/compiler": "^21.2.0",
     "@angular/core": "^21.2.0",
@@ -18,11 +19,14 @@
     "@angular/platform-browser": "^21.2.0",
     "@angular/router": "^21.2.0",
     "@primeuix/themes": "^3.0.0",
+    "@stomp/stompjs": "^7.3.0",
     "konva": "^10.3.1",
+    "livekit-client": "^2.22.3",
     "ng2-konva": "^12.0.1",
     "primeicons": "^8.0.0",
     "primeng": "^21.1.9",
     "rxjs": "~7.8.0",
+    "sockjs-client": "^1.6.1",
     "tslib": "^2.3.0"
   },
   "devDependencies": {
@@ -30,6 +34,8 @@
     "@angular/cli": "^21.2.19",
     "@angular/compiler-cli": "^21.2.0",
     "@tailwindcss/postcss": "^4.1.12",
+    "@types/sockjs-client": "^1.5.4",
+    "@types/stompjs": "^2.3.10",
     "jsdom": "^28.0.0",
     "postcss": "^8.5.3",
     "prettier": "^3.8.1",

@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit, DestroyRef } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, DestroyRef } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
@@ -7,23 +7,44 @@ import { ProjetService } from '../../../../core/services/projet.service';
 import { LivrableService } from '../../../../core/services/livrable.service';
 import { LivrableResponse, StatutLivrable } from '../../../../core/models/livrable.model';
 import { BadgeComponent } from '../../../../shared/components/badge/badge';
+import { TabFilterComponent } from '../../../../shared/components/tab-filter/tab-filter.component';
 import { STATUT_LIVRABLE_CONFIG } from '../../../../core/constants/statut-livrable.constant';
+
+type DocumentFilter = 'TOUS' | 'SOUMIS' | 'VALIDE' | 'A_CORRIGER' | 'REFUSE';
+
+const FILTRES_DOCUMENTS: { value: DocumentFilter; label: string }[] = [
+  { value: 'TOUS', label: 'Tous' },
+  { value: 'SOUMIS', label: 'En attente' },
+  { value: 'VALIDE', label: 'Validés' },
+  { value: 'A_CORRIGER', label: 'À corriger' },
+  { value: 'REFUSE', label: 'Refusés' },
+];
 
 @Component({
   selector: 'app-mes-documents',
   standalone: true,
-  imports: [RouterLink, BadgeComponent],
+  imports: [RouterLink, BadgeComponent, TabFilterComponent],
   template: `
     <div class="flex flex-col gap-6 p-8">
       <h1 class="text-[24px] font-normal leading-[1.33] text-ink">Mes documents</h1>
+
+      <!-- Filtre par onglets -->
+      @if (!isLoading() && livrables().length > 0) {
+        <app-tab-filter
+          [options]="filtres"
+          [value]="filtreStatut()"
+          (valueChange)="changerFiltre($event)"
+          class="w-full sm:w-fit"
+        />
+      }
 
       @if (isLoading()) {
         <div class="flex items-center justify-center py-12 text-sm text-ink-muted">
           Chargement de vos documents...
         </div>
-      } @else if (livrables().length > 0) {
+      } @else if (livrablesFiltres().length > 0) {
         <div class="rounded-[var(--radius-card)] border border-line bg-surface">
-          @for (l of livrables(); track l.id) {
+          @for (l of livrablesFiltres(); track l.id) {
             <div class="flex flex-col gap-1.5 border-b border-line px-5 py-4 last:border-0">
               <div class="flex items-center justify-between gap-2">
                 <div class="min-w-0 flex flex-col gap-0.5">
@@ -72,9 +93,9 @@ import { STATUT_LIVRABLE_CONFIG } from '../../../../core/constants/statut-livrab
         </div>
       } @else {
         <div class="rounded-[var(--radius-card)] border border-dashed border-line p-8 text-center">
-          <p class="text-sm font-medium text-ink">Aucun document déposé pour le moment</p>
+          <p class="text-sm font-medium text-ink">Aucun document trouvé</p>
           <p class="mt-1 text-xs text-ink-muted">
-            Vos fichiers et liens soumis pour vos missions apparaîtront ici.
+            Aucun document ne correspond au filtre sélectionné.
           </p>
         </div>
       }
@@ -87,8 +108,20 @@ export class MesDocuments implements OnInit {
   private readonly livrableService = inject(LivrableService);
   private readonly destroyRef = inject(DestroyRef);
 
+  protected readonly filtres = FILTRES_DOCUMENTS;
   protected readonly isLoading = signal(true);
   protected readonly livrables = signal<LivrableResponse[]>([]);
+  protected readonly filtreStatut = signal<DocumentFilter>('TOUS');
+
+  // Computed pour filtrer les livrables selon l'onglet actif
+  protected readonly livrablesFiltres = computed(() => {
+    const statut = this.filtreStatut();
+    const liste = this.livrables();
+    if (statut === 'TOUS') {
+      return liste;
+    }
+    return liste.filter((l) => l.statut?.toUpperCase() === statut);
+  });
 
   ngOnInit(): void {
     const userId = this.authService.currentUser()?.id;
@@ -115,6 +148,10 @@ export class MesDocuments implements OnInit {
         },
         error: () => this.isLoading.set(false),
       });
+  }
+
+  protected changerFiltre(filtre: DocumentFilter): void {
+    this.filtreStatut.set(filtre);
   }
 
   protected statutConfig(statut: string) {

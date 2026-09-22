@@ -55,18 +55,36 @@ import { BreadcrumbComponent, BreadcrumbItem } from '../../../../shared/componen
               <app-badge [status]="badgeStatusAgrege(mc)" size="md">
                 {{ formaterStatutAgrege(mc) }}
               </app-badge>
-              
-              <button
-                type="button"
-                (click)="archiverMission()"
-                class="text-xs font-semibold text-rose-600 hover:text-rose-800 hover:underline transition-colors p-1"
-                title="Archiver cette mission"
-              >
-                Archiver
-              </button>
+
+              @if (!mc.verrouillee) {
+                <button
+                  type="button"
+                  (click)="archiverMission()"
+                  class="text-xs font-semibold text-rose-600 hover:text-rose-800 hover:underline transition-colors p-1"
+                  title="Archiver cette mission"
+                >
+                  Archiver
+                </button>
+              }
             </div>
           </div>
         </div>
+
+        <!-- Bandeau de verrouillage -->
+        @if (mc.verrouillee) {
+          <div class="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl">
+            <app-icon name="lock" class="size-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5"></app-icon>
+            <div>
+              <p class="text-sm font-semibold text-amber-800 dark:text-amber-300">Mission verrouillée</p>
+              <p class="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                Cette mission ne peut plus être modifiée car un entrepreneur de la cohorte a déjà soumis son travail.
+                @if (mc.dateVerrouillage) {
+                  Verrouillée le {{ mc.dateVerrouillage | date:'dd/MM/yyyy à HH:mm' }}.
+                }
+              </p>
+            </div>
+          </div>
+        }
 
         <!-- Consignes & Description -->
         <app-card padding="lg" class="flex flex-col gap-2">
@@ -266,7 +284,7 @@ export class MissionCohorteDetail implements OnInit {
 
   protected statutBadge(statut: StatutMission): BadgeStatus {
     switch (statut) {
-      case 'VALIDEE':
+      
       case 'VALIDE':
         return 'success';
       case 'SOUMIS':
@@ -282,7 +300,7 @@ export class MissionCohorteDetail implements OnInit {
 
   protected formaterStatut(statut: StatutMission): string {
     switch (statut) {
-      case 'VALIDEE':
+      
       case 'VALIDE':
         return 'Validée';
       case 'SOUMIS':
@@ -329,7 +347,7 @@ export class MissionCohorteDetail implements OnInit {
   protected calculerProgressionIndividuelle(mission: Mission): number {
     // Calcul simplifié basé sur le statut
     switch (mission.statut) {
-      case 'VALIDEE':
+     
       case 'VALIDE':
         return 100;
       case 'SOUMIS':

@@ -36,12 +36,27 @@ export class StructureContextService {
   );
 
   /**
-   * Enregistre les structures et tente de restaurer la structure active
+   * Enregistre les structures et sélectionne automatiquement la meilleure structure
    */
   setMemberships(memberships: StructureMembership[]): void {
     this._memberships.set(memberships);
-    // Tente de restaurer automatiquement la structure active une fois les structures chargées
-    this.restore();
+    // Sélectionne automatiquement la meilleure structure (auto-choix si une seule, sinon restaure)
+    this.selectBestStructure(memberships);
+  }
+
+  /**
+   * Sélectionne automatiquement la meilleure structure :
+   * - Si une seule structure : auto-sélection
+   * - Si plusieurs : tente de restaurer la dernière utilisée
+   */
+  selectBestStructure(memberships: StructureMembership[]): void {
+    if (memberships.length === 1) {
+      // Auto-sélection si une seule structure
+      this.setActiveStructure(memberships[0]);
+    } else {
+      // Sinon, tente de restaurer la dernière utilisée
+      this.restore();
+    }
   }
 
   setActiveStructure(membership: StructureMembership): void {

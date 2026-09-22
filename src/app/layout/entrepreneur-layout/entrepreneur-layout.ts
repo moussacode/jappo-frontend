@@ -6,41 +6,51 @@ import { Sidebar, NavItem } from '../../shared/components/sidebar/sidebar';
   selector: 'app-entrepreneur-layout',
   imports: [RouterOutlet, Sidebar],
   template: `
-    <div class="flex h-screen">
-      <app-sidebar [navItems]="navItems" />
-      <main class="flex-1 overflow-y-auto bg-neutral-25">
-        <router-outlet />
-      </main>
+    <div class="flex flex-col h-screen">
+     
+
+      <!-- Contenu principal avec sidebar -->
+      <div class="flex flex-1 overflow-hidden">
+        <app-sidebar [navItems]="navItems" />
+        <main class="flex-1 overflow-y-auto bg-neutral-25">
+          <router-outlet />
+        </main>
+      </div>
     </div>
   `,
 })
 export class EntrepreneurLayout {
   protected readonly navItems: NavItem[] = [
   {
+    label: 'Mon parcours',
+    path: '/entrepreneur/mon-parcours',
+    icon: 'layers',
+  },
+  {
     label: 'Tableau de bord',
     path: '/entrepreneur/dashboard',
     icon: 'dashboard',
   },
-  // {
-  //   label: 'Mon parcours',
-  //   path: '/entrepreneur/parcours',
-  //   icon: 'route',
-  // },
   {
     label: 'Mes Activités',
     path: '/entrepreneur/missions',
     icon: 'missions',
   },
   {
-    label: 'Mes documents',
+    label: 'Mes Projets',
+    path: '/entrepreneur/projets',
+    icon: 'projects',
+  },
+  {
+    label: 'Mes réunions',
+    path: '/entrepreneur/reunions',
+    icon: 'video',
+  },
+  {
+    label: 'Mes livrables',
     path: '/entrepreneur/documents',
     icon: 'documents',
   },
   
-  // {
-  //   label: 'Mon profil',
-  //   path: '/entrepreneur/profil',
-  //   icon: 'profile',
-  // },
 ];
 }

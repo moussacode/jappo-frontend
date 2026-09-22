@@ -13,8 +13,11 @@ export interface ConversationIA {
   structureId: string;
   coachId: string;
   contexte: ConversationContexte;
+  titre?: string;
+  archivee: boolean;
   dateCreation: string;
   dateModification: string;
+  dateDerniereActivite?: string;
   messages: MessageIA[];
 }
 
@@ -41,6 +44,7 @@ export interface AiAction {
 
 export interface CreateConversationRequest {
   contexte?: ConversationContexte;
+  titre?: string;
 }
 
 export interface SendMessageRequest {
