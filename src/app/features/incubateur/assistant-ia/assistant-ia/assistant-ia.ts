@@ -426,12 +426,25 @@ export class AssistantIa implements OnInit {
             this.doSendMessage(conv.id, contenu, tempId);
           },
           error: (err) => {
-            this.messages.update((msgs) => msgs.filter((m) => m.id !== tempId));
-            this.envoiEnCours.set(false);
-            if (err?.status === 401 || err?.status === 403) {
-              this.erreur.set('Session expirée ou structure non autorisée. Rechargez la page.');
-            }
-          },
+  this.messages.update((msgs) => msgs.filter((m) => m.id !== tempId));
+  this.envoiEnCours.set(false);
+
+  if (err?.status === 400 && err?.error?.message) {
+    this.erreur.set(err.error.message);
+    return;
+  }
+
+  if (err?.status === 401 || err?.status === 403) {
+    this.erreur.set(
+      'Session expirée ou structure non autorisée. Rechargez la page.'
+    );
+    return;
+  }
+
+  this.erreur.set(
+    'Impossible de démarrer la conversation. Veuillez réessayer.'
+  );
+},
         });
     }
   }

@@ -257,11 +257,63 @@
     </div>
 
     <!-- ── Erreur structure manquante ──────────────────────────────────── -->
-    @if (erreur()) {
-      <div class="mx-4 mb-3 sm:mx-6 rounded-lg border border-danger-200 bg-danger-50 px-4 py-2.5 text-sm text-danger-700">
+   @if (erreur()) {
+  <div
+    class="mx-4 mb-3 sm:mx-6 flex items-start gap-3 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3"
+    role="alert"
+  >
+    <!-- Icône -->
+    <div
+      class="flex size-7 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent"
+    >
+      <svg
+        class="size-4"
+        viewBox="0 0 24 24"
+        fill="none"
+      >
+        <circle
+          cx="12"
+          cy="12"
+          r="9"
+          stroke="currentColor"
+          stroke-width="1.8"
+        />
+        <path
+          d="M12 10V16"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+        />
+        <circle
+          cx="12"
+          cy="7"
+          r="0.8"
+          fill="currentColor"
+        />
+      </svg>
+    </div>
+
+    <!-- Message -->
+    <div class="min-w-0 flex-1">
+      <p class="text-sm font-medium text-ink">
         {{ erreur() }}
-      </div>
-    }
+      </p>
+
+      @if (erreur()?.includes('Premium')) {
+        <p class="mt-1 text-xs text-ink-muted">
+          Passez au plan Premium pour accéder à l'Assistant IA.
+        </p>
+
+        <a
+          routerLink="/upgrade"
+          class="mt-2 inline-flex items-center text-xs font-semibold text-accent hover:underline"
+        >
+          Découvrir Premium
+        </a>
+      }
+    </div>
+  </div>
+}
 
     <!-- ── Suggestions (écran vide) ─────────────────────────────────────── -->
     @if (messages().length === 0 && !envoiEnCours()) {

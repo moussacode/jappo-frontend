@@ -1,7 +1,11 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, AfterViewInit, OnDestroy, ElementRef, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Icon } from '../../../shared/components/icon/icon';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
+
+// Déclaration pour que TypeScript reconnaisse GSAP chargé via CDN ou npm
+declare const gsap: any;
+declare const ScrollTrigger: any;
 
 @Component({
   selector: 'app-landing-page',
@@ -10,7 +14,9 @@ import { ButtonComponent } from '../../../shared/components/button/button.compon
   imports: [RouterLink, Icon, ButtonComponent],
   templateUrl: './landing-page.html',
 })
-export class LandingPage {
+export class LandingPage implements AfterViewInit, OnDestroy {
+  private readonly elRef = inject(ElementRef);
+  private scrollTriggerInstance: any = null;
 
   protected readonly features = [
     {
@@ -93,4 +99,45 @@ export class LandingPage {
       role: 'Cohorte active Jappo',
     },
   ];
+
+  ngAfterViewInit(): void {
+    if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
+      gsap.registerPlugin(ScrollTrigger);
+
+      const orbitItems = this.elRef.nativeElement.querySelectorAll('.orbit-tool');
+
+      if (orbitItems.length > 0) {
+        // Animation GSAP ScrollTrigger ultra-fluide identique aux standards SaaS modernes
+        this.scrollTriggerInstance = gsap.fromTo(orbitItems, 
+          {
+            x: (i: number, target: HTMLElement) => parseFloat(target.dataset['x'] || '0'),
+            y: (i: number, target: HTMLElement) => parseFloat(target.dataset['y'] || '0'),
+            scale: 1,
+            opacity: 1
+          },
+          {
+            x: 0,
+            y: 0,
+            scale: 0.2,
+            opacity: 0,
+            ease: "power1.out",
+            scrollTrigger: {
+              trigger: "#orbit-section",
+              start: "top center",
+              end: "bottom center",
+              scrub: true, // Lie directement l'animation au défilement de la page
+              markers: false
+            }
+          }
+        );
+      }
+    }
+  }
+
+  ngOnDestroy(): void {
+    // Nettoyage propre du ScrollTrigger pour éviter les fuites de mémoire lors du changement de page
+    if (this.scrollTriggerInstance && this.scrollTriggerInstance.scrollTrigger) {
+      this.scrollTriggerInstance.scrollTrigger.kill();
+    }
+  }
 }

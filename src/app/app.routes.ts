@@ -14,6 +14,27 @@ export const routes: Routes = [
     loadComponent: () => import('./features/landing/landing-page/landing-page').then((m) => m.LandingPage),
   },
 
+
+  {
+  path: 'paiement/succes',
+  loadComponent: () =>
+    import('./features/paiement/pages/paiement-succes/paiement-succes')
+      .then(m => m.PaiementSucces)
+},
+
+{
+  path: 'paiement/annule',
+  loadComponent: () =>
+    import('./features/paiement/pages/paiement-annule/paiement-annule')
+      .then(m => m.PaiementAnnule)
+},
+
+{
+  path: 'upgrade',
+  loadComponent: () =>
+    import('./features/paiement/pages/upgrade-premium/upgrade-premium')
+      .then(m => m.UpgradePremium)
+},
   // --- Auth / Onboarding (sans sidebar) ---
   {
     path: 'connexion',

@@ -1,0 +1,177 @@
+<div class="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-12">
+
+  <div class="w-full max-w-lg">
+
+    <!-- Vérification -->
+    @if (chargement()) {
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
+
+        <div class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
+          <svg
+            class="h-8 w-8 animate-spin text-slate-600"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            ></circle>
+
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+            ></path>
+          </svg>
+        </div>
+
+        <h1 class="text-2xl font-semibold text-slate-900">
+          Vérification du paiement
+        </h1>
+
+        <p class="mt-3 text-slate-500">
+          Nous vérifions votre paiement auprès de PayDunya.
+        </p>
+
+      </div>
+    }
+
+    <!-- Paiement confirmé -->
+    @if (!chargement() && succes()) {
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+
+        <div class="p-8 text-center">
+
+          <!-- Icône succès -->
+          <div class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50">
+
+            <svg
+              class="h-8 w-8 text-emerald-600"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+
+          </div>
+
+          <h1 class="text-2xl font-semibold text-slate-900">
+            Paiement confirmé
+          </h1>
+
+          <p class="mt-3 text-slate-500">
+            {{ message() }}
+          </p>
+
+          <div class="mt-8 rounded-xl bg-slate-50 p-5 text-left">
+
+            <div class="flex items-center justify-between py-2">
+              <span class="text-sm text-slate-500">
+                Abonnement
+              </span>
+
+              <span class="font-medium text-slate-900">
+                {{ plan() }}
+              </span>
+            </div>
+
+            <div class="flex items-center justify-between py-2">
+              <span class="text-sm text-slate-500">
+                Montant
+              </span>
+
+              <span class="font-medium text-slate-900">
+                {{ montant() }} FCFA
+              </span>
+            </div>
+
+            @if (dateConfirmation()) {
+              <div class="flex items-center justify-between py-2">
+
+                <span class="text-sm text-slate-500">
+                  Confirmation
+                </span>
+
+                <span class="text-sm font-medium text-slate-900">
+                  {{ dateConfirmation() }}
+                </span>
+
+              </div>
+            }
+
+          </div>
+
+          <p class="mt-6 text-sm text-slate-500">
+            Votre abonnement Premium est maintenant actif pour votre structure.
+          </p>
+
+          <button
+            type="button"
+            (click)="retournerAccueil()"
+            class="mt-6 w-full rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800"
+          >
+            Retourner à JAPPO
+          </button>
+
+        </div>
+
+      </div>
+    }
+
+    <!-- Erreur -->
+    @if (!chargement() && !succes()) {
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
+
+        <div class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
+
+          <svg
+            class="h-8 w-8 text-red-600"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+
+        </div>
+
+        <h1 class="text-2xl font-semibold text-slate-900">
+          Paiement non confirmé
+        </h1>
+
+        <p class="mt-3 text-slate-500">
+          {{ message() }}
+        </p>
+
+        <button
+          type="button"
+          (click)="retournerAccueil()"
+          class="mt-6 w-full rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800"
+        >
+          Retourner à JAPPO
+        </button>
+
+      </div>
+    }
+
+  </div>
+
+</div>

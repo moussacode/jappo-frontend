@@ -300,32 +300,75 @@ export interface NavItem {
 
           <!-- Menu Dropdown du Profil -->
           @if (isProfileMenuOpen()) {
-            <div
-              class="absolute bottom-[calc(100%+8px)] left-0 z-50 flex w-60 flex-col rounded-xl border border-line bg-surface p-1.5 shadow-xl animate-in fade-in zoom-in-95 duration-150"
-            >
-              <div class="px-2 py-1.5 border-b border-line mb-1">
-                <p class="text-xs font-medium text-ink truncate">{{ user.email }}</p>
-              </div>
 
-              <button
-                type="button"
-                (click)="openSettings()"
-                class="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-xs font-medium text-ink hover:bg-surface-muted transition-colors cursor-pointer"
-              >
-                <app-icon name="settings" class="size-4 text-ink-muted" />
-                <span>Paramètres</span>
-              </button>
+  <div
+    class="absolute bottom-[calc(100%+8px)] left-0 z-50 flex w-60 flex-col rounded-xl border border-line bg-surface p-1.5 shadow-xl animate-in fade-in zoom-in-95 duration-150"
+  >
 
-              <button
-                type="button"
-                (click)="logout()"
-                class="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-xs font-medium text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer mt-1"
-              >
-                <app-icon name="logout" class="size-4" />
-                <span>Se déconnecter</span>
-              </button>
-            </div>
-          }
+    <div class="px-2 py-1.5 border-b border-line mb-1">
+      <p class="text-xs font-medium text-ink truncate">
+        {{ user.email }}
+      </p>
+    </div>
+
+    <!-- Paramètres -->
+    <button
+      type="button"
+      (click)="openSettings()"
+      class="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-xs font-medium text-ink hover:bg-surface-muted transition-colors cursor-pointer"
+    >
+      <app-icon name="settings" class="size-4 text-ink-muted" />
+      <span>Paramètres</span>
+    </button>
+
+    <!-- Premium -->
+    @if (isPremium()) {
+  <div
+    class="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-xs font-medium text-accent"
+  >
+    <app-icon
+      name="sparkles"
+      class="size-4"
+    />
+
+    <span class="flex-1">
+      Plan Premium
+    </span>
+
+    <span class="text-[10px] font-semibold">
+      ✓
+    </span>
+  </div>
+} @else {
+  <button
+    type="button"
+    (click)="openUpgrade()"
+    class="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-xs font-medium text-ink hover:bg-surface-muted transition-colors cursor-pointer mt-1"
+  >
+    <app-icon
+      name="sparkles"
+      class="size-4 text-ink-muted"
+    />
+
+    <span>
+      Passer à Premium
+    </span>
+  </button>
+}
+
+    <!-- Déconnexion -->
+    <button
+      type="button"
+      (click)="logout()"
+      class="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-xs font-medium text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer mt-1"
+    >
+      <app-icon name="logout" class="size-4" />
+      <span>Se déconnecter</span>
+    </button>
+
+  </div>
+
+}
         }
       </div>
 
@@ -364,6 +407,9 @@ export class Sidebar {
     this.isProfileMenuOpen.set(false);
   }
 
+  protected readonly isPremium =
+  this.structureContext.isPremium;
+
   toggleStructureMenu(): void {
     this.isStructureMenuOpen.update((open) => !open);
     if (this.isStructureMenuOpen()) {
@@ -383,6 +429,10 @@ export class Sidebar {
     this.isSettingsOpen.set(true);
   }
 
+  openUpgrade(): void {
+  this.isProfileMenuOpen.set(false);
+  this.router.navigate(['/upgrade']);
+}
   toggleSubmenu(label: string): void {
     this.openSubmenus.update((state) => ({
       ...state,
