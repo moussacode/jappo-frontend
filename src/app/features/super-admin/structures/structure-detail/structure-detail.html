@@ -1,0 +1,556 @@
+<div class="min-h-full bg-surface-muted/40 font-sans">
+
+  <!-- ================================================================ -->
+  <!-- LOADING SKELETON -->
+  <!-- ================================================================ -->
+  @if (loading()) {
+    <div class="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8 space-y-6">
+      <div class="animate-pulse space-y-6">
+        <div class="flex items-center gap-4">
+          <div class="h-10 w-10 rounded-xl bg-surface"></div>
+          <div class="space-y-2">
+            <div class="h-6 w-48 rounded bg-surface"></div>
+            <div class="h-3 w-28 rounded bg-surface"></div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div class="h-28 rounded-2xl bg-surface"></div>
+          <div class="h-28 rounded-2xl bg-surface"></div>
+          <div class="h-28 rounded-2xl bg-surface"></div>
+        </div>
+        <div class="h-96 rounded-2xl bg-surface"></div>
+      </div>
+    </div>
+  }
+
+  <!-- ================================================================ -->
+  <!-- ERROR STATE -->
+  <!-- ================================================================ -->
+  @else if (error()) {
+    <div class="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+      <div class="rounded-2xl border border-line bg-surface p-8 shadow-xs text-center">
+        <app-empty-state
+          title="Impossible de charger la structure"
+          [description]="error()!"
+          iconName="alert-circle"
+        />
+        <div class="mt-6 flex justify-center">
+          <app-button
+            variant="secondary"
+            size="md"
+            (click)="retour()"
+          >
+            <app-icon name="arrow-left" class="mr-2 size-4" />
+            <span>Retour aux structures</span>
+          </app-button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ================================================================ -->
+  <!-- MAIN CONTENT -->
+  <!-- ================================================================ -->
+  @else if (structure(); as str) {
+
+    <div class="mx-auto max-w-7xl space-y-6 p-4 sm:p-6 lg:p-8">
+
+      <!-- HEADER NAVIGATION & ACTIONS -->
+      <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
+        <div class="flex items-start gap-3.5">
+          <button
+            type="button"
+            class="mt-0.5 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-line bg-surface text-ink-muted transition-all duration-150 hover:bg-surface-muted hover:text-ink shadow-xs"
+            (click)="retour()"
+            aria-label="Retour"
+          >
+            <app-icon name="arrow-left" class="size-4" />
+          </button>
+
+          <div>
+            <div class="flex flex-wrap items-center gap-2.5">
+              <h1 class="text-xl font-bold tracking-tight text-ink sm:text-2xl">
+                {{ str.nom }}
+              </h1>
+
+              <app-badge [status]="getBadgeStatus(str.statutStructure)">
+                {{ getStatutLabel(str.statutStructure) }}
+              </app-badge>
+            </div>
+
+            <p class="mt-0.5 text-xs text-ink-muted font-medium">
+              {{ str.slug }}
+            </p>
+          </div>
+        </div>
+
+        <!-- ACTIONS BAR -->
+        <div class="flex flex-wrap items-center gap-2">
+          @if (str.statutStructure === 'ACTIVE') {
+            <app-button
+              variant="secondary"
+              size="sm"
+              [disabled]="actionLoading()"
+              (click)="suspendre()"
+              class="!text-red-600 hover:!bg-red-50 border-red-200"
+            >
+              Suspendre
+            </app-button>
+          }
+
+          <app-button
+            variant="primary"
+            size="sm"
+            [disabled]="actionLoading()"
+            (click)="activerPremium()"
+          >
+            Activer Premium
+          </app-button>
+
+          <app-button
+            variant="secondary"
+            size="sm"
+            [disabled]="actionLoading()"
+            (click)="forcerFreemium()"
+          >
+            Forcer Freemium
+          </app-button>
+        </div>
+
+      </header>
+
+      <!-- MESSAGE D'ERREUR ACTION -->
+      @if (actionError(); as actionErrorMessage) {
+        <div class="flex items-start gap-3 rounded-2xl border border-red-500/20 bg-red-500/5 p-4 text-xs text-red-600 animate-in fade-in">
+          <app-icon name="alert-circle" class="size-5 shrink-0 mt-0.5" />
+          <div>
+            <p class="font-bold">Action impossible</p>
+            <p class="mt-0.5">{{ actionErrorMessage }}</p>
+          </div>
+        </div>
+      }
+
+      <!-- KPI CARDS -->
+      <section class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+
+        <!-- Membres -->
+        <div class="flex flex-col justify-between rounded-2xl border border-line bg-surface p-5 shadow-xs">
+          <p class="text-xs font-bold uppercase tracking-wider text-ink-muted">Membres rattachés</p>
+          <p class="mt-3 text-3xl font-extrabold text-ink">{{ str.nombreMembres }}</p>
+          <div class="mt-4 border-t border-line/60 pt-3">
+            <span class="text-xs text-ink-muted">Utilisateurs enregistrés</span>
+          </div>
+        </div>
+
+        <!-- Cohortes -->
+        <div class="flex flex-col justify-between rounded-2xl border border-line bg-surface p-5 shadow-xs">
+          <p class="text-xs font-bold uppercase tracking-wider text-ink-muted">Cohortes actives</p>
+          <p class="mt-3 text-3xl font-extrabold text-ink">{{ str.nombreCohortesActives }}</p>
+          <div class="mt-4 border-t border-line/60 pt-3">
+            <span class="text-xs text-ink-muted">Programmes d'accompagnement</span>
+          </div>
+        </div>
+
+        <!-- Abonnement -->
+        <div class="flex flex-col justify-between rounded-2xl border border-line bg-surface p-5 shadow-xs">
+          <p class="text-xs font-bold uppercase tracking-wider text-ink-muted">Plan actuel</p>
+          @if (str.abonnement; as abonnement) {
+            <div class="mt-3 flex items-baseline gap-2">
+              <span class="text-2xl font-extrabold text-ink">
+                {{ getPlanLabel(abonnement.plan) }}
+              </span>
+              <app-badge [status]="getBadgeStatus(abonnement.statut)">
+                {{ getStatutLabel(abonnement.statut) }}
+              </app-badge>
+            </div>
+            <div class="mt-4 border-t border-line/60 pt-3">
+              <span class="text-xs text-ink-muted">Statut souscription</span>
+            </div>
+          } @else {
+            <p class="mt-3 text-sm font-semibold text-ink-muted">Aucun abonnement actif</p>
+            <div class="mt-4 border-t border-line/60 pt-3">
+              <span class="text-xs text-ink-muted">Formule de base</span>
+            </div>
+          }
+        </div>
+
+      </section>
+
+      <!-- INFORMATIONS DÉTAILLÉES -->
+      <section class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+
+        <!-- Fiche d'informations générales -->
+        <div class="rounded-2xl border border-line bg-surface p-6 shadow-xs flex flex-col justify-between">
+          <div>
+            <div class="border-b border-line/60 pb-4">
+              <h2 class="text-sm font-bold text-ink">Informations générales</h2>
+              <p class="mt-0.5 text-xs text-ink-muted">Métadonnées et coordonnées de la structure</p>
+            </div>
+
+            <div class="mt-5 grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+              <div>
+                <p class="text-[11px] font-bold uppercase tracking-wider text-ink-muted">Nom</p>
+                <p class="mt-1 text-xs font-bold text-ink">{{ str.nom }}</p>
+              </div>
+
+              <div>
+                <p class="text-[11px] font-bold uppercase tracking-wider text-ink-muted">Type</p>
+                <p class="mt-1 text-xs font-semibold text-ink">{{ str.type || '—' }}</p>
+              </div>
+
+              <div>
+                <p class="text-[11px] font-bold uppercase tracking-wider text-ink-muted">Pays</p>
+                <p class="mt-1 text-xs font-semibold text-ink">{{ str.pays || '—' }}</p>
+              </div>
+
+              <div>
+                <p class="text-[11px] font-bold uppercase tracking-wider text-ink-muted">Ville</p>
+                <p class="mt-1 text-xs font-semibold text-ink">{{ str.ville || '—' }}</p>
+              </div>
+
+              <div>
+                <p class="text-[11px] font-bold uppercase tracking-wider text-ink-muted">Email professionnel</p>
+                <p class="mt-1 text-xs font-semibold text-ink break-all">{{ str.email || '—' }}</p>
+              </div>
+
+              <div>
+                <p class="text-[11px] font-bold uppercase tracking-wider text-ink-muted">Téléphone</p>
+                <p class="mt-1 text-xs font-semibold text-ink">{{ str.telephone || '—' }}</p>
+              </div>
+
+              <div class="sm:col-span-2">
+                <p class="text-[11px] font-bold uppercase tracking-wider text-ink-muted">Adresse physique</p>
+                <p class="mt-1 text-xs font-semibold text-ink">{{ str.adresse || '—' }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 border-t border-line/60 pt-3 text-right">
+            <span class="text-[11px] text-ink-muted">
+              Inscrit le : <strong class="text-ink">{{ formaterDate(str.dateCreation) }}</strong>
+            </span>
+          </div>
+        </div>
+
+        <!-- Fiche Propriétaire -->
+        <div class="rounded-2xl border border-line bg-surface p-6 shadow-xs flex flex-col justify-between">
+          <div>
+            <div class="border-b border-line/60 pb-4">
+              <h2 class="text-sm font-bold text-ink">Propriétaire référent</h2>
+              <p class="mt-0.5 text-xs text-ink-muted">Compte responsable de la structure</p>
+            </div>
+
+            <div class="mt-6 flex items-center gap-4">
+              <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-line bg-surface-muted text-sm font-extrabold text-ink shadow-xs">
+                {{ getInitiales(str.proprietaire.prenom, str.proprietaire.nom) }}
+              </div>
+
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-bold text-ink truncate">
+                  {{ str.proprietaire.prenom }} {{ str.proprietaire.nom }}
+                </p>
+
+                <p class="mt-0.5 text-xs text-ink-muted truncate">
+                  {{ str.proprietaire.email }}
+                </p>
+
+                <div class="mt-3 flex flex-wrap gap-2">
+                  <app-badge [status]="str.proprietaire.emailVerified ? 'success' : 'neutral'">
+                    {{ str.proprietaire.emailVerified ? 'Email vérifié' : 'Email non vérifié' }}
+                  </app-badge>
+
+                  <app-badge status="info">
+                    {{ str.proprietaire.roleGlobal }}
+                  </app-badge>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 border-t border-line/60 pt-3 text-xs text-ink-muted">
+            Administrateur principal autorisé
+          </div>
+        </div>
+
+      </section>
+
+      <!-- SECTIONS SOUSCRIPTION DÉTAILLÉE -->
+      <section class="rounded-2xl border border-line bg-surface p-6 shadow-xs">
+        <div class="border-b border-line/60 pb-4">
+          <h2 class="text-sm font-bold text-ink">Détails de l'abonnement en cours</h2>
+          <p class="mt-0.5 text-xs text-ink-muted">Périodes de validité et renouvellements</p>
+        </div>
+
+        @if (str.abonnement; as abonnement) {
+          <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <p class="text-[11px] font-bold uppercase tracking-wider text-ink-muted">Plan</p>
+              <div class="mt-1">
+                <app-badge [status]="getBadgeStatus(abonnement.plan)">
+                  {{ getPlanLabel(abonnement.plan) }}
+                </app-badge>
+              </div>
+            </div>
+
+            <div>
+              <p class="text-[11px] font-bold uppercase tracking-wider text-ink-muted">Statut</p>
+              <div class="mt-1">
+                <app-badge [status]="getBadgeStatus(abonnement.statut)">
+                  {{ getStatutLabel(abonnement.statut) }}
+                </app-badge>
+              </div>
+            </div>
+
+            <div>
+              <p class="text-[11px] font-bold uppercase tracking-wider text-ink-muted">Date de début</p>
+              <p class="mt-1 text-xs font-semibold text-ink">{{ formaterDate(abonnement.dateDebut) }}</p>
+            </div>
+
+            <div>
+              <p class="text-[11px] font-bold uppercase tracking-wider text-ink-muted">Date de fin</p>
+              <p class="mt-1 text-xs font-semibold text-ink">{{ formaterDate(abonnement.dateFin) }}</p>
+            </div>
+          </div>
+
+          <div class="mt-6 flex items-center justify-between border-t border-line/60 pt-4">
+            <div>
+              <p class="text-xs font-bold text-ink">Renouvellement automatique</p>
+              <p class="text-[11px] text-ink-muted">Paiement récurrent automatique à l'échéance</p>
+            </div>
+            <app-badge [status]="abonnement.renouvellementAuto ? 'success' : 'neutral'">
+              {{ abonnement.renouvellementAuto ? 'Activé' : 'Désactivé' }}
+            </app-badge>
+          </div>
+        } @else {
+          <div class="p-4">
+            <app-empty-state
+              title="Aucun abonnement"
+              description="Cette structure ne possède actuellement aucun abonnement enregistre."
+            />
+          </div>
+        }
+      </section>
+
+      <!-- NAVIGATION PAR ONGLETS (STYLE CLEAN NAV - SANS TABFILTER) -->
+      <section class="rounded-2xl border border-line bg-surface shadow-xs overflow-hidden">
+
+        <!-- Barre d'onglets personnalisée -->
+        <div class="border-b border-line bg-surface px-6 pt-2">
+          <nav class="flex gap-8" aria-label="Tabs">
+            <button
+              type="button"
+              (click)="activeTab.set('membres')"
+              class="relative border-b-2 py-4 text-xs font-bold transition-colors cursor-pointer"
+              [class.border-accent]="activeTab() === 'membres'"
+              [class.text-accent]="activeTab() === 'membres'"
+              [class.border-transparent]="activeTab() !== 'membres'"
+              [class.text-ink-muted]="activeTab() !== 'membres'"
+            >
+              Membres
+              <span class="ml-1.5 rounded-full bg-surface-muted px-2 py-0.5 text-[10px] text-ink font-extrabold">
+                {{ str.membres.length }}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              (click)="activeTab.set('transactions')"
+              class="relative border-b-2 py-4 text-xs font-bold transition-colors cursor-pointer"
+              [class.border-accent]="activeTab() === 'transactions'"
+              [class.text-accent]="activeTab() === 'transactions'"
+              [class.border-transparent]="activeTab() !== 'transactions'"
+              [class.text-ink-muted]="activeTab() !== 'transactions'"
+            >
+              Transactions
+              <span class="ml-1.5 rounded-full bg-surface-muted px-2 py-0.5 text-[10px] text-ink font-extrabold">
+                {{ transactions().length }}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              (click)="activeTab.set('historique')"
+              class="relative border-b-2 py-4 text-xs font-bold transition-colors cursor-pointer"
+              [class.border-accent]="activeTab() === 'historique'"
+              [class.text-accent]="activeTab() === 'historique'"
+              [class.border-transparent]="activeTab() !== 'historique'"
+              [class.text-ink-muted]="activeTab() !== 'historique'"
+            >
+              Historique abonnement
+              <span class="ml-1.5 rounded-full bg-surface-muted px-2 py-0.5 text-[10px] text-ink font-extrabold">
+                {{ historique().length }}
+              </span>
+            </button>
+          </nav>
+        </div>
+
+        <!-- TABLEAU MEMBRES -->
+        @if (activeTab() === 'membres') {
+          @if (str.membres.length === 0) {
+            <div class="p-8 sm:p-12">
+              <app-empty-state
+                title="Aucun membre"
+                description="Cette structure ne possède encore aucun membre enregistré."
+                iconName="users"
+              />
+            </div>
+          } @else {
+            <div class="overflow-x-auto custom-scrollbar">
+              <table class="w-full min-w-[700px] border-collapse text-left text-xs">
+                <thead class="border-b border-line bg-surface-muted/50 font-semibold uppercase tracking-wider text-ink-muted">
+                  <tr>
+                    <th class="px-6 py-3.5">Membre</th>
+                    <th class="px-5 py-3.5">Rôle</th>
+                    <th class="px-5 py-3.5">Statut</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-line/60">
+                  @for (membre of str.membres; track membre.id) {
+                    <tr class="hover:bg-surface-muted/40 transition-colors">
+                      <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                          <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-line bg-surface-muted text-xs font-bold text-ink">
+                            {{ getInitiales(membre.prenom, membre.nom) }}
+                          </div>
+                          <div>
+                            <p class="font-bold text-ink">{{ membre.prenom }} {{ membre.nom }}</p>
+                            <p class="text-[11px] text-ink-muted">{{ membre.email }}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="px-5 py-4 font-semibold text-ink">
+                        {{ membre.role }}
+                      </td>
+                      <td class="px-5 py-4">
+                        <app-badge [status]="getBadgeStatus(membre.statut)">
+                          {{ getStatutLabel(membre.statut) }}
+                        </app-badge>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        }
+
+        <!-- TABLEAU TRANSACTIONS -->
+        @if (activeTab() === 'transactions') {
+          @if (transactions().length === 0) {
+            <div class="p-8 sm:p-12">
+              <app-empty-state
+                title="Aucune transaction"
+                description="Aucune transaction n'a encore été enregistrée pour cette structure."
+              />
+            </div>
+          } @else {
+            <div class="flex items-center justify-between border-b border-line/60 bg-surface-muted/30 px-6 py-3">
+              <span class="text-xs font-semibold text-ink-muted">
+  Total encaissé
+</span>
+
+<span class="text-sm font-extrabold text-ink">
+  {{ formaterMontant(totalEncaisse()) }}
+</span>  </div>
+
+            <div class="overflow-x-auto custom-scrollbar">
+              <table class="w-full min-w-[850px] border-collapse text-left text-xs">
+                <thead class="border-b border-line bg-surface-muted/50 font-semibold uppercase tracking-wider text-ink-muted">
+                  <tr>
+                    <th class="px-6 py-3.5">Référence</th>
+                    <th class="px-5 py-3.5">Montant</th>
+                    <th class="px-5 py-3.5">Plan</th>
+                    <th class="px-5 py-3.5">Moyen de paiement</th>
+                    <th class="px-5 py-3.5">Statut</th>
+                    <th class="px-6 py-3.5">Date</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-line/60">
+                  @for (t of transactions(); track t.id) {
+                    <tr class="hover:bg-surface-muted/40 transition-colors">
+                      <td class="px-6 py-4 font-mono text-[11px] font-bold text-ink">
+                        {{ t.refCommand }}
+                      </td>
+                      <td class="px-5 py-4 font-bold text-ink">
+                        {{ formaterMontant(t.montant) }}
+                      </td>
+                      <td class="px-5 py-4 font-medium text-ink">
+                        {{ getPlanLabel(t.planVise) }}
+                      </td>
+                      <td class="px-5 py-4 text-ink-muted">
+                        {{ t.moyenPaiement || '—' }}
+                      </td>
+                      <td class="px-5 py-4">
+                        <app-badge [status]="getBadgeStatus(t.statut)">
+                          {{ getStatutLabel(t.statut) }}
+                        </app-badge>
+                      </td>
+                      <td class="px-6 py-4 text-ink-muted">
+                        {{ formaterDateHeure(t.dateCreation) }}
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        }
+
+        <!-- TABLEAU HISTORIQUE -->
+        @if (activeTab() === 'historique') {
+          @if (historique().length === 0) {
+            <div class="p-8 sm:p-12">
+              <app-empty-state
+                title="Aucun historique"
+                description="Aucun changement d'abonnement n'a encore été enregistré."
+                iconName="clock"
+              />
+            </div>
+          } @else {
+            <div class="overflow-x-auto custom-scrollbar">
+              <table class="w-full min-w-[800px] border-collapse text-left text-xs">
+                <thead class="border-b border-line bg-surface-muted/50 font-semibold uppercase tracking-wider text-ink-muted">
+                  <tr>
+                    <th class="px-6 py-3.5">Plan</th>
+                    <th class="px-5 py-3.5">Statut</th>
+                    <th class="px-5 py-3.5">Période</th>
+                    <th class="px-5 py-3.5">Source</th>
+                    <th class="px-6 py-3.5">Créé le</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-line/60">
+                  @for (h of historique(); track h.id) {
+                    <tr class="hover:bg-surface-muted/40 transition-colors">
+                      <td class="px-6 py-4 font-bold text-ink">
+                        {{ getPlanLabel(h.plan) }}
+                      </td>
+                      <td class="px-5 py-4">
+                        <app-badge [status]="getBadgeStatus(h.statut)">
+                          {{ getStatutLabel(h.statut) }}
+                        </app-badge>
+                      </td>
+                      <td class="px-5 py-4 text-ink-muted">
+                        {{ formaterDate(h.dateDebut) }} → {{ formaterDate(h.dateFin) }}
+                      </td>
+                      <td class="px-5 py-4 text-ink-muted">
+                        {{ h.source || '—' }}
+                      </td>
+                      <td class="px-6 py-4 text-ink-muted">
+                        {{ formaterDate(h.dateCreation) }}
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        }
+
+      </section>
+
+    </div>
+
+  }
+
+</div>

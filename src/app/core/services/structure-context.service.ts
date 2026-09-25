@@ -1,6 +1,7 @@
 import {
   Injectable,
   computed,
+  inject,
   signal,
 } from '@angular/core';
 
@@ -10,18 +11,41 @@ import {
   RoleMembreStructure,
 } from './auth.service';
 
+import { AbonnementService } from './abonnement.service';
+import { Abonnement } from '../models/abonnement.model';
+
 @Injectable({
   providedIn: 'root',
 })
 export class StructureContextService {
 
-  private readonly activeStructureIdKey = 'jappo_active_structure_id';
+  private readonly activeStructureIdKey =
+    'jappo_active_structure_id';
 
-  private readonly _memberships = signal<StructureMembership[]>([]);
-  readonly memberships = this._memberships.asReadonly();
+  private readonly abonnementService =
+    inject(AbonnementService);
 
-  private readonly _activeMembership = signal<StructureMembership | null>(null);
-  readonly activeMembership = this._activeMembership.asReadonly();
+  private readonly _memberships =
+    signal<StructureMembership[]>([]);
+
+  readonly memberships =
+    this._memberships.asReadonly();
+
+  private readonly _activeMembership =
+    signal<StructureMembership | null>(null);
+
+  readonly activeMembership =
+    this._activeMembership.asReadonly();
+
+  private readonly _abonnement =
+    signal<Abonnement | null>(null);
+
+  readonly abonnement =
+    this._abonnement.asReadonly();
+
+  readonly isPremium = computed(
+    () => this._abonnement()?.plan === 'PREMIUM'
+  );
 
   readonly activeStructure = computed(
     () => this._activeMembership()?.structure ?? null
@@ -35,75 +59,143 @@ export class StructureContextService {
     () => this._activeMembership()?.role ?? null
   );
 
+  private loadAbonnement(
+    structureId: string
+  ): void {
+
+    // On supprime l'ancien abonnement
+    // pendant le chargement du nouveau.
+    this._abonnement.set(null);
+
+    this.abonnementService
+      .getAbonnement(structureId)
+      .subscribe({
+        next: (abonnement) => {
+          this._abonnement.set(abonnement);
+        },
+
+        error: (error) => {
+          console.error(
+            'Impossible de récupérer l’abonnement',
+            error
+          );
+
+          this._abonnement.set(null);
+        },
+      });
+  }
+
   /**
-   * Enregistre les structures et sélectionne automatiquement la meilleure structure
+   * Enregistre les structures et sélectionne
+   * automatiquement la meilleure structure.
    */
-  setMemberships(memberships: StructureMembership[]): void {
+  setMemberships(
+    memberships: StructureMembership[]
+  ): void {
+
     this._memberships.set(memberships);
-    // Sélectionne automatiquement la meilleure structure (auto-choix si une seule, sinon restaure)
+
     this.selectBestStructure(memberships);
   }
 
   /**
-   * Sélectionne automatiquement la meilleure structure :
-   * - Si une seule structure : auto-sélection
-   * - Si plusieurs : tente de restaurer la dernière utilisée
+   * Sélectionne automatiquement la structure :
+   * - une seule structure → sélection automatique
+   * - plusieurs → restauration de la dernière utilisée
    */
-  selectBestStructure(memberships: StructureMembership[]): void {
+  selectBestStructure(
+    memberships: StructureMembership[]
+  ): void {
+
     if (memberships.length === 1) {
-      // Auto-sélection si une seule structure
-      this.setActiveStructure(memberships[0]);
+
+      this.setActiveStructure(
+        memberships[0]
+      );
+
     } else {
-      // Sinon, tente de restaurer la dernière utilisée
+
       this.restore();
     }
   }
 
-  setActiveStructure(membership: StructureMembership): void {
-    this._activeMembership.set(membership);
+  setActiveStructure(
+    membership: StructureMembership
+  ): void {
+
+    this._activeMembership.set(
+      membership
+    );
 
     localStorage.setItem(
       this.activeStructureIdKey,
       membership.structure.id
     );
+
+    // Charge le plan de cette structure.
+    this.loadAbonnement(
+      membership.structure.id
+    );
   }
 
   /**
-   * Restaure la structure active depuis le localStorage sans l'effacer prématurément
+   * Restaure la structure active depuis le localStorage.
    */
   restore(): boolean {
-    const activeStructureId = localStorage.getItem(this.activeStructureIdKey);
-    const memberships = this._memberships();
 
-    // 1. Pas d'ID stocké dans le localStorage
+    const activeStructureId =
+      localStorage.getItem(
+        this.activeStructureIdKey
+      );
+
+    const memberships =
+      this._memberships();
+
+    // Pas d'ID sauvegardé.
     if (!activeStructureId) {
       return false;
     }
 
-    // 2. Les structures ne sont pas encore chargées depuis le backend (on attend sans effacer)
+    // Les structures ne sont pas encore chargées.
     if (memberships.length === 0) {
       return false;
     }
 
-    // 3. Recherche de la structure correspondante dans la liste
-    const membership = memberships.find(
-      item => item.structure.id === activeStructureId
-    );
+    const membership =
+      memberships.find(
+        item =>
+          item.structure.id === activeStructureId
+      );
 
-    // 4. Si la structure n'existe vraiment pas parmi les adhésions de l'utilisateur
+    // La structure n'existe plus
+    // parmi les adhésions.
     if (!membership) {
+
       this.clear();
+
       return false;
     }
 
-    // 5. Structure trouvée et restaurée !
-    this._activeMembership.set(membership);
+    this._activeMembership.set(
+      membership
+    );
+
+    // Recharge également l'abonnement
+    // après un refresh de la page.
+    this.loadAbonnement(
+      membership.structure.id
+    );
+
     return true;
   }
 
   clear(): void {
+
     this._activeMembership.set(null);
+
     this._memberships.set([]);
+
+    this._abonnement.set(null);
 
     localStorage.removeItem(
       this.activeStructureIdKey
@@ -122,15 +214,22 @@ export class StructureContextService {
     return this.activeStructure();
   }
 
+  updateActiveStructure(
+    partial: Partial<Structure>
+  ): void {
 
-  updateActiveStructure(partial: Partial<Structure>): void {
-  const current = this._activeMembership();
-  if (!current) return;
+    const current =
+      this._activeMembership();
 
-  this._activeMembership.set({
-    ...current,
-    structure: { ...current.structure, ...partial },
-  });
-}
+    if (!current) return;
 
+    this._activeMembership.set({
+      ...current,
+
+      structure: {
+        ...current.structure,
+        ...partial,
+      },
+    });
+  }
 }

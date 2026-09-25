@@ -1,10 +1,17 @@
-export type TypeAbonnement = 'gratuit' | 'premium' | 'starter' | 'incubateur' | 'reseau';
+export type PlanAbonnement = 'FREEMIUM' | 'PREMIUM';
+
+export type StatutAbonnement =
+  | 'ACTIF'
+  | 'EXPIRE'
+  | 'EN_ATTENTE_PAIEMENT'
+  | 'ANNULE';
 
 export interface Abonnement {
   id: string;
-  type: TypeAbonnement;
-  prix: number;
-  dateDebut: string;
-  dateRenouvellement?: string;
-  statut: 'actif' | 'expire';
+  plan: PlanAbonnement;
+  statut: StatutAbonnement;
+  dateDebut: string | null;
+  dateFin: string | null;
+  renouvellementAuto: boolean;
+  dateCreation: string;
 }

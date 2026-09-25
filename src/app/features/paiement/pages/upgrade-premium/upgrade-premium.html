@@ -1,0 +1,237 @@
+<div
+  class="flex min-h-screen items-center justify-center bg-surface px-4 py-6 font-sans sm:px-6 lg:px-8"
+>
+  <div class="mx-auto w-full max-w-4xl">
+
+    <!-- Retour -->
+    <div class="mb-4">
+      <a
+        routerLink="/incubateur/dashboard"
+        class="inline-flex items-center gap-1.5 text-xs font-medium text-ink-muted transition-colors hover:text-ink"
+      >
+        <app-icon
+          name="arrow-left"
+          class="size-3.5"
+        />
+        Retour au tableau de bord
+      </a>
+    </div>
+
+    <!-- Conteneur principal -->
+    <div
+      class="relative grid overflow-hidden rounded-card-lg border border-line bg-surface shadow-subtle lg:grid-cols-12"
+    >
+
+      
+
+      <!-- ====================================================== -->
+      <!-- COLONNE GAUCHE : Comparatif avec Limites (7 colonnes) -->
+      <!-- ====================================================== -->
+      <section
+        class="flex flex-col justify-between border-b border-line bg-surface p-6 lg:col-span-7 lg:border-b-0 lg:border-r lg:p-8"
+      >
+
+        <div>
+
+          <!-- En-tête -->
+          <div class="mb-5 flex items-start justify-between gap-4">
+            <div>
+              <p
+                class="mb-1 text-[11px] font-bold uppercase tracking-wider text-ink-muted"
+              >
+                Évolution de votre abonnement
+              </p>
+
+              <h1
+                class="text-2xl font-bold tracking-tight text-ink sm:text-3xl"
+              >
+                Passez à JAPPO Premium
+              </h1>
+
+              <p
+                class="mt-1.5 max-w-md text-xs leading-relaxed text-ink-muted"
+              >
+                Affranchissez-vous des restrictions du plan gratuit pour accompagner vos incubés sans limites.
+              </p>
+            </div>
+
+            <div
+              class="flex size-10 shrink-0 items-center justify-center rounded-card border border-line bg-surface-muted text-ink"
+            >
+              <app-icon
+                name="sparkles"
+                class="size-4"
+              />
+            </div>
+          </div>
+
+          <!-- Tableau comparatif (Free vs Premium avec limites) -->
+          <div class="overflow-hidden rounded-card border border-line bg-surface-muted/20">
+
+            <!-- En-têtes du tableau -->
+            <div
+              class="grid grid-cols-12 gap-3 border-b border-line bg-surface-muted px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-ink-muted"
+            >
+              <div class="col-span-6">Fonctionnalités</div>
+              <div class="col-span-3 text-center">Free</div>
+              <div class="col-span-3 text-center text-accent">Premium</div>
+            </div>
+
+            <!-- Ligne 1 : Cohortes -->
+            <div class="grid grid-cols-12 items-center gap-3 border-b border-line/60 px-4 py-3 text-xs">
+              <div class="col-span-6 font-medium text-ink">Cohortes actives</div>
+              <div class="col-span-3 text-center text-ink-muted font-semibold text-[11px]">1 max</div>
+              <div class="col-span-3 text-center font-bold text-accent">Illimité</div>
+            </div>
+
+            <!-- Ligne 2 : Porteurs de projets -->
+            <!-- <div class="grid grid-cols-12 items-center gap-3 border-b border-line/60 px-4 py-3 text-xs">
+              <div class="col-span-6 font-medium text-ink">Porteurs de projets</div>
+              <div class="col-span-3 text-center text-ink-muted font-semibold text-[11px]">5 max</div>
+              <div class="col-span-3 text-center font-bold text-accent">Illimité</div>
+            </div> -->
+
+           
+
+            <!-- Ligne  : Jappo Intelligence -->
+            <div class="grid grid-cols-12 items-center gap-3 px-4 py-3 text-xs">
+              <div class="col-span-6 font-medium text-ink">Jappo Intelligence (IA)</div>
+              <div class="col-span-3 text-center text-ink-faint">—</div>
+              <div class="col-span-3 text-center font-bold text-accent">Inclus</div>
+            </div>
+            <!-- <div class="grid grid-cols-12 items-center gap-3 px-4 py-3 text-xs">
+              <div class="col-span-6 font-medium text-ink">Reunion</div>
+              <div class="col-span-3 text-center text-ink-faint">—</div>
+              <div class="col-span-3 text-center font-bold text-accent">Inclus</div>
+            </div> -->
+
+          </div>
+
+          <!-- Note explicative courte -->
+          <p class="mt-3 text-[11px] text-ink-muted leading-snug">
+            * Votre structure bénéficie d'une licence valable 12 mois sans aucun prélèvement automatique à l'issue.
+          </p>
+
+        </div>
+
+        <!-- Sécurité -->
+        <div
+          class="mt-4 flex items-center justify-between border-t border-line pt-3"
+        >
+          <div
+            class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-ink-muted"
+          >
+            <app-icon
+              name="lock"
+              class="size-3.5 text-accent"
+            />
+            Paiement sécurisé via PayDunya
+          </div>
+
+          <span class="text-[10px] text-ink-faint">
+            Sans engagement auto
+          </span>
+        </div>
+
+      </section>
+
+      <!-- ====================================================== -->
+      <!-- COLONNE DROITE : Résumé & Paiement (5 colonnes) -->
+      <!-- ====================================================== -->
+      <section
+        class="flex flex-col justify-between bg-surface-muted/30 p-6 lg:col-span-5 lg:p-8"
+      >
+
+        <div>
+
+          <!-- Résumé -->
+          <div class="mb-4 border-b border-line pb-3">
+            <p
+              class="text-[11px] font-bold uppercase tracking-wider text-ink-muted"
+            >
+              Résumé de la commande
+            </p>
+
+            <p class="mt-0.5 text-xs font-bold text-ink">
+              JAPPO Premium (12 mois)
+            </p>
+          </div>
+
+          <!-- Offre -->
+          <div
+            class="mb-4 rounded-card border border-line bg-surface p-3.5"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="text-xs font-bold text-ink">
+                  Licence structurelle
+                </p>
+
+                <p
+                  class="mt-0.5 text-[10px] leading-relaxed text-ink-muted"
+                >
+                  Accès complet pour toute votre équipe et vos incubés.
+                </p>
+              </div>
+
+              <div class="shrink-0 text-right">
+                <p class="text-sm font-extrabold text-ink">
+                  90 000 FCFA
+                </p>
+
+                <p class="text-[10px] text-ink-muted">
+                  / an
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Détails -->
+          <div class="mb-4 space-y-2 text-[11px] text-ink-muted">
+            <div class="flex items-center gap-2">
+              <span class="text-ink font-bold">✓</span>
+              <span>Activation immédiate après validation</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-ink font-bold">✓</span>
+              <span>Support technique prioritaire inclus</span>
+            </div>
+          </div>
+
+          <!-- Total -->
+          <div class="border-t border-line pt-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-medium text-ink-muted">
+                Total à régler
+              </span>
+
+              <span class="text-base font-extrabold text-ink">
+                90 000 FCFA
+              </span>
+            </div>
+
+            <p class="mt-1 text-[10px] leading-tight text-ink-faint">
+              Paiement unique via PayDunya. Aucun abonnement caché.
+            </p>
+          </div>
+
+        </div>
+
+        <!-- CTA -->
+        <div class="mt-5 border-t border-line pt-4">
+
+          <app-upgrade-premium />
+
+          <p
+            class="mt-2.5 text-center text-[10px] leading-tight text-ink-muted"
+          >
+            Redirection sécurisée vers <strong class="font-semibold text-ink">PayDunya</strong>.
+          </p>
+
+        </div>
+
+      </section>
+
+    </div>
+  </div>
+</div>

@@ -96,22 +96,233 @@
   --color-accent-soft: var(--color-sidebar-active);
 }
 
-.dark {
+/* =========================================================
+   THÈME DARK
+   ========================================================= */
+
+html.dark {
   --color-surface: var(--color-charcoal);
   --color-surface-muted: var(--color-midnight-ink);
   --color-surface-subtle: var(--color-graphite);
+
   --color-line: var(--color-slate);
   --color-line-strong: var(--color-steel);
+
   --color-input-border: var(--color-silver);
+
   --color-ink: #fafafa;
   --color-ink-muted: var(--color-silver);
   --color-ink-faint: var(--color-fog);
+
   --color-accent: #60a5fa;
   --color-accent-strong: var(--color-electric-blue);
   --color-accent-soft: #1e3a5f;
+
   --color-action-fill: #fafafa;
+
+  color-scheme: dark;
 }
 
+
+/* =========================================================
+   THÈME OCEAN
+   ========================================================= */
+
+html[data-theme="ocean"] {
+  --color-surface: #f8fbff;
+  --color-surface-muted: #eef6ff;
+  --color-surface-subtle: #e0efff;
+
+  --color-line: #cbdff2;
+  --color-line-strong: #9fc3e5;
+
+  --color-input-border: #2563eb;
+
+  --color-ink: #102a43;
+  --color-ink-muted: #486581;
+  --color-ink-faint: #829ab1;
+
+  --color-accent: #0284c7;
+  --color-accent-strong: #0369a1;
+  --color-accent-soft: #dff3ff;
+
+  --color-action-fill: #0369a1;
+
+  color-scheme: light;
+}
+
+
+/* =========================================================
+   THÈME FOREST
+   ========================================================= */
+
+html[data-theme="forest"] {
+  --color-surface: #f8fcf8;
+  --color-surface-muted: #eef7ef;
+  --color-surface-subtle: #dff0e1;
+
+  --color-line: #c8ddca;
+  --color-line-strong: #9fbea2;
+
+  --color-input-border: #16a34a;
+
+  --color-ink: #17351f;
+  --color-ink-muted: #4f6b56;
+  --color-ink-faint: #78917d;
+
+  --color-accent: #16a34a;
+  --color-accent-strong: #15803d;
+  --color-accent-soft: #dcfce7;
+
+  --color-action-fill: #15803d;
+
+  color-scheme: light;
+}
+
+/* =========================================================
+   THÈME GLASS
+   ========================================================= */
+
+html[data-theme="glass"] {
+  --color-surface: rgba(255, 255, 255, 0.72);
+  --color-surface-muted: rgba(248, 250, 252, 0.78);
+  --color-surface-subtle: rgba(255, 255, 255, 0.55);
+
+  --color-line: rgba(148, 163, 184, 0.25);
+  --color-line-strong: rgba(148, 163, 184, 0.4);
+
+  --color-input-border: rgba(100, 116, 139, 0.35);
+
+  --color-ink: #172033;
+  --color-ink-muted: #64748b;
+  --color-ink-faint: #94a3b8;
+
+  --color-accent: #6366f1;
+  --color-accent-strong: #4f46e5;
+  --color-accent-soft: rgba(99, 102, 241, 0.12);
+
+  --color-action-fill: #4f46e5;
+
+  --shadow-subtle:
+    0 8px 30px rgba(15, 23, 42, 0.08);
+
+  color-scheme: light;
+}
+
+
+/* =========================================================
+   GLASS — BACKGROUND
+   ========================================================= */
+
+html[data-theme="glass"] body {
+  background:
+    radial-gradient(
+      circle at 10% 10%,
+      rgba(99, 102, 241, 0.18),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 90% 15%,
+      rgba(14, 165, 233, 0.14),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at 70% 90%,
+      rgba(168, 85, 247, 0.12),
+      transparent 32%
+    ),
+    #f1f5f9;
+
+  background-attachment: fixed;
+}
+
+
+/* =========================================================
+   GLASS — ÉLÉMENTS EXPLICITEMENT GLASS
+   ========================================================= */
+
+html[data-theme="glass"] .glass-surface {
+  background: rgba(255, 255, 255, 0.42);
+
+  border: 1px solid rgba(255, 255, 255, 0.55);
+
+  box-shadow:
+    0 12px 40px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+}
+
+
+/* =========================================================
+   GLASS — REFLET
+   ========================================================= */
+
+html[data-theme="glass"] .glass-surface::before {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  pointer-events: none;
+
+  border-radius: inherit;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.3),
+      transparent 35%
+    );
+}
+
+
+/* =========================================================
+   GLASS — BOUTON GLASS
+   ========================================================= */
+
+html[data-theme="glass"] .glass-button {
+  background: rgba(255, 255, 255, 0.28);
+
+  border: 1px solid rgba(255, 255, 255, 0.5);
+
+ 
+
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease;
+}
+
+html[data-theme="glass"] .glass-button:hover {
+  background: rgba(255, 255, 255, 0.4);
+
+  transform: translateY(-1px);
+
+ 
+}
+
+
+/* =========================================================
+   GLASS — MODALE
+   ========================================================= */
+
+html[data-theme="glass"] .glass-modal {
+  background: rgba(255, 255, 255, 0.62);
+
+  border: 1px solid rgba(255, 255, 255, 0.65);
+
+  box-shadow:
+    0 24px 70px rgba(15, 23, 42, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+
+  backdrop-filter: blur(26px) saturate(150%);
+  -webkit-backdrop-filter: blur(26px) saturate(150%);
+}
 html,
 body {
   height: 100%;
@@ -289,4 +500,31 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) rotate(-4deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(-2deg);
+  }
+}
+
+@keyframes float-delayed {
+  0%, 100% {
+    transform: translateY(0px) rotate(3deg);
+  }
+  50% {
+    transform: translateY(-12px) rotate(5deg);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float-delayed 7s ease-in-out infinite 1s;
 }

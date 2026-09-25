@@ -14,6 +14,27 @@ export const routes: Routes = [
     loadComponent: () => import('./features/landing/landing-page/landing-page').then((m) => m.LandingPage),
   },
 
+
+  {
+  path: 'paiement/succes',
+  loadComponent: () =>
+    import('./features/paiement/pages/paiement-succes/paiement-succes')
+      .then(m => m.PaiementSucces)
+},
+
+{
+  path: 'paiement/annule',
+  loadComponent: () =>
+    import('./features/paiement/pages/paiement-annule/paiement-annule')
+      .then(m => m.PaiementAnnule)
+},
+
+{
+  path: 'upgrade',
+  loadComponent: () =>
+    import('./features/paiement/pages/upgrade-premium/upgrade-premium')
+      .then(m => m.UpgradePremium)
+},
   // --- Auth / Onboarding (sans sidebar) ---
   {
     path: 'connexion',
@@ -234,6 +255,19 @@ export const routes: Routes = [
   loadComponent: () =>
     import('./features/incubateur/meetings/meeting-room/meeting-room')
       .then(m => m.MeetingRoomComponent),
+},
+
+{
+  path: 'super-admin',
+  loadChildren: () =>
+    import('./features/super-admin/super-admin.routes')
+      .then(m => m.SUPER_ADMIN_ROUTES),
+},
+{
+  path: 'assistance',
+  loadComponent: () =>
+    import('./features/assistance/assistance-page')
+      .then(m => m.AssistancePage),
 },
 
   {

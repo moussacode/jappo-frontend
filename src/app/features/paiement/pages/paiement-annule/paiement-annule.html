@@ -1,0 +1,60 @@
+<div class="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-12">
+
+  <div class="w-full max-w-lg">
+
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
+
+      <!-- Icône -->
+      <div class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-amber-50">
+
+        <svg
+          class="h-8 w-8 text-amber-600"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M6 18L18 6M6 6l12 12"
+          />
+        </svg>
+
+      </div>
+
+      <!-- Titre -->
+      <h1 class="text-2xl font-semibold text-slate-900">
+        Paiement annulé
+      </h1>
+
+      <!-- Message -->
+      <p class="mt-3 text-slate-500">
+        Le paiement n'a pas été finalisé.
+        Aucun abonnement Premium n'a été activé.
+      </p>
+
+      <!-- Information -->
+      <div class="mt-6 rounded-xl bg-slate-50 p-5 text-left">
+
+        <p class="text-sm text-slate-600">
+          Vous pouvez revenir sur JAPPO et réessayer lorsque vous serez prêt.
+        </p>
+
+      </div>
+
+      <!-- Bouton -->
+      <button
+        type="button"
+        (click)="retournerAccueil()"
+        class="mt-6 w-full rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800"
+      >
+        Retourner à JAPPO
+      </button>
+
+    </div>
+
+  </div>
+
+</div>

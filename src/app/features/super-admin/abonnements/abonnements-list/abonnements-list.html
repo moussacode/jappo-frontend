@@ -1,0 +1,390 @@
+<div class="min-h-full bg-surface-muted">
+  <div class="mx-auto max-w-7xl space-y-6 p-6">
+
+    <!-- Header -->
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <div class="mb-1 flex items-center gap-2 text-xs text-ink-muted">
+          <span>Super Admin</span>
+          <app-icon name="chevron-right" class="h-3.5 w-3.5" />
+          <span class="text-ink">Abonnements</span>
+        </div>
+
+        <h1 class="text-2xl font-bold tracking-tight text-ink">
+          Abonnements
+        </h1>
+
+        <p class="mt-1 text-sm text-ink-muted">
+          Consultez les plans et l'état des abonnements des structures.
+        </p>
+      </div>
+
+      <app-button
+        variant="secondary"
+        size="sm"
+        (click)="chargerAbonnements()"
+      >
+        
+        Actualiser
+      </app-button>
+    </div>
+
+    <!-- Erreur -->
+    @if (error()) {
+      <div
+        class="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+      >
+        <app-icon name="alert-circle" class="mt-0.5 h-5 w-5 shrink-0" />
+
+        <div class="flex-1">
+          <p class="font-semibold">
+            Impossible de charger les abonnements
+          </p>
+
+          <p class="mt-1">
+            {{ error() }}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          class="cursor-pointer text-xs font-semibold underline"
+          (click)="chargerAbonnements()"
+        >
+          Réessayer
+        </button>
+      </div>
+    }
+
+    <!-- KPI -->
+    @if (loading()) {
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        @for (item of [1, 2, 3, 4]; track item) {
+          <div class="rounded-2xl border border-line bg-surface p-5">
+            <div class="h-3 w-24 animate-pulse rounded bg-surface-muted"></div>
+            <div class="mt-3 h-7 w-16 animate-pulse rounded bg-surface-muted"></div>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+
+        <!-- Total -->
+        <div class="rounded-2xl border border-line bg-surface p-5 shadow-xs">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                Total
+              </p>
+
+              <p class="mt-2 text-2xl font-bold text-ink">
+                {{ nombreTotal() }}
+              </p>
+
+              <p class="mt-1 text-xs text-ink-muted">
+                abonnements
+              </p>
+            </div>
+
+           
+          </div>
+        </div>
+
+        <!-- Premium -->
+        <div class="rounded-2xl border border-line bg-surface p-5 shadow-xs">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                Premium
+              </p>
+
+              <p class="mt-2 text-2xl font-bold text-ink">
+                {{ nombrePremium() }}
+              </p>
+
+              <p class="mt-1 text-xs text-ink-muted">
+                structures Premium
+              </p>
+            </div>
+
+            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10">
+              <app-icon
+                name="sparkles"
+                class="h-5 w-5 text-accent"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Freemium -->
+        <div class="rounded-2xl border border-line bg-surface p-5 shadow-xs">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                Freemium
+              </p>
+
+              <p class="mt-2 text-2xl font-bold text-ink">
+                {{ nombreFreemium() }}
+              </p>
+
+              <p class="mt-1 text-xs text-ink-muted">
+                structures Freemium
+              </p>
+            </div>
+
+            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-muted">
+              <app-icon
+                name="layers"
+                class="h-5 w-5 text-ink-muted"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Actifs -->
+        <div class="rounded-2xl border border-line bg-surface p-5 shadow-xs">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                Actifs
+              </p>
+
+              <p class="mt-2 text-2xl font-bold text-ink">
+                {{ nombreActifs() }}
+              </p>
+
+              <p class="mt-1 text-xs text-ink-muted">
+                abonnements actifs
+              </p>
+            </div>
+
+            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-muted">
+              <app-icon
+                name="check-circle"
+                class="h-5 w-5 text-ink-muted"
+              />
+            </div>
+          </div>
+        </div>
+
+      </div>
+    }
+
+    <!-- Contenu -->
+    <section class="overflow-hidden rounded-2xl border border-line bg-surface shadow-xs">
+
+      <!-- En-tête section -->
+      <div class="flex flex-col gap-4 border-b border-line p-5 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h2 class="text-base font-bold text-ink">
+            Liste des abonnements
+          </h2>
+
+          <p class="mt-1 text-xs text-ink-muted">
+            {{ filteredAbonnements().length }}
+            résultat{{ filteredAbonnements().length > 1 ? 's' : '' }}
+          </p>
+        </div>
+
+        <!-- Filtres -->
+        <app-tab-filter
+          [options]="filtresDisponibles()"
+          [value]="activeFilter()"
+          (valueChange)="changerFiltre($event)"
+        />
+      </div>
+
+      <!-- Loading -->
+      @if (loading()) {
+
+        <div class="divide-y divide-line">
+          @for (item of [1, 2, 3, 4, 5]; track item) {
+            <div class="flex items-center gap-4 p-5">
+              <div class="h-10 w-10 animate-pulse rounded-xl bg-surface-muted"></div>
+
+              <div class="flex-1 space-y-2">
+                <div class="h-3 w-40 animate-pulse rounded bg-surface-muted"></div>
+                <div class="h-2.5 w-24 animate-pulse rounded bg-surface-muted"></div>
+              </div>
+
+              <div class="hidden h-6 w-20 animate-pulse rounded bg-surface-muted sm:block"></div>
+              <div class="hidden h-6 w-20 animate-pulse rounded bg-surface-muted md:block"></div>
+            </div>
+          }
+        </div>
+
+      } @else if (filteredAbonnements().length === 0) {
+
+        <!-- Empty state -->
+        <div class="p-8">
+          <app-empty-state
+            title="Aucun abonnement trouvé"
+            description="Aucun abonnement ne correspond au filtre sélectionné."
+            
+          />
+        </div>
+
+      } @else {
+
+        <!-- Tableau -->
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[900px] text-left">
+
+            <thead class="border-b border-line bg-surface-muted">
+              <tr class="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                <th class="px-5 py-3">
+                  Structure
+                </th>
+
+                <th class="px-5 py-3">
+                  Plan
+                </th>
+
+                <th class="px-5 py-3">
+                  Statut
+                </th>
+
+                <th class="px-5 py-3">
+                  Période
+                </th>
+
+                <th class="px-5 py-3">
+                  Renouvellement
+                </th>
+
+                <th class="px-5 py-3">
+                  Créé le
+                </th>
+              </tr>
+            </thead>
+
+            <tbody class="divide-y divide-line">
+
+              @for (
+                abonnement of filteredAbonnements();
+                track abonnement.id
+              ) {
+
+                <tr class="transition-colors hover:bg-surface-muted/50">
+
+                  <!-- Structure -->
+                  <td class="px-5 py-4">
+                    <div class="flex items-center gap-3">
+
+                      <div
+                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-sm font-bold text-accent"
+                      >
+                        {{ abonnement.structureNom.charAt(0).toUpperCase() }}
+                      </div>
+
+                      <div class="min-w-0">
+                        <p class="truncate text-sm font-semibold text-ink">
+                          {{ abonnement.structureNom }}
+                        </p>
+
+                        <p class="mt-0.5 text-xs text-ink-muted">
+                          {{ abonnement.structureId }}
+                        </p>
+                      </div>
+
+                    </div>
+                  </td>
+
+                  <!-- Plan -->
+                  <td class="px-5 py-4">
+                    <app-badge
+                      [status]="getPlanBadgeStatus(abonnement.plan)"
+                    >
+                      {{ getPlanLabel(abonnement.plan) }}
+                    </app-badge>
+                  </td>
+
+                  <!-- Statut -->
+                  <td class="px-5 py-4">
+                    <app-badge
+                      [status]="getStatutBadgeStatus(abonnement.statut)"
+                    >
+                      {{ getStatutLabel(abonnement.statut) }}
+                    </app-badge>
+                  </td>
+
+                  <!-- Période -->
+                  <td class="px-5 py-4">
+                    <div class="text-sm text-ink">
+
+                      @if (abonnement.dateDebut) {
+                        <p>
+                          {{ formaterDate(abonnement.dateDebut) }}
+                        </p>
+                      } @else {
+                        <p>—</p>
+                      }
+
+                      <p class="mt-1 text-xs text-ink-muted">
+                        @if (abonnement.dateFin) {
+                          jusqu'au {{ formaterDate(abonnement.dateFin) }}
+                        } @else {
+                          Sans date de fin
+                        }
+                      </p>
+
+                    </div>
+                  </td>
+
+                  <!-- Renouvellement -->
+                  <td class="px-5 py-4">
+                    @if (abonnement.renouvellementAuto) {
+                      <div class="flex items-center gap-2 text-sm font-medium text-ink">
+                        <span class="flex h-6 w-6 items-center justify-center rounded-full bg-green-50">
+                          <app-icon
+                            name="check"
+                            class="h-3.5 w-3.5 text-green-600"
+                          />
+                        </span>
+
+                        Automatique
+                      </div>
+                    } @else {
+                      <div class="flex items-center gap-2 text-sm text-ink-muted">
+                        <span class="flex h-6 w-6 items-center justify-center rounded-full bg-surface-muted">
+                          -
+                        </span>
+
+                        Manuel
+                      </div>
+                    }
+                  </td>
+
+                  <!-- Date création -->
+                  <td class="px-5 py-4 text-sm text-ink-muted">
+                    {{ formaterDate(abonnement.dateCreation) }}
+                  </td>
+
+                </tr>
+              }
+
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Footer -->
+        <div class="flex items-center justify-between border-t border-line px-5 py-4">
+          <p class="text-xs text-ink-muted">
+            {{ filteredAbonnements().length }}
+            abonnement{{ filteredAbonnements().length > 1 ? 's' : '' }} affiché{{ filteredAbonnements().length > 1 ? 's' : '' }}
+          </p>
+
+          <p class="text-xs font-medium text-ink-muted">
+            {{ nombrePremium() }} Premium
+            ·
+            {{ nombreFreemium() }} Freemium
+          </p>
+        </div>
+
+      }
+
+    </section>
+
+  </div>
+</div>
