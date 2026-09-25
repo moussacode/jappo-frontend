@@ -257,6 +257,19 @@ export const routes: Routes = [
       .then(m => m.MeetingRoomComponent),
 },
 
+{
+  path: 'super-admin',
+  loadChildren: () =>
+    import('./features/super-admin/super-admin.routes')
+      .then(m => m.SUPER_ADMIN_ROUTES),
+},
+{
+  path: 'assistance',
+  loadComponent: () =>
+    import('./features/assistance/assistance-page')
+      .then(m => m.AssistancePage),
+},
+
   {
     path: '**',
     redirectTo: '',

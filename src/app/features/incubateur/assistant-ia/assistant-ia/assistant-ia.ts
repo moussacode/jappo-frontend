@@ -35,6 +35,8 @@ import { Projet } from '../../../../core/models/projet.model';
 
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 import { VoiceModalComponent } from '../../../../shared/components/voice-modal/voice-modal';
+import { TranslatePipe } from '../../../../shared/pipes/translate.pipe';
+import { TranslationService } from '../../../../core/services/translation.service';
 
 /**
  * Assistant IA — côté coach/incubateur.
@@ -53,13 +55,14 @@ import { VoiceModalComponent } from '../../../../shared/components/voice-modal/v
 @Component({
   selector: 'app-assistant-ia',
   standalone: true,
-  imports: [CommonModule, ButtonComponent, JsonPipe, RouterLink, DatePipe, VoiceModalComponent],
+  imports: [CommonModule, ButtonComponent, JsonPipe, RouterLink, DatePipe, VoiceModalComponent,TranslatePipe],
   templateUrl: './assistant-ia.html',
 })
 export class AssistantIa implements OnInit {
 
   // ── Services ──────────────────────────────────────────────────────────────
-
+protected readonly translationService =
+  inject(TranslationService);
   private readonly cohorteService       = inject(CohorteService);
   private readonly projetService        = inject(ProjetService);
   private readonly conversationService  = inject(ConversationService);
@@ -137,9 +140,26 @@ export class AssistantIa implements OnInit {
     }
 
     const groupes: { label: string; conversations: ConversationIA[] }[] = [];
-    if (todayItems.length)     groupes.push({ label: "Aujourd'hui", conversations: todayItems });
-    if (yesterdayItems.length) groupes.push({ label: 'Hier',        conversations: yesterdayItems });
-    if (olderItems.length)     groupes.push({ label: 'Plus ancien', conversations: olderItems });
+    if (todayItems.length) {
+  groupes.push({
+    label: 'assistantIa.historique.aujourdhui',
+    conversations: todayItems,
+  });
+}
+
+if (yesterdayItems.length) {
+  groupes.push({
+    label: 'assistantIa.historique.hier',
+    conversations: yesterdayItems,
+  });
+}
+
+if (olderItems.length) {
+  groupes.push({
+    label: 'assistantIa.historique.plusAncien',
+    conversations: olderItems,
+  });
+}
     return groupes;
   });
 
@@ -191,11 +211,11 @@ export class AssistantIa implements OnInit {
 
   // ── Suggestions rapides ───────────────────────────────────────────────────
 
-  protected readonly suggestions = [
-    "Combien d'entrepreneurs avons-nous ?",
-    'Quels projets sont en retard ?',
-    'Résume la progression de la cohorte',
-  ];
+ protected readonly suggestions = [
+  'assistantIa.suggestions.entrepreneurs',
+  'assistantIa.suggestions.retards',
+  'assistantIa.suggestions.progression',
+];
 
   // ── Sélecteur de modèle ───────────────────────────────────────────────────
 

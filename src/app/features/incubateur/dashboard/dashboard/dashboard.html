@@ -5,11 +5,18 @@
 <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
   <div>
     <h1 class="text-xl font-bold text-ink sm:text-2xl">{{ salutation() }}</h1>
-    <p class="text-xs text-ink-muted mt-1">Voici ce qui se passe dans vos programmes · {{ nomStructure() }}</p>
+   <p class="mt-1 text-xs text-ink-muted">
+  {{
+    'incubateur.dashboard.sousTitre'
+      | translate:{ structure: nomStructure() }
+  }}
+</p>
   </div>
   <app-button size="sm" [fullWidthMobile]="true" (click)="showInviteModal.set(true)">
     <app-icon name="plus" class="size-3.5" />
-    <span>Inviter des entrepreneurs</span>
+    <span>
+  {{ 'incubateur.dashboard.inviterEntrepreneurs' | translate }}
+</span>
   </app-button>
 </div>
 
@@ -27,77 +34,52 @@
       } @else {
 
         <!-- 1. CARTES KPIS -->
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          <app-kpi-card
-            label="Entrepreneurs suivis"
-            [value]="stats()?.entrepreneursActifs || 0"
-            [note]="(stats()?.totalEntrepreneurs || 0) + ' membre(s) au total'"
-            noteVariant="neutral"
-          />
-          <app-kpi-card
-            label="Cohortes actives"
-            [value]="cohortesActives().length  || 0"
-            note="Programmes en cours"
-            noteVariant="brand"
-          />
-          <app-kpi-card
-            label="Score de maturité moyen"
-            [value]="(stats()?.scoreMaturiteMoyen || 0) + '%'"
-            note="Moyenne sur tous les projets"
-            noteVariant="brand"
-          />
-          <app-kpi-card
-            label="Livrables à revoir"
-            [value]="stats()?.livrablesEnAttente || 0"
-            note="En attente d'évaluation"
-            noteVariant="neutral"
-          />
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+<!-- <app-kpi-card
+  [label]="'incubateur.dashboard.kpi.entrepreneursSuivis' | translate"
+  [value]="stats()?.entrepreneursActifs || 0"
+  [note]="
+    (stats()?.totalEntrepreneurs || 0) +
+    ' ' +
+    ('incubateur.dashboard.kpi.membresTotal' | translate)
+  "
+  noteVariant="neutral"
+/> -->
+
+<app-kpi-card
+  [label]="'incubateur.dashboard.kpi.cohortesActives' | translate"
+  [value]="cohortesActives().length || 0"
+  [note]="'incubateur.dashboard.kpi.programmesEnCours' | translate"
+  noteVariant="brand"
+/>
+
+<app-kpi-card
+  [label]="'incubateur.dashboard.kpi.scoreMaturite' | translate"
+  [value]="(stats()?.scoreMaturiteMoyen || 0) + '%'"
+  [note]="'incubateur.dashboard.kpi.moyenneProjets' | translate"
+  noteVariant="brand"
+/>
+
+<app-kpi-card
+  [label]="'incubateur.dashboard.kpi.livrablesRevoir' | translate"
+  [value]="stats()?.livrablesEnAttente || 0"
+  [note]="'incubateur.dashboard.kpi.enAttenteEvaluation' | translate"
+  noteVariant="neutral"
+/>
         </div>
 
-        <!-- 2. QUICK ACTIONS PRIORITAIRES -->
-        <!-- <div class="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4 sm:p-5 shadow-xs">
-          <div class="flex items-center gap-2 text-ink font-bold text-xs uppercase tracking-wider">
-            <app-icon name="sparkles" class="size-4 text-accent" />
-            <span>Actions rapides</span>
-          </div>
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <a
-              
-              class="flex flex-col items-center gap-2 rounded-xl border border-line bg-surface-muted/30 p-4 transition-all hover:border-accent hover:bg-accent/5 cursor-pointer shadow-2xs text-center"
-            >
-              <app-icon name="plus" class="size-5 text-accent" />
-              <span class="text-xs font-medium text-ink">Créer une cohorte</span>
-            </a>
-            <a
-              routerLink="/incubateur/missions/attribuer"
-              class="flex flex-col items-center gap-2 rounded-xl border border-line bg-surface-muted/30 p-4 transition-all hover:border-accent hover:bg-accent/5 cursor-pointer shadow-2xs text-center"
-            >
-              <app-icon name="missions" class="size-5 text-accent" />
-              <span class="text-xs font-medium text-ink">Créer une mission</span>
-            </a>
-            <button
-              (click)="showInviteModal.set(true)"
-              class="flex flex-col items-center gap-2 rounded-xl border border-line bg-surface-muted/30 p-4 transition-all hover:border-accent hover:bg-accent/5 cursor-pointer shadow-2xs text-center"
-            >
-              <app-icon name="entrepreneurs" class="size-5 text-accent" />
-              <span class="text-xs font-medium text-ink">Inviter des entrepreneurs</span>
-            </button>
-            <a
-              routerLink="/incubateur/reunions/nouvelle"
-              class="flex flex-col items-center gap-2 rounded-xl border border-line bg-surface-muted/30 p-4 transition-all hover:border-accent hover:bg-accent/5 cursor-pointer shadow-2xs text-center"
-            >
-              <app-icon name="video" class="size-5 text-accent" />
-              <span class="text-xs font-medium text-ink">Planifier une réunion</span>
-            </a>
-          </div>
-        </div> -->
-
+      
         <!-- 3. ALERTES PROJETS (Score maturité < 40%) -->
         @if (alertesProjets().length > 0) {
           <div class="flex flex-col gap-3 rounded-2xl border border-warning/30 bg-warning/5 p-4 sm:p-5 shadow-xs">
             <div class="flex items-center gap-2 text-ink font-bold text-xs uppercase tracking-wider">
               <app-icon name="warning" class="size-4 text-warning" />
-              <span>Projets nécessitant une attention ({{ alertesProjets().length }})</span>
+              <span>
+  {{
+    'incubateur.dashboard.alertes.titre'
+      | translate:{ count: alertesProjets().length }
+  }}
+</span>
             </div>
             <div class="divide-y divide-line">
               @for (alerte of alertesProjets(); track alerte.projetId) {
@@ -112,7 +94,8 @@
                     <div class="flex flex-col min-w-0">
                       <span class="text-xs font-bold text-ink truncate">{{ alerte.nomProjet }}</span>
                       <span class="text-[11px] text-ink-muted truncate">
-                        Par <strong>{{ alerte.nomEntrepreneur }}</strong> 
+                        {{ 'commun.par' | translate }}
+<strong>{{ alerte.nomEntrepreneur }}</strong>
                       </span>
                     </div>
                   </div>
@@ -133,7 +116,12 @@
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2 text-ink font-bold text-xs uppercase tracking-wider">
                 <app-icon name="cohortes" class="size-4 text-accent" />
-                <span>Cohortes Actives ({{ cohortesActives().length }})</span>
+                <span>
+  {{
+    'incubateur.dashboard.cohortes.titre'
+      | translate:{ count: cohortesActives().length }
+  }}
+</span>
               </div>
             </div>
 
@@ -146,7 +134,12 @@
                 >
                   <div class="flex flex-col min-w-0">
                     <span class="text-xs font-bold text-ink truncate transition-colors group-hover:text-accent">{{ c.nom }}</span>
-                    <span class="text-[11px] text-ink-muted truncate">{{ c.description || 'Aucune description' }}</span>
+                    <span class="text-[11px] text-ink-muted truncate">
+  {{
+    c.description ||
+      ('incubateur.dashboard.cohortes.sansDescription' | translate)
+  }}
+</span>
                   </div>
                   <div class="flex items-center gap-2 shrink-0">
                    
@@ -163,7 +156,9 @@
           <div class="flex items-center justify-between border-b border-line px-4 py-3 sm:px-6 sm:py-4 bg-surface-muted/30">
             <div class="flex items-center gap-2 min-w-0">
               <app-icon name="missions" class="size-4 text-ink-muted shrink-0" />
-              <h2 class="text-sm font-bold text-ink truncate">Activité récente (Derniers livrables déposés)</h2>
+              <h2 class="text-sm font-bold text-ink truncate">
+  {{ 'incubateur.dashboard.activite.titre' | translate }}
+</h2>
             </div>
           </div>
 
@@ -180,8 +175,10 @@
                   <div class="flex flex-col min-w-0">
                     <span class="text-xs font-bold text-ink truncate group-hover:text-accent transition-colors">{{ l.nomLivrable }}</span>
                     <span class="text-[11px] text-ink-muted truncate">
-                      Par <strong>{{ l.nomEntrepreneur }}</strong> ({{ l.nomProjet }})
-                    </span>
+  {{ 'commun.par' | translate }}
+  <strong>{{ l.nomEntrepreneur }}</strong>
+  ({{ l.nomProjet }})
+</span>
                   </div>
                 </div>
 
@@ -200,10 +197,12 @@
             } @empty {
               <div class="p-6 sm:p-8">
                 <app-empty-state
-                  title="Aucun livrable récemment déposé"
-                  description="Les livrables soumis par les entrepreneurs de vos cohortes apparaîtront ici."
-                  iconName="missions"
-                />
+  [title]="'incubateur.dashboard.activite.aucunLivrable' | translate"
+  [description]="
+    'incubateur.dashboard.activite.aucunLivrableDescription' | translate
+  "
+  iconName="missions"
+/>
               </div>
             }
           </div>

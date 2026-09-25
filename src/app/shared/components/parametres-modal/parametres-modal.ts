@@ -30,7 +30,7 @@ import {
 } from '../../../core/services/invitation.service';
 import { InputComponent } from '../input/input.component';
 import { FormFieldComponent } from '../input/form-field.component';
-import { ThemeService } from '../../../core/services/theme.service';
+import { ThemeService,Theme } from '../../../core/services/theme.service';
 import { TranslatePipe } from '../../pipes/translate.pipe';
 import { TypeStructure } from '../../../core/models';
 
@@ -40,7 +40,7 @@ export type SettingTab =
   | 'preferences'
   | 'equipe';
 
-type Theme = 'system' | 'light' | 'dark';
+
 type Language = 'fr' | 'en' | 'wo';
 
 interface StructureFormValue {
@@ -745,6 +745,18 @@ private chargerMembresEquipe(): void {
   // Helpers
   // ---------------------------------------------------------------------------
 
+
+  protected isAdminStructure(): boolean {
+  return this.structureContext.activeRole() === 'ADMIN_STRUCTURE';
+}
+
+protected isCoach(): boolean {
+  return this.structureContext.activeRole() === 'COACH';
+}
+
+protected isEntrepreneur(): boolean {
+  return this.structureContext.activeRole() === 'ENTREPRENEUR';
+}
   getInitiales(
     prenom?: string,
     nom?: string

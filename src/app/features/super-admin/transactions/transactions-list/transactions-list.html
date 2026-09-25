@@ -1,0 +1,316 @@
+<div class="min-h-full min-w-0 bg-surface-muted/30 font-sans">
+  <div class="mx-auto min-w-0 max-w-7xl space-y-6 p-4 sm:p-6 lg:p-8">
+
+    <!-- HEADER DE PAGE -->
+    <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <div class="mb-1.5 flex items-center gap-1.5 text-xs text-ink-muted">
+          <span>Super Admin</span>
+          <app-icon name="chevron-right" class="size-3.5 opacity-60" />
+          <span class="font-medium text-ink">Transactions</span>
+        </div>
+
+        <h1 class="text-xl font-semibold tracking-tight text-ink sm:text-2xl">
+          Transactions
+        </h1>
+
+        <p class="mt-1 text-sm text-ink-muted">
+          Paiements effectués par les structures clientes.
+        </p>
+      </div>
+
+      <app-button
+        variant="secondary"
+        size="sm"
+        (click)="chargerTransactions()"
+        [disabled]="loading()"
+      >
+        
+        <span>Actualiser</span>
+      </app-button>
+    </header>
+
+    <!-- BANNIÈRE D'ERREUR -->
+    @if (error(); as errorMessage) {
+      <div class="flex items-start gap-3 rounded-xl border border-red-500/15 bg-red-500/[0.04] p-4 text-sm text-red-700 animate-in fade-in">
+        <app-icon name="alert-circle" class="size-4 shrink-0 mt-0.5 text-red-500" />
+        <div class="flex-1">
+          <p class="font-medium">Une erreur est survenue</p>
+          <p class="mt-0.5 text-red-600/90">{{ errorMessage }}</p>
+        </div>
+        <button
+          type="button"
+          class="shrink-0 rounded-md px-2 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-500/10"
+          (click)="chargerTransactions()"
+        >
+          Réessayer
+        </button>
+      </div>
+    }
+
+    <!-- ÉTAT DE CHARGEMENT (SKELETONS) -->
+    @if (loading()) {
+      <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        @for (item of [1, 2, 3, 4]; track item) {
+          <app-card padding="md" variant="default" class="animate-pulse">
+            <div class="h-3 w-24 rounded bg-surface-muted"></div>
+            <div class="mt-4 h-7 w-28 rounded bg-surface-muted"></div>
+            <div class="mt-2 h-2.5 w-20 rounded bg-surface-muted"></div>
+          </app-card>
+        }
+      </div>
+
+      <app-card padding="none" variant="default" class="animate-pulse">
+        <div class="flex items-center justify-between border-b border-line/60 p-5">
+          <div class="h-4 w-40 rounded bg-surface-muted"></div>
+          <div class="h-9 w-56 rounded-lg bg-surface-muted"></div>
+        </div>
+        <div class="p-6 space-y-3">
+          @for (row of [1, 2, 3, 4, 5]; track row) {
+            <div class="h-11 rounded-lg bg-surface-muted"></div>
+          }
+        </div>
+      </app-card>
+    }
+
+    <!-- CONTENU PRINCIPAL -->
+    @else {
+
+      <!-- SECTION KPIs -->
+    <!-- SECTION KPIs (Uniformisée avec le Dashboard) -->
+<section class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+
+  <!-- Total encaissé -->
+  <div class="flex flex-col justify-between rounded-2xl border border-line bg-surface p-4 sm:p-5 shadow-xs">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-wider text-ink-muted">Total encaissé</p>
+        <p class="mt-2 text-xl sm:text-2xl font-extrabold tracking-tight text-ink">
+          {{ formaterMontant(totalEncaisse()) }}
+        </p>
+      </div>
+  
+    </div>
+    <div class="mt-4 border-t border-line/60 pt-3">
+      <span class="text-xs font-medium text-ink-muted">Transactions réussies uniquement</span>
+    </div>
+  </div>
+
+  <!-- Transactions réussies -->
+  <div class="flex flex-col justify-between rounded-2xl border border-line bg-surface p-4 sm:p-5 shadow-xs">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-wider text-ink-muted">Transactions réussies</p>
+        <p class="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">
+          {{ nombreSucces() }}
+        </p>
+      </div>
+     
+    </div>
+    <div class="mt-4 border-t border-line/60 pt-3">
+      <span class="text-xs font-semibold text-emerald-600">Paiements confirmés</span>
+    </div>
+  </div>
+
+  <!-- En attente -->
+  <div class="flex flex-col justify-between rounded-2xl border border-line bg-surface p-4 sm:p-5 shadow-xs">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-wider text-ink-muted">En attente</p>
+        <p class="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">
+          {{ nombreEnAttente() }}
+        </p>
+      </div>
+    
+    </div>
+    <div class="mt-4 border-t border-line/60 pt-3">
+      <span class="text-xs font-medium text-ink-muted">Paiements à confirmer</span>
+    </div>
+  </div>
+
+  <!-- Échecs -->
+  <div class="flex flex-col justify-between rounded-2xl border border-line bg-surface p-4 sm:p-5 shadow-xs">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-wider text-ink-muted">Échecs</p>
+        <p class="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">
+          {{ nombreEchecs() }}
+        </p>
+      </div>
+   
+    </div>
+    <div class="mt-4 border-t border-line/60 pt-3">
+      <span class="text-xs font-medium text-ink-muted">Paiements non aboutis</span>
+    </div>
+  </div>
+
+</section>
+
+      <!-- HISTORIQUE DES TRANSACTIONS -->
+      <app-card padding="none" variant="default" class="min-w-0 overflow-hidden">
+
+        <!-- TOOLBAR & FILTRES -->
+        <div class="flex flex-col gap-3 border-b border-line/60 p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between">
+
+          <div>
+            <h2 class="text-sm font-semibold text-ink">
+              Historique
+            </h2>
+            <p class="mt-0.5 text-xs text-ink-muted">
+              {{ filteredTransactions().length }} transaction{{ filteredTransactions().length > 1 ? 's' : '' }}
+              @if (searchQuery()) {
+                <span>pour « {{ searchQuery() }} »</span>
+              }
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+
+            <!-- Recherche -->
+            <div class="relative">
+              <app-icon
+                name="search"
+                class="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-ink-muted"
+              />
+              <input
+                type="text"
+                placeholder="Structure, référence…"
+                class="h-9 w-full rounded-lg border border-line bg-surface pl-8 pr-3 text-xs text-ink placeholder:text-ink-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/15 sm:w-56"
+                [ngModel]="searchQuery()"
+                (ngModelChange)="onSearch($event)"
+              />
+            </div>
+
+            <!-- Filtres -->
+            <app-tab-filter
+              [options]="filtresDisponibles()"
+              [value]="activeFilter()"
+              (valueChange)="changerFiltre($event)"
+            />
+
+          </div>
+        </div>
+
+        <!-- ÉTAT VIDE -->
+        @if (filteredTransactions().length === 0) {
+          <div class="p-8 sm:p-12">
+            <app-empty-state
+              title="Aucune transaction"
+              [description]="searchQuery()
+                ? 'Aucun résultat pour « ' + searchQuery() + ' ». Essayez un autre terme.'
+                : 'Aucun paiement ne correspond au filtre sélectionné pour le moment.'"
+            />
+          </div>
+        }
+
+        <!-- TABLEAU DES TRANSACTIONS -->
+        @else {
+          <div class="w-full overflow-x-auto custom-scrollbar">
+            <table class="w-full min-w-[860px] border-collapse text-left text-xs table-auto">
+              <thead class="border-b border-line bg-surface font-medium uppercase tracking-wide text-ink-muted">
+                <tr>
+                  <th class="px-6 py-3">Structure</th>
+                  <th class="px-5 py-3">Référence</th>
+                  <th class="px-5 py-3">Montant</th>
+                  <th class="px-5 py-3">Plan visé</th>
+                  <th class="px-5 py-3">Moyen de paiement</th>
+                  <th class="px-5 py-3">Statut</th>
+                  <th class="px-6 py-3">Date</th>
+                </tr>
+              </thead>
+
+              <tbody class="divide-y divide-line/50">
+                @for (transaction of filteredTransactions(); track transaction.id) {
+                  <tr class="group transition-colors hover:bg-surface-muted/50">
+
+                    <!-- Structure -->
+                    <td class="px-6 py-3.5">
+                      <div class="flex items-center gap-2.5">
+                        <div
+                          class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold"
+                          [style.background]="getAvatarColor(transaction.structureNom).bg"
+                          [style.color]="getAvatarColor(transaction.structureNom).text"
+                        >
+                          {{ transaction.structureNom.charAt(0).toUpperCase() }}
+                        </div>
+
+                        <div class="min-w-0">
+                          <p class="truncate font-medium text-ink">
+                            {{ transaction.structureNom }}
+                          </p>
+                          <p class="mt-0.5 truncate text-[11px] text-ink-muted">
+                            {{ transaction.structureId }}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+
+                    <!-- Référence -->
+                    <td class="px-5 py-3.5 font-mono text-[11px] text-ink-muted">
+                      {{ transaction.refCommand }}
+                    </td>
+
+                    <!-- Montant -->
+                    <td class="px-5 py-3.5 font-semibold text-ink">
+                      {{ formaterMontant(transaction.montant, transaction.devise) }}
+                    </td>
+
+                    <!-- Plan -->
+                    <td class="px-5 py-3.5">
+                      <app-badge
+                        [status]="transaction.planVise?.toUpperCase() === 'PREMIUM' ? 'info' : 'neutral'"
+                      >
+                        {{ getPlanLabel(transaction.planVise) }}
+                      </app-badge>
+                    </td>
+
+                    <!-- Moyen de Paiement -->
+                    <td class="px-5 py-3.5">
+                      <div>
+                        <p class="text-ink">
+                          {{ transaction.moyenPaiement || '—' }}
+                        </p>
+                        @if (transaction.telephoneClient) {
+                          <p class="mt-0.5 text-[11px] text-ink-muted">
+                            {{ transaction.telephoneClient }}
+                          </p>
+                        }
+                      </div>
+                    </td>
+
+                    <!-- Statut -->
+                    <td class="px-5 py-3.5">
+                      <app-badge [status]="getBadgeStatus(transaction.statut)">
+                        {{ getStatutLabel(transaction.statut) }}
+                      </app-badge>
+                    </td>
+
+                    <!-- Date -->
+                    <td class="whitespace-nowrap px-6 py-3.5 text-ink-muted">
+                      {{ formaterDate(transaction.dateCreation) }}
+                    </td>
+
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <!-- FOOTER RÉSUMÉ TABLEAU -->
+          <div class="flex flex-wrap items-center justify-between gap-2 border-t border-line/60 bg-surface-muted/30 px-6 py-3 text-xs">
+            <span class="text-ink-muted">
+              {{ filteredTransactions().length }} résultat{{ filteredTransactions().length > 1 ? 's' : '' }} affiché{{ filteredTransactions().length > 1 ? 's' : '' }}
+            </span>
+
+            <span class="font-semibold text-ink">
+              Total encaissé : {{ formaterMontant(totalEncaisse()) }}
+            </span>
+          </div>
+        }
+
+      </app-card>
+
+    }
+
+  </div>
+</div>

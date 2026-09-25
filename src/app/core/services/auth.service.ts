@@ -20,6 +20,7 @@ import { environment } from './../../environments/environment';
 import { TokenStorageService } from './token-storage.service';
 import { StructureContextService } from './structure-context.service';
 
+export type RoleGlobal = 'USER' | 'SUPER_ADMIN';
 // --- INTERFACES & DTOs ---
 
 export interface LoginCredentials {
@@ -41,6 +42,7 @@ export interface AuthResponse {
   nom: string;
   email: string;
   emailVerified: boolean;
+  roleGlobal: RoleGlobal;
   token: string;
 }
 
@@ -94,6 +96,7 @@ export interface AuthUser {
   nom: string;
   email: string;
   emailVerified: boolean;
+  roleGlobal: RoleGlobal;
 }
 
 export interface InvitationInfoResponse {
@@ -341,6 +344,7 @@ private initializeWebSocket(): void {
       nom: response.nom,
       email: response.email,
       emailVerified: response.emailVerified,
+      roleGlobal: response.roleGlobal,
     };
     this._currentUser.set(user);
   }

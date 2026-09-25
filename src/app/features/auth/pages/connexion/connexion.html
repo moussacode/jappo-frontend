@@ -18,7 +18,7 @@
 
       <!-- Footer Gauche -->
       <div class="relative z-10 text-xs text-white/50">
-        © 2026 JAPPO Inc. | Tous droits réservés
+        {{ 'auth.login.droits' | translate }}
       </div>
     </div>
 
@@ -29,17 +29,15 @@
       <app-card padding="md" class="w-full max-w-[380px]">
         
         <!-- Logo -->
-        <div class="flex items-center gap-2">
-          <img src="/logo.png" alt="JAPPO" class="h-7 w-auto object-contain" />
-        </div>
+        
 
         <!-- En-tête -->
         <div class="mt-4 mb-5">
           <h1 class="text-lg font-semibold text-ink sm:text-xl">
-            Content de te revoir
+            {{ 'auth.login.titre' | translate }}
           </h1>
           <p class="mt-0.5 text-xs text-ink-muted">
-            Entrez vos identifiants pour accéder à votre espace.
+            {{ 'auth.login.sousTitre' | translate }}
           </p>
         </div>
 
@@ -55,24 +53,30 @@
 
           <!-- Email -->
           <app-form-field
-            label="Adresse email"
+            [label]="'auth.login.emailLabel' | translate"
             inputId="email"
-            [error]="form.controls.email.touched && form.controls.email.errors?.['required'] ? 'L\'email est obligatoire' : (form.controls.email.touched && form.controls.email.errors?.['email'] ? 'Adresse email invalide' : undefined)"
+            [error]="form.controls.email.touched && form.controls.email.errors?.['required'] 
+              ? ('auth.login.erreurEmailRequis' | translate) 
+              : (form.controls.email.touched && form.controls.email.errors?.['email'] 
+                ? ('auth.login.erreurEmailInvalide' | translate) 
+                : undefined)"
           >
             <app-input
               id="email"
               type="email"
               formControlName="email"
-              placeholder="awa.ndiaye@email.com"
+              [placeholder]="'auth.login.emailPlaceholder' | translate"
               [invalid]="form.controls.email.touched && form.controls.email.invalid"
             />
           </app-form-field>
 
           <!-- Mot de passe -->
           <app-form-field
-            label="Mot de passe"
+            [label]="'auth.login.motDePasseLabel' | translate"
             inputId="motDePasse"
-            [error]="form.controls.motDePasse.touched && form.controls.motDePasse.errors?.['required'] ? 'Le mot de passe est obligatoire' : undefined"
+            [error]="form.controls.motDePasse.touched && form.controls.motDePasse.errors?.['required'] 
+              ? ('auth.login.erreurMotDePasseRequis' | translate) 
+              : undefined"
           >
             <div class="relative">
               <app-input
@@ -87,6 +91,7 @@
                 type="button"
                 (click)="togglePasswordVisibility()"
                 class="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink transition-colors cursor-pointer"
+                [attr.aria-label]="'auth.login.afficherMotDePasse' | translate"
               >
                 <app-icon [name]="passwordIcon" class="size-4" />
               </button>
@@ -99,7 +104,7 @@
               routerLink="/mot-de-passe-oublie"
               class="text-xs text-ink-muted transition-colors hover:text-accent"
             >
-              Mot de passe oublié ?
+              {{ 'auth.login.motDePasseOublie' | translate }}
             </a>
           </div>
 
@@ -110,7 +115,7 @@
             [disabled]="form.invalid || submitting()"
             class="w-full"
           >
-            {{ submitting() ? 'Connexion en cours…' : 'Se connecter' }}
+            {{ submitting() ? ('auth.login.connexionEnCours' | translate) : ('auth.login.seConnecter' | translate) }}
           </app-button>
 
           <!-- Séparateur -->
@@ -119,7 +124,7 @@
               <div class="w-full border-t border-line"></div>
             </div>
             <span class="relative bg-surface px-3 text-[11px] text-ink-muted">
-              Ou continuer avec
+              {{ 'auth.login.ouContinuerAvec' | translate }}
             </span>
           </div>
 
@@ -130,12 +135,12 @@
 
         <!-- Inscription -->
         <p class="mt-5 text-center text-xs text-ink-muted">
-          Vous êtes un incubateur ?
+          {{ 'auth.login.questionIncubateur' | translate }}
           <a
             routerLink="/inscription/incubateur"
             class="font-semibold text-ink transition-colors hover:underline"
           >
-            Créer un espace incubateur
+            {{ 'auth.login.creerEspaceIncubateur' | translate }}
           </a>
         </p>
 
