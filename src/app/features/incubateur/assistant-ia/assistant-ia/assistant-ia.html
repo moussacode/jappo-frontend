@@ -222,8 +222,15 @@
                               @if (getActionDescription(action)) {
                                 <p class="mt-1 text-[11px] text-ink-muted">{{ getActionDescription(action) }}</p>
                               }
+                              @if (!peutExecuterAction(action.type)) {
+                                <p class="mt-2 text-xs text-amber-600 bg-amber-500/10 rounded-lg p-2">
+                                  Cette action nécessite les droits d'administrateur de la structure.
+                                </p>
+                              }
                               <div class="mt-2 flex gap-2">
-                                <button type="button" (click)="confirmerAction(action.id)" [disabled]="actionsEnCours()[action.id] === 'confirming'" class="px-3 py-1.5 text-xs font-medium text-white bg-accent hover:bg-accent/90 rounded transition disabled:opacity-50">{{ 'assistantIa.actions.confirmer' | translate }}</button>
+                                @if (peutExecuterAction(action.type)) {
+                                  <button type="button" (click)="confirmerAction(action.id)" [disabled]="actionsEnCours()[action.id] === 'confirming'" class="px-3 py-1.5 text-xs font-medium text-white bg-accent hover:bg-accent/90 rounded transition disabled:opacity-50">{{ 'assistantIa.actions.confirmer' | translate }}</button>
+                                }
                                 <button type="button" (click)="rejeterAction(action.id)" [disabled]="actionsEnCours()[action.id] === 'confirming'" class="px-3 py-1.5 text-xs font-medium text-ink-muted hover:bg-surface-muted rounded transition disabled:opacity-50">{{ 'commun.annuler' | translate }}</button>
                               </div>
                             </div>

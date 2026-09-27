@@ -7,6 +7,7 @@ import {
   CreateCohorteRequest,
   UpdateCohorteRequest,
   InviterEntrepreneursRequest,
+  CoachSummary,
 } from '../models/cohorte.model';
 import { PromotionGroupeeRequest, PromotionGroupeeResultat } from '../models/projet.model';
 
@@ -89,5 +90,20 @@ export class CohorteService {
   /** Promotion groupée de plusieurs projets. */
   promotionGroupee(id: string, request: PromotionGroupeeRequest): Observable<PromotionGroupeeResultat[]> {
     return this.http.post<PromotionGroupeeResultat[]>(`${this.apiUrl}/${id}/promotion-groupee`, request);
+  }
+
+  /** Récupérer la liste des coachs disponibles dans la structure active. */
+  getCoachsDisponibles(): Observable<CoachSummary[]> {
+    return this.http.get<CoachSummary[]>(`${this.apiUrl}/coachs-disponibles`);
+  }
+
+  /** Récupérer les coachs affectés à une cohorte. */
+  getCoachsDeCohorte(id: string): Observable<CoachSummary[]> {
+    return this.http.get<CoachSummary[]>(`${this.apiUrl}/${id}/coachs`);
+  }
+
+  /** Affecter les coachs à une cohorte (remplace la liste existante). */
+  affecterCoachs(id: string, coachIds: string[]): Observable<Cohorte> {
+    return this.http.put<Cohorte>(`${this.apiUrl}/${id}/coachs`, { coachIds });
   }
 }

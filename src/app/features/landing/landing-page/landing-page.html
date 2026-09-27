@@ -16,27 +16,57 @@
       </nav>
      <div class="flex items-center gap-3">
   <!-- Bouton Connexion -->
+ @if (!currentUser()) {
   <app-button
     routerLink="/connexion"
     variant="ghost"
     size="sm"
-    class="hidden sm:inline-flex text-xs font-medium text-ink-muted hover:text-ink">
+    class="hidden sm:inline-flex text-xs font-medium text-ink-muted hover:text-ink"
+  >
     Se connecter
   </app-button>
 
-  <!-- Bouton Créer un espace -->
   <app-button
     routerLink="/inscription/incubateur"
     variant="primary"
     size="sm"
-    class="text-xs font-semibold">
+    class="text-xs font-semibold"
+  >
     Créer un espace
   </app-button>
+} @else {
+  <div class="flex items-center gap-3">
+    <!-- Utilisateur -->
+    <div class="hidden items-center gap-2 sm:flex">
+      <div
+        class="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-bold uppercase text-accent-strong ring-1 ring-accent/10"
+      >
+        {{ currentUser()?.prenom?.charAt(0) }}{{ currentUser()?.nom?.charAt(0) }}
+      </div>
+
+      <div class="flex min-w-0 flex-col">
+        <span class="max-w-[130px] truncate text-xs font-semibold leading-tight text-ink">
+          {{ currentUser()?.prenom }} {{ currentUser()?.nom }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Mon espace -->
+    <app-button
+      routerLink="incubateur/dashboard"
+      variant="primary"
+      size="sm"
+      class="text-xs font-semibold"
+    >
+      Mon espace
+    </app-button>
+  </div>
+}
 </div>
     </div>
   </header>
 
-  <!-- ═══════════════════════════════════
+  <!-- Fse═══════════════════════════════════
        HERO — Style Maquette Amélioré (Grille de points + Widgets Flottants)
   ═══════════════════════════════════ -->
  <section class="relative overflow-hidden pt-24 pb-32 sm:pt-36 sm:pb-40 border-b border-line bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] dark:bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:24px_24px]">

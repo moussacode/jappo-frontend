@@ -75,17 +75,58 @@ export interface NavItem {
   changeDetection: ChangeDetectionStrategy.OnPush,
 
   template: `
+    <!-- Bouton burger (mobile uniquement, visible quand le tiroir est fermé) -->
+    @if (!mobileOpen()) {
+      <button
+        type="button"
+        (click)="openMobile()"
+        class="fixed left-4 top-4 z-50 flex size-10 items-center justify-center rounded-xl border border-line bg-surface text-ink shadow-sm md:hidden"
+        [attr.aria-label]="'sidebar.ouvrir' | translate"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="size-5">
+          <line x1="4" y1="7" x2="20" y2="7" />
+          <line x1="4" y1="12" x2="20" y2="12" />
+          <line x1="4" y1="17" x2="20" y2="17" />
+        </svg>
+      </button>
+    }
+
+    <!-- Fond semi-transparent (mobile uniquement, quand le tiroir est ouvert) -->
+    @if (mobileOpen()) {
+      <div
+        class="fixed inset-0 z-30 bg-black/40 md:hidden"
+        (click)="closeMobile()"
+      ></div>
+    }
+
     <aside
-      class="relative  flex h-full shrink-0 flex-col bg-surface p-3 sm:p-4 transition-all duration-300 ease-in-out select-none overflow-visible"
-      [class.w-[260px]]="!collapsed()"
-      [class.w-[80px]]="collapsed()"
+      class="fixed inset-y-0 left-0 z-40 flex w-[260px] shrink-0 flex-col bg-surface p-3 shadow-2xl transition-transform duration-300 ease-in-out select-none overflow-visible sm:p-4 md:static md:inset-auto md:z-auto md:translate-x-0 md:shadow-none"
+      [class.translate-x-0]="mobileOpen()"
+      [class.-translate-x-full]="!mobileOpen()"
+      [class.md:w-[260px]]="!collapsed()"
+      [class.md:w-[80px]]="collapsed()"
     >
 
-      <!-- Bouton Toggle Sidebar -->
+      <!-- Bouton fermer (mobile uniquement) -->
+      <div class="mb-2 flex justify-end md:hidden">
+        <button
+          type="button"
+          (click)="closeMobile()"
+          class="flex size-8 items-center justify-center rounded-lg text-ink-muted hover:bg-surface-muted hover:text-ink"
+          [attr.aria-label]="'sidebar.reduire' | translate"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="size-4">
+            <line x1="6" y1="6" x2="18" y2="18" />
+            <line x1="6" y1="18" x2="18" y2="6" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Bouton Toggle Sidebar (desktop uniquement) -->
       <button
         type="button"
         (click)="toggleCollapsed()"
-        class="absolute -right-4 top-6 z-50 flex h-7 w-7 items-center justify-center rounded-full border border-line bg-surface text-ink-muted shadow-sm transition-all hover:bg-surface-muted hover:text-ink cursor-pointer"
+        class="absolute -right-4 top-6 z-50 hidden h-7 w-7 items-center justify-center rounded-full border border-line bg-surface text-ink-muted shadow-sm transition-all hover:bg-surface-muted hover:text-ink cursor-pointer md:flex"
         [attr.aria-label]="
           collapsed()
             ? ('sidebar.ouvrir' | translate)
@@ -258,7 +299,7 @@ export interface NavItem {
                   [routerLink]="item.path"
                   routerLinkActive
                   #rla="routerLinkActive"
-                  (click)="navClick.emit()"
+                  (click)="onNavItemClick()"
                   class="flex  h-10 items-center rounded-xl px-3 text-xs font-medium transition-colors"
                   [class]="
                     rla.isActive
@@ -366,6 +407,7 @@ export interface NavItem {
                         [routerLink]="child.path"
                         routerLinkActive
                         #childRla="routerLinkActive"
+                        (click)="onNavItemClick()"
                         class="flex h-8 items-center rounded-lg px-2.5 text-xs font-medium transition-colors"
                         [class]="
                           childRla.isActive
@@ -411,6 +453,7 @@ export interface NavItem {
                           [routerLink]="child.path"
                           routerLinkActive
                           #popoverRla="routerLinkActive"
+                          (click)="onNavItemClick()"
                           class="flex h-8 items-center rounded-lg px-2 text-xs font-medium transition-colors"
                           [class]="
                             popoverRla.isActive
@@ -651,7 +694,10 @@ export interface NavItem {
       </div>
 
 
-      <!-- Modal Paramètres -->
+      
+
+    </aside>
+    <!-- Modal Paramètres -->
       @if (isSettingsOpen()) {
 
         <app-parametres-modal
@@ -659,8 +705,6 @@ export interface NavItem {
         />
 
       }
-
-    </aside>
   `,
 })
 export class Sidebar {
@@ -691,6 +735,9 @@ export class Sidebar {
 
 
   collapsed = signal(false);
+
+  /** État du tiroir mobile (hors-écran par défaut). */
+  mobileOpen = signal(false);
 
   isStructureMenuOpen = signal(false);
 
@@ -736,6 +783,29 @@ export class Sidebar {
 
     this.isStructureMenuOpen.set(false);
     this.isProfileMenuOpen.set(false);
+  }
+
+
+  openMobile(): void {
+    // Le tiroir mobile s'ouvre toujours déplié, jamais en mode icône-rail.
+    this.collapsed.set(false);
+    this.mobileOpen.set(true);
+  }
+
+
+  closeMobile(): void {
+    this.mobileOpen.set(false);
+  }
+
+
+  /**
+   * Gère le clic sur un lien de navigation : ferme le tiroir mobile
+   * et notifie le layout parent (pour compatibilité avec un éventuel
+   * comportement additionnel, ex. drawer géré côté layout).
+   */
+  onNavItemClick(): void {
+    this.closeMobile();
+    this.navClick.emit();
   }
 
 
@@ -880,5 +950,13 @@ export class Sidebar {
       this.isStructureMenuOpen.set(false);
       this.isProfileMenuOpen.set(false);
     }
+  }
+
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    this.closeMobile();
+    this.isStructureMenuOpen.set(false);
+    this.isProfileMenuOpen.set(false);
   }
 }

@@ -271,6 +271,11 @@ export const routes: Routes = [
 },
 
   {
+    path: 'coach',
+    redirectTo: 'incubateur/dashboard',
+    pathMatch: 'full',
+  },
+  {
     path: '**',
     redirectTo: '',
   },

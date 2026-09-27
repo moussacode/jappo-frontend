@@ -2,6 +2,7 @@ import { Component, ChangeDetectionStrategy, AfterViewInit, OnDestroy, ElementRe
 import { RouterLink } from '@angular/router';
 import { Icon } from '../../../shared/components/icon/icon';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
+import { AuthService } from '../../../core/services/auth.service';
 
 // Déclaration pour que TypeScript reconnaisse GSAP chargé via CDN ou npm
 declare const gsap: any;
@@ -17,6 +18,10 @@ declare const ScrollTrigger: any;
 export class LandingPage implements AfterViewInit, OnDestroy {
   private readonly elRef = inject(ElementRef);
   private scrollTriggerInstance: any = null;
+
+  private readonly authService = inject(AuthService);
+
+protected readonly currentUser = this.authService.currentUser;
 
   protected readonly features = [
     {
