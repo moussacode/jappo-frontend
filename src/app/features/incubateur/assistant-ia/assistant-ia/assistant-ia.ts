@@ -842,6 +842,16 @@ if (olderItems.length) {
     return textMap[resourceType] || 'Voir la ressource';
   }
 
+  protected readonly isAdmin = computed(() => this.structureContext.activeRole() === 'ADMIN_STRUCTURE');
+
+  protected peutExecuterAction(actionType: string): boolean {
+    const actionsAdminSeul = ['CREATE_COHORTE', 'UPDATE_COHORTE', 'ARCHIVE_COHORTE'];
+    if (actionsAdminSeul.includes(actionType)) {
+      return this.isAdmin();
+    }
+    return true;
+  }
+
   /**
    * Confirmer une action IA
    */

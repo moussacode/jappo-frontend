@@ -73,12 +73,17 @@ interface Promotion409 {
           <span class="text-sm text-indigo-600 dark:text-indigo-400 font-medium">
             {{ cohorte()!.phase?.nom ?? 'Phase inconnue' }}
           </span>
-          <span class="text-gray-400">·</span>
           <span class="text-sm text-gray-500 dark:text-gray-400">{{ projets().length }} projet(s)</span>
+          @if (cohorte()?.coachs && cohorte()!.coachs!.length > 0) {
+            <span class="text-gray-400">·</span>
+            <span class="text-sm text-indigo-600 dark:text-indigo-400 font-medium">
+              Coach{{ cohorte()!.coachs!.length > 1 ? 's' : '' }} : {{ getCoachNames() }}
+            </span>
+          }
         </div>
       </div>
       <div class="flex items-center gap-2 flex-shrink-0">
-        @if (isAdminOrCoach()) {
+        @if (isAdmin()) {
           <app-button variant="secondary" size="sm" (click)="ouvrirInvitation()">
             <app-icon name="plus" class="w-4 h-4 mr-1" />
             Inviter des entrepreneurs
@@ -646,5 +651,11 @@ export class CohorteDetail implements OnInit {
 
   planifierReunion(): void {
     this.router.navigate(['/incubateur/reunions/nouvelle'], { queryParams: { cohorteId: this.cohorteId() } });
+  }
+
+  getCoachNames(): string {
+    const list = this.cohorte()?.coachs;
+    if (!list || list.length === 0) return '';
+    return list.map((c) => `${c.prenom || ''} ${c.nom || ''}`.trim() || c.email).join(', ');
   }
 }

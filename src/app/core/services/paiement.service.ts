@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from './../../environments/environment';
 
 export interface InitiationPaiementResponse {
   redirectUrl: string;
@@ -21,7 +22,7 @@ export class PaiementService {
 
   private readonly http = inject(HttpClient);
 
-  private readonly apiUrl = 'http://localhost:8080/api';
+  private readonly apiUrl = environment.apiUrl;
 
   initierUpgradePremium(
     structureId: string

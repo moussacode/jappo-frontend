@@ -4,23 +4,19 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { AuthService } from '../../../core/services/auth.service';
+import { StructureContextService } from '../../../core/services/structure-context.service';
 import { FormFieldComponent } from '../../../shared/components/input/form-field.component';
 import { InputComponent } from '../../../shared/components/input/input.component';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
 import { CardComponent } from '../../../shared/components/card/card.component';
-
-// ⚠️ N'oublie pas d'importer tes composants partagés ici
-// import { CardComponent } from '../../../shared/components/card/card.component';
-// import { FormFieldComponent } from '../../../shared/components/form-field/form-field.component';
-// import { InputComponent } from '../../../shared/components/input/input.component';
-// import { ButtonComponent } from '../../../shared/components/button/button.component';
 
 interface InvitationInfo {
   nomUser: string;
   email: string;
   nomStructure: string;
   logoStructure?: string;
-  compteExiste?: boolean; 
+  compteExiste?: boolean;
+  role?: string;
 }
 
 @Component({
@@ -32,14 +28,11 @@ interface InvitationInfo {
     FormFieldComponent,
     InputComponent,
     ButtonComponent,
-    CardComponent
-],
+    CardComponent,
+  ],
   template: `
     <div class="flex min-h-screen items-center justify-center bg-surface-subtle p-4">
-      
-      <!-- Remplacement par app-card -->
-      <app-card padding="md" class="w-full max-w-[420px]">
-        
+      <app-card padding="md" class="w-full max-w-[440px]">
         @if (loading()) {
           <div class="py-8 text-center">
             <p class="text-sm font-medium text-ink-muted">Vérification de votre lien d'invitation…</p>
@@ -54,27 +47,59 @@ interface InvitationInfo {
               Rejoindre {{ details.nomStructure }}
             </h1>
             <p class="mt-1.5 text-xs text-ink-muted">
-              Bonjour <strong class="text-ink">{{ details.nomUser }}</strong> ({{ details.email }}), vous avez été invité(e) à rejoindre l'incubateur.
+              Bonjour @if (details.nomUser) { <strong class="text-ink">{{ details.nomUser }}</strong> }
+              @if (details.email) { ({{ details.email }}) }, vous avez été invité(e) à rejoindre l'organisation
+              @if (details.role === 'COACH') { en tant que <strong class="text-accent font-semibold">Coach</strong> }
+              @else if (details.role === 'ADMIN_STRUCTURE') { en tant qu'<strong class="text-accent font-semibold">Administrateur</strong> }
+              @else { en tant qu'<strong class="text-accent font-semibold">Entrepreneur</strong> }.
             </p>
           </div>
 
           <!-- Formulaire -->
           <form [formGroup]="form" (ngSubmit)="confirmer()" class="mt-6 flex flex-col gap-4">
-            
+
             <!-- Case à cocher d'engagement/consentement -->
             <label class="flex items-start gap-3 rounded-xl border border-line p-3.5 cursor-pointer hover:bg-surface-muted/40 transition-colors">
-              <input 
-                type="checkbox" 
-                formControlName="accepte" 
-                class="mt-0.5 rounded border-line text-accent focus:ring-accent" 
+              <input
+                type="checkbox"
+                formControlName="accepte"
+                class="mt-0.5 rounded border-line text-accent focus:ring-accent"
               />
               <span class="text-xs text-ink leading-relaxed">
                 J'accepte de rejoindre la structure <strong class="text-ink">{{ details.nomStructure }}</strong> sur JAPPO et d'accéder à mon espace.
               </span>
             </label>
 
-            <!-- Saisie du mot de passe : UNIQUEMENT SI LE COMPTE N'EXISTE PAS ENCORE -->
+            <!-- Saisie prénom, nom, email (si lien partagé) et mot de passe si nouveau compte -->
             @if (!details.compteExiste) {
+              @if (!details.email) {
+                <app-form-field label="Votre adresse email *" inputId="email">
+                  <app-input
+                    type="email"
+                    id="email"
+                    formControlName="email"
+                    placeholder="votre.email@exemple.com"
+                  />
+                </app-form-field>
+              }
+
+              <div class="grid grid-cols-2 gap-3">
+                <app-form-field label="Prénom" inputId="prenom">
+                  <app-input
+                    id="prenom"
+                    formControlName="prenom"
+                    placeholder="Prénom"
+                  />
+                </app-form-field>
+                <app-form-field label="Nom" inputId="nom">
+                  <app-input
+                    id="nom"
+                    formControlName="nom"
+                    placeholder="Nom"
+                  />
+                </app-form-field>
+              </div>
+
               <app-form-field
                 label="Créez votre mot de passe *"
                 inputId="nouveauMotDePasse"
@@ -101,7 +126,6 @@ interface InvitationInfo {
               </div>
             }
 
-            <!-- Remplacement par app-button -->
             <app-button
               type="submit"
               [fullWidth]="true"
@@ -121,15 +145,14 @@ interface InvitationInfo {
             <p class="mt-1 text-xs text-ink-muted">
               {{ errorMessage() || "Ce lien d'invitation est invalide, a été révoqué ou a déjà été utilisé." }}
             </p>
-            <a 
-              routerLink="/login" 
+            <a
+              routerLink="/connexion"
               class="mt-6 inline-block text-xs font-medium text-accent hover:underline"
             >
               Aller à la page de connexion
             </a>
           </div>
         }
-
       </app-card>
     </div>
   `,
@@ -138,6 +161,7 @@ export class AcceptInvitationComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
+  private readonly structureContext = inject(StructureContextService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -149,7 +173,10 @@ export class AcceptInvitationComponent implements OnInit {
 
   protected readonly form = this.fb.nonNullable.group({
     accepte: [false, Validators.requiredTrue],
-    nouveauMotDePasse: [''], 
+    email: [''],
+    prenom: [''],
+    nom: [''],
+    nouveauMotDePasse: [''],
   });
 
   ngOnInit(): void {
@@ -172,10 +199,15 @@ export class AcceptInvitationComponent implements OnInit {
               Validators.required,
               Validators.minLength(8),
             ]);
+            if (!data.email) {
+              this.form.controls.email.setValidators([Validators.required, Validators.email]);
+            }
           } else {
             this.form.controls.nouveauMotDePasse.clearValidators();
+            this.form.controls.email.clearValidators();
           }
           this.form.controls.nouveauMotDePasse.updateValueAndValidity();
+          this.form.controls.email.updateValueAndValidity();
         },
         error: (err) => {
           this.errorMessage.set(
@@ -193,14 +225,27 @@ export class AcceptInvitationComponent implements OnInit {
     this.errorMessage.set(null);
 
     const values = this.form.getRawValue();
-    const passwordToSend = this.info()?.compteExiste ? undefined : values.nouveauMotDePasse;
+    const info = this.info();
+    const passwordToSend = info?.compteExiste ? undefined : values.nouveauMotDePasse;
+    const prenomToSend = values.prenom?.trim() || undefined;
+    const nomToSend = values.nom?.trim() || undefined;
+    const emailToSend = info?.email || values.email?.trim() || undefined;
 
     this.authService
-      .accepterInvitation(this.token, passwordToSend)
+      .accepterInvitation(this.token, passwordToSend, prenomToSend, nomToSend, emailToSend)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
-          this.router.navigate(['/onboarding/projet']);
+          // Aiguillage propre et sécurisé selon le rôle
+          const activeRole = this.structureContext.activeRole() ||
+            this.authService.memberships()[0]?.role ||
+            info?.role;
+
+          if (activeRole === 'COACH' || activeRole === 'ADMIN_STRUCTURE') {
+            this.router.navigate(['/incubateur/dashboard']);
+          } else {
+            this.router.navigate(['/onboarding/projet']);
+          }
         },
         error: (err) => {
           this.submitting.set(false);
