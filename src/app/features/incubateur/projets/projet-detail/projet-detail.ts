@@ -15,7 +15,7 @@ import { Projet, ParticipationCohorteResponse, PromouvoirProjetRequest } from '.
 import { Mission } from '../../../../core/models/mission.model';
 import { Cohorte } from '../../../../core/models/cohorte.model';
 import { SuiviProjetDTO } from '../../../../core/models/suivi-projet.model';
-import { Etape } from '../../../../core/models/parcours.model';
+import { FeuilleRouteProjet } from '../../../../core/models/parcours.model';
 
 import { BadgeComponent } from '../../../../shared/components/badge/badge';
 import { Icon } from '../../../../shared/components/icon/icon';
@@ -85,63 +85,12 @@ interface Promotion409 {
       </app-card>
     </div>
 
-    <!-- Parcours actuel (hiérarchie) -->
-    @if (suivi(); as s) {
-      @if (s.nomProgramme || s.nomParcours || s.nomPhase || s.nomEtape) {
-        <div>
-          <div class="flex items-center justify-between mb-3">
-            <h2 class="text-xs font-bold uppercase tracking-wider text-ink-muted">Parcours actuel</h2>
-          </div>
-
-          <app-card padding="md">
-            <div class="space-y-3">
-              @if (s.nomProgramme) {
-                <div class="flex items-center gap-2">
-                  <app-icon name="folder" class="size-4 text-accent" />
-                  <div>
-                    <p class="text-[10px] text-ink-muted uppercase font-semibold">Programme</p>
-                    <p class="text-sm font-bold text-ink">{{ s.nomProgramme }}</p>
-                  </div>
-                </div>
-              }
-              @if (s.nomParcours) {
-                <div class="flex items-center gap-2 ml-6">
-                  <app-icon name="documents" class="size-4 text-accent" />
-                  <div>
-                    <p class="text-[10px] text-ink-muted uppercase font-semibold">Parcours</p>
-                    <p class="text-sm font-bold text-ink">{{ s.nomParcours }}</p>
-                  </div>
-                </div>
-              }
-              @if (s.nomPhase) {
-                <div class="flex items-center gap-2 ml-6">
-                  <app-icon name="layers" class="size-4 text-accent" />
-                  <div>
-                    <p class="text-[10px] text-ink-muted uppercase font-semibold">Phase</p>
-                    <p class="text-sm font-bold text-ink">{{ s.nomPhase }}</p>
-                  </div>
-                </div>
-              }
-              @if (s.nomEtape) {
-                <div class="flex items-center gap-2 ml-6">
-                  <app-icon name="check-circle" class="size-4 text-accent" />
-                  <div>
-                    <p class="text-[10px] text-ink-muted uppercase font-semibold">Étape actuelle</p>
-                    <p class="text-sm font-bold text-ink">{{ s.nomEtape }}</p>
-                  </div>
-                </div>
-              }
-            </div>
-          </app-card>
-        </div>
-      }
-    }
-
-    <!-- Progression d'étapes -->
-    @if (etapesProgression().length > 0) {
+    <!-- Feuille de route du parcours -->
+    @if (loadingEtapes()) {
+      <p class="text-sm text-ink-muted animate-pulse">Chargement de la feuille de route...</p>
+    } @else if (feuilleRoute()) {
       <app-etape-timeline
-        [etapes]="etapesProgression()"
-        [progressionId]="progressionId() ?? ''"
+        [feuilleRoute]="feuilleRoute()"
         [peutValider]="peutValiderEtapes()"
         (validation)="onEtapeValidee()"
       />
@@ -299,7 +248,11 @@ interface Promotion409 {
         <h3 class="text-xs font-bold uppercase tracking-wider text-ink-muted mb-3">Livrables</h3>
         <div class="space-y-2">
           <div class="flex justify-between items-center">
-            <span class="text-sm text-ink-muted">Total</span>
+            <span class="text-sm text-ink-muted">Attendus</span>
+            <span class="text-sm font-bold text-ink">{{ livrablesAttendusTotal() }}</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-ink-muted">Déposés</span>
             <span class="text-sm font-bold text-ink">{{ livrablesTotal() }}</span>
           </div>
           <div class="flex justify-between items-center">
@@ -682,8 +635,7 @@ export class ProjetDetail implements OnInit {
   readonly loadingSuivi = signal(false);
 
   // Progression étapes
-  readonly etapesProgression = signal<Etape[]>([]);
-  readonly progressionId = signal<string | undefined>(undefined);
+  readonly feuilleRoute = signal<FeuilleRouteProjet | null>(null);
   readonly loadingEtapes = signal(false);
 
   // Computed pour inverser l'ordre de l'historique (le plus ancien en premier, le plus récent en dernier)
@@ -698,6 +650,7 @@ export class ProjetDetail implements OnInit {
   readonly livrablesValides = computed(() => this.suivi()?.livrablesValides ?? 0);
   readonly livrablesRefuses = computed(() => this.suivi()?.livrablesRefuses ?? 0);
   readonly livrablesTotal = computed(() => this.suivi()?.livrablesTotal ?? 0);
+  readonly livrablesAttendusTotal = computed(() => this.suivi()?.livrablesAttendusTotal ?? 0);
 
   readonly cohortesEligibles = signal<Cohorte[]>([]);
   readonly loading = signal(true);
@@ -761,7 +714,7 @@ export class ProjetDetail implements OnInit {
           error: () => this.loadingSuivi.set(false)
         });
         // Charger la progression d'étapes
-        this.chargerProgressionEtapes();
+        this.chargerProgressionEtapes(p.id);
       },
       error: () => this.loading.set(false),
     });
@@ -846,35 +799,25 @@ export class ProjetDetail implements OnInit {
   /**
    * Charger la progression d'étapes pour le projet
    */
-  chargerProgressionEtapes(): void {
-    const p = this.projet();
-    if (!p || !p.phaseId) {
+  chargerProgressionEtapes(projetId = this.projet()?.id): void {
+    if (!projetId) {
       this.loadingEtapes.set(false);
+      this.feuilleRoute.set(null);
       return;
     }
 
     this.loadingEtapes.set(true);
-
-    // Récupérer les progressions du projet
-    this.progressionService.getProgressionsByProjetId(p.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (progressions) => {
-        if (progressions.length > 0) {
-          const progression = progressions[0];
-          this.progressionId.set(progression.id);
-
-          // Utiliser le service pour récupérer les étapes avec leur statut de progression
-          this.progressionService.getEtapesProgression(progression.id, p.phaseId!).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-            next: (etapes) => {
-              this.etapesProgression.set(etapes);
-              this.loadingEtapes.set(false);
-            },
-            error: () => this.loadingEtapes.set(false)
-          });
-        } else {
+    this.progressionService.getFeuilleRouteProjet(projetId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (route) => {
+          this.feuilleRoute.set(route);
+          this.loadingEtapes.set(false);
+        },
+        error: () => {
+          this.feuilleRoute.set(null);
           this.loadingEtapes.set(false);
         }
-      },
-      error: () => this.loadingEtapes.set(false)
     });
   }
 
@@ -883,6 +826,11 @@ export class ProjetDetail implements OnInit {
    */
   onEtapeValidee(): void {
     this.chargerProgressionEtapes();
+    const projetId = this.projet()?.id;
+    if (projetId) {
+      this.suiviProjetService.getSuiviProjet(projetId).pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({ next: (suivi) => this.suivi.set(suivi) });
+    }
   }
 
   /**

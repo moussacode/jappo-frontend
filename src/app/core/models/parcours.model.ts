@@ -86,3 +86,61 @@ export interface Progression {
   dateDerniereMaj?: string;
   dateFin?: string;
 }
+
+export type StatutFeuilleRoute =
+  | 'TERMINEE' | 'VALIDEE' | 'EN_COURS' | 'ACTIVE' | 'ACCESSIBLE' | 'A_ACTIVER'
+  | 'NON_DEMARREE' | 'VERROUILLEE' | 'INCOMPLETE' | 'ARCHIVEE' | 'NON_ASSIGNEE'
+  | 'A_FAIRE' | 'SOUMIS' | 'VALIDE' | 'A_REVOIR' | 'EN_ATTENTE' | 'A_CORRIGER' | 'REJETE';
+
+export interface LivrableDeposeRoute {
+  id: string;
+  nom: string;
+  statut: 'EN_ATTENTE' | 'VALIDE' | 'A_CORRIGER' | 'REJETE';
+  numeroVersion: number;
+  dateDepot?: string | null;
+}
+
+export interface MissionFeuilleRoute {
+  id: string;
+  origine: 'ETAPE' | 'COHORTE';
+  titre: string;
+  description?: string | null;
+  obligatoire: boolean;
+  statut: StatutFeuilleRoute;
+  livrablesAttendus: LivrableAttendu[];
+  livrablesDeposes: LivrableDeposeRoute[];
+}
+
+export interface EtapeFeuilleRoute {
+  id: string;
+  nom: string;
+  description?: string | null;
+  ordre: number;
+  obligatoire: boolean;
+  statut: StatutFeuilleRoute;
+  motif?: string | null;
+  pourcentageAvancement: number;
+  missions: MissionFeuilleRoute[];
+}
+
+export interface PhaseFeuilleRoute {
+  id: string;
+  nom: string;
+  ordre: number;
+  statut: StatutFeuilleRoute;
+  motif?: string | null;
+  pourcentageAvancement: number;
+  etapes: EtapeFeuilleRoute[];
+}
+
+export interface FeuilleRouteProjet {
+  projetId: string;
+  programmeId?: string | null;
+  nomProgramme?: string | null;
+  parcoursId?: string | null;
+  nomParcours?: string | null;
+  progressionId?: string | null;
+  statutProgression?: string | null;
+  pourcentageAvancement?: number | null;
+  phases: PhaseFeuilleRoute[];
+}

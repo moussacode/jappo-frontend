@@ -62,6 +62,7 @@ export interface SuiviProjetDTO {
   livrablesEnAttente: number;
   livrablesRefuses: number;
   livrablesValides: number;
+  livrablesAttendusTotal: number;
   livrablesTotal: number;
 
   // Réunions

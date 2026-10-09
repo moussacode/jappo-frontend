@@ -187,6 +187,32 @@ interface CorrectionFormState {
           </p>
         </app-card>
 
+        <app-card padding="lg" class="flex flex-col gap-3">
+          <div class="flex items-center justify-between gap-3">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-ink-muted">Livrables attendus</h2>
+            <span class="text-xs text-ink-muted">{{ m.livrablesAttendus?.length ?? 0 }}</span>
+          </div>
+          @if (m.livrablesAttendus?.length) {
+            <ul class="divide-y divide-line/60">
+              @for (attendu of m.livrablesAttendus; track attendu.id) {
+                <li class="flex flex-wrap items-center justify-between gap-2 py-2">
+                  <div>
+                    <p class="text-sm font-semibold text-ink">{{ attendu.titre }}</p>
+                    @if (attendu.description) {
+                      <p class="mt-0.5 text-xs text-ink-muted">{{ attendu.description }}</p>
+                    }
+                  </div>
+                  <app-badge [status]="attendu.obligatoire ? 'warning' : 'neutral'" size="sm">
+                    {{ attendu.obligatoire ? 'Obligatoire' : 'Optionnel' }}
+                  </app-badge>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="text-xs text-ink-muted">Aucun livrable attendu n’est défini pour cette mission.</p>
+          }
+        </app-card>
+
         <!-- Livrables soumis et cycle de révision -->
         <div class="flex flex-col gap-4">
           <div class="flex items-center justify-between">

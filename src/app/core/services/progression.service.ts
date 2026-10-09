@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, forkJoin, of } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
-import { Progression, Etape, LivrableAttendu } from '../models/parcours.model';
+import { FeuilleRouteProjet, Progression, Etape, LivrableAttendu } from '../models/parcours.model';
 import { MissionProjet } from '../models/mission.model';
 import { Livrable } from '../models/livrable.model';
 import { EtapeService } from './etape.service';
@@ -47,6 +47,10 @@ export class ProgressionService {
 
   getProgressionsByProjetId(projetId: string): Observable<ProgressionDTO[]> {
     return this.http.get<ProgressionDTO[]>(`${this.apiUrl}/projet/${projetId}`);
+  }
+
+  getFeuilleRouteProjet(projetId: string): Observable<FeuilleRouteProjet> {
+    return this.http.get<FeuilleRouteProjet>(`${this.apiUrl}/projet/${projetId}/feuille-de-route`);
   }
 
   getMissionsByProjetId(projetId: string): Observable<MissionProjet[]> {

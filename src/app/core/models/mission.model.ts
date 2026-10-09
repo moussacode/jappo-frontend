@@ -1,6 +1,16 @@
 export type StatutMission = 'A_FAIRE' | 'EN_COURS' | 'SOUMIS' | 'VALIDE' | 'A_REVOIR';
 export type PrioriteMission = 'BASSE' | 'MOYENNE' | 'HAUTE' | 'URGENTE';
 
+export interface LivrableAttenduMission {
+  id: string;
+  titre: string;
+  description?: string | null;
+  ordre?: number | null;
+  obligatoire: boolean;
+  type: string;
+  templateType?: string | null;
+}
+
 /**
  * DTO backend réel : MissionResponse / MissionProjet.
  * Ce contrat est explicite pour éviter toute hypothèse sur une relation mission/étape non exposée par l’API.
@@ -33,6 +43,7 @@ export interface MissionProjet {
 
   nombreLivrablesAttendus?: number;
   nombreLivrablesDeposes?: number;
+  livrablesAttendus?: LivrableAttenduMission[];
 }
 
 export function getMissionSourceLabel(
