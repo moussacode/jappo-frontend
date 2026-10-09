@@ -20,7 +20,7 @@ export interface LivrableVersionResponse {
   commentaireEntrepreneur?: string;
 }
 
-export interface LivrableResponse {
+export interface LivrableSoumis {
   id: string;
   nom: string;
   url: string;
@@ -48,8 +48,10 @@ export interface LivrableResponse {
   commentaireRevue?: string;
 }
 
-// Alias pour compatibilité dans l'application
-export type Livrable = LivrableResponse;
+export interface LivrableResponse extends LivrableSoumis {}
+
+// Alias pour compatibilité dans l'application : modèle soumis côté backend.
+export type Livrable = LivrableSoumis;
 
 export interface CreateLivrableRequest {
   nom: string;

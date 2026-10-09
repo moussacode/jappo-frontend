@@ -7,7 +7,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { CohorteService } from '../../../../core/services/cohorte.service';
-import { Cohorte, Phase, UpdateCohorteRequest, CoachSummary } from '../../../../core/models/cohorte.model';
+import { Cohorte, Phase, UpdateCohorteRequest, CoachSummary, PhaseSummary } from '../../../../core/models/cohorte.model';
 import { ParcoursService } from '../../../../core/services/parcours.service';
 
 import { Icon } from '../../../../shared/components/icon/icon';
@@ -192,7 +192,7 @@ export class EditCohorteComponent implements OnInit {
 
   protected readonly enregistrementEnCours = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
-  protected readonly phases = signal<Phase[]>([]);
+  protected readonly phases = signal<(Phase | PhaseSummary)[]>([]);
   protected readonly coachsDisponibles = signal<CoachSummary[]>([]);
   protected readonly selectedCoachIds = signal<Set<string>>(new Set());
   protected readonly chargementCoachs = signal(true);

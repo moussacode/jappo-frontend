@@ -8,10 +8,14 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ProjetService } from '../../../../core/services/projet.service';
 import { MissionService } from '../../../../core/services/mission.service';
 import { StructureContextService } from '../../../../core/services/structure-context.service';
+import { SuiviProjetService } from '../../../../core/services/suivi-projet.service';
+import { ProgressionService } from '../../../../core/services/progression.service';
 
 import { Projet, ParticipationCohorteResponse, PromouvoirProjetRequest } from '../../../../core/models/projet.model';
 import { Mission } from '../../../../core/models/mission.model';
 import { Cohorte } from '../../../../core/models/cohorte.model';
+import { SuiviProjetDTO } from '../../../../core/models/suivi-projet.model';
+import { Etape } from '../../../../core/models/parcours.model';
 
 import { BadgeComponent } from '../../../../shared/components/badge/badge';
 import { Icon } from '../../../../shared/components/icon/icon';
@@ -22,6 +26,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
 import { ModalComponent } from '../../../../shared/components/modal/modal.component';
 import { BreadcrumbComponent, BreadcrumbItem } from '../../../../shared/components/breadcrumb/breadcrumb.component';
 import { LoadingState } from '../../../../shared/components/loading-state/loading-state';
+import { EtapeTimelineComponent } from '../../../../shared/components/etape-timeline/etape-timeline.component';
 
 interface Promotion409 {
   message: string;
@@ -36,7 +41,8 @@ interface Promotion409 {
     BadgeComponent, Icon, CardComponent, PageHeaderComponent,
     ButtonComponent, EmptyStateComponent, ModalComponent,
     BreadcrumbComponent,
-    LoadingState
+    LoadingState,
+    EtapeTimelineComponent
   ],
   template: `
 <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
@@ -78,6 +84,352 @@ interface Promotion409 {
         <p class="text-sm font-bold text-gray-900 dark:text-white truncate">{{ p.nomEntrepreneur ?? '—' }}</p>
       </app-card>
     </div>
+
+    <!-- Parcours actuel (hiérarchie) -->
+    @if (suivi(); as s) {
+      @if (s.nomProgramme || s.nomParcours || s.nomPhase || s.nomEtape) {
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-ink-muted">Parcours actuel</h2>
+          </div>
+
+          <app-card padding="md">
+            <div class="space-y-3">
+              @if (s.nomProgramme) {
+                <div class="flex items-center gap-2">
+                  <app-icon name="folder" class="size-4 text-accent" />
+                  <div>
+                    <p class="text-[10px] text-ink-muted uppercase font-semibold">Programme</p>
+                    <p class="text-sm font-bold text-ink">{{ s.nomProgramme }}</p>
+                  </div>
+                </div>
+              }
+              @if (s.nomParcours) {
+                <div class="flex items-center gap-2 ml-6">
+                  <app-icon name="documents" class="size-4 text-accent" />
+                  <div>
+                    <p class="text-[10px] text-ink-muted uppercase font-semibold">Parcours</p>
+                    <p class="text-sm font-bold text-ink">{{ s.nomParcours }}</p>
+                  </div>
+                </div>
+              }
+              @if (s.nomPhase) {
+                <div class="flex items-center gap-2 ml-6">
+                  <app-icon name="layers" class="size-4 text-accent" />
+                  <div>
+                    <p class="text-[10px] text-ink-muted uppercase font-semibold">Phase</p>
+                    <p class="text-sm font-bold text-ink">{{ s.nomPhase }}</p>
+                  </div>
+                </div>
+              }
+              @if (s.nomEtape) {
+                <div class="flex items-center gap-2 ml-6">
+                  <app-icon name="check-circle" class="size-4 text-accent" />
+                  <div>
+                    <p class="text-[10px] text-ink-muted uppercase font-semibold">Étape actuelle</p>
+                    <p class="text-sm font-bold text-ink">{{ s.nomEtape }}</p>
+                  </div>
+                </div>
+              }
+            </div>
+          </app-card>
+        </div>
+      }
+    }
+
+    <!-- Progression d'étapes -->
+    @if (etapesProgression().length > 0) {
+      <app-etape-timeline
+        [etapes]="etapesProgression()"
+        [progressionId]="progressionId() ?? ''"
+        [peutValider]="peutValiderEtapes()"
+        (validation)="onEtapeValidee()"
+      />
+    }
+
+    <!-- Progression -->
+    @if (suivi(); as s) {
+      @if (s.statutProgression) {
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-ink-muted">Progression</h2>
+          </div>
+
+          <app-card padding="md">
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-bold text-ink">{{ formatStatutProgression(s.statutProgression || '') }}</span>
+                <span class="text-sm font-bold text-ink">{{ s.pourcentageAvancement ?? 0 }}%</span>
+              </div>
+              <!-- Barre de progression -->
+              <div class="w-full bg-gray-200 dark:bg-white/10 rounded-full h-2">
+                <div class="bg-accent h-2 rounded-full transition-all" [style.width.%]="s.pourcentageAvancement ?? 0"></div>
+              </div>
+              <div class="flex items-center justify-between text-xs text-ink-muted">
+                @if (s.dateDebutProgression) {
+                  <span>Début : {{ s.dateDebutProgression | date:'dd/MM/yyyy' }}</span>
+                }
+                @if (s.dateDerniereMajProgression) {
+                  <span>Màj : {{ s.dateDerniereMajProgression | date:'dd/MM/yyyy' }}</span>
+                }
+                @if (s.dateFinProgression) {
+                  <span>Fin : {{ s.dateFinProgression | date:'dd/MM/yyyy' }}</span>
+                }
+              </div>
+            </div>
+          </app-card>
+        </div>
+      }
+    }
+
+    <!-- Historique de progression -->
+    @if (suivi(); as s) {
+      @if (s.historiqueProgression && s.historiqueProgression.length > 0) {
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-ink-muted">Historique de progression</h2>
+          </div>
+
+          <app-card padding="md">
+            <div class="space-y-2">
+              @for (hist of s.historiqueProgression; track hist.id) {
+                <div class="flex items-start gap-3 py-2 border-b border-line/60 last:border-0">
+                  <div class="flex flex-col items-center min-w-[80px]">
+                    <span class="text-xs text-ink-muted">{{ hist.dateEntree | date:'dd/MM/yyyy' }}</span>
+                    <span class="text-[10px] text-ink-muted">{{ hist.dateEntree | date:'HH:mm' }}</span>
+                  </div>
+                  <div class="flex-1">
+                    @if (hist.etapeEntree && hist.etapeSortie) {
+                      <p class="text-sm text-ink">
+                        <span class="text-ink-muted">Transition :</span>
+                        {{ hist.etapeEntree }} → {{ hist.etapeSortie }}
+                      </p>
+                    }
+                    @if (hist.effectuePar) {
+                      <p class="text-xs text-ink-muted">Par : {{ hist.effectuePar }}</p>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </app-card>
+        </div>
+      }
+    }
+
+    <!-- Section Suivi (KPIs) -->
+    <div>
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-ink-muted">Suivi du projet</h2>
+        @if (loadingSuivi()) {
+          <span class="text-xs text-ink-muted animate-pulse">Chargement...</span>
+        }
+      </div>
+
+      @if (!loadingSuivi()) {
+        <app-card padding="md">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Missions en cours -->
+            <div class="flex flex-col gap-1">
+              <div class="flex items-center gap-2">
+                <app-icon name="missions" class="size-4 text-accent" />
+                <span class="text-[11px] font-semibold text-ink-muted uppercase">Missions en cours</span>
+              </div>
+              <p class="text-lg font-bold text-ink">{{ missionsEnCours() }}</p>
+            </div>
+
+            <!-- Missions en retard -->
+            <div class="flex flex-col gap-1">
+              <div class="flex items-center gap-2">
+                <app-icon name="warning" class="size-4 text-rose-600" />
+                <span class="text-[11px] font-semibold text-ink-muted uppercase">En retard</span>
+              </div>
+              <p class="text-lg font-bold text-ink">{{ missionsEnRetard() }}</p>
+            </div>
+
+            <!-- Livrables en attente -->
+            <div class="flex flex-col gap-1">
+              <div class="flex items-center gap-2">
+                <app-icon name="documents" class="size-4 text-amber-600" />
+                <span class="text-[11px] font-semibold text-ink-muted uppercase">Livrables en attente</span>
+              </div>
+              <p class="text-lg font-bold text-ink">{{ livrablesEnAttente() }}</p>
+            </div>
+
+            <!-- Livrables validés -->
+            <div class="flex flex-col gap-1">
+              <div class="flex items-center gap-2">
+                <app-icon name="check" class="size-4 text-emerald-600" />
+                <span class="text-[11px] font-semibold text-ink-muted uppercase">Livrables validés</span>
+              </div>
+              <p class="text-lg font-bold text-ink">{{ livrablesValides() }}</p>
+            </div>
+          </div>
+        </app-card>
+      }
+    </div>
+
+    <!-- Détail missions et livrables -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <!-- Missions détaillées -->
+      <app-card padding="md">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-ink-muted mb-3">Missions</h3>
+        <div class="space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-ink-muted">Total</span>
+            <span class="text-sm font-bold text-ink">{{ missionsTotal() }}</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-ink-muted">En cours</span>
+            <span class="text-sm font-bold text-ink">{{ missionsEnCours() }}</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-ink-muted">En retard</span>
+            <span class="text-sm font-bold text-rose-600">{{ missionsEnRetard() }}</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-ink-muted">Terminées</span>
+            <span class="text-sm font-bold text-emerald-600">{{ missionsTerminees() }}</span>
+          </div>
+        </div>
+      </app-card>
+
+      <!-- Livrables détaillés -->
+      <app-card padding="md">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-ink-muted mb-3">Livrables</h3>
+        <div class="space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-ink-muted">Total</span>
+            <span class="text-sm font-bold text-ink">{{ livrablesTotal() }}</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-ink-muted">En attente</span>
+            <span class="text-sm font-bold text-ink">{{ livrablesEnAttente() }}</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-ink-muted">À corriger</span>
+            <span class="text-sm font-bold text-amber-600">{{ livrablesRefuses() }}</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-ink-muted">Validés</span>
+            <span class="text-sm font-bold text-emerald-600">{{ livrablesValides() }}</span>
+          </div>
+        </div>
+      </app-card>
+    </div>
+
+    <!-- Prochaines échéances -->
+    @if (suivi(); as s) {
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-ink-muted">Prochaines échéances</h2>
+        </div>
+
+        @if (s.prochainesEcheances && s.prochainesEcheances.length > 0) {
+          <app-card padding="md">
+            <div class="space-y-2">
+              @for (echeance of s.prochainesEcheances; track echeance.missionId) {
+                <div class="flex items-center justify-between py-2 border-b border-line/60 last:border-0">
+                  <div class="flex flex-col">
+                    <span class="text-sm font-medium text-ink">{{ echeance.titreMission }}</span>
+                    <span class="text-xs text-ink-muted">{{ echeance.dateLimite | date:'dd/MM/yyyy' }}</span>
+                  </div>
+                  <app-badge [status]="badgePriorite(echeance.priorite)" size="sm">{{ echeance.priorite }}</app-badge>
+                </div>
+              }
+            </div>
+          </app-card>
+        } @else {
+          <app-card padding="md">
+            <p class="text-sm text-ink-muted text-center">Aucune échéance à venir</p>
+          </app-card>
+        }
+      </div>
+    }
+
+    <!-- Réunions -->
+    @if (suivi(); as s) {
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-ink-muted">Réunions</h2>
+        </div>
+
+        @if (s.derniereReunion || s.prochaineReunion) {
+          <app-card padding="md">
+            <div class="space-y-4">
+              @if (s.derniereReunion) {
+                <div class="space-y-2">
+                  <div class="flex items-center gap-2">
+                    <app-icon name="calendar" class="size-4 text-ink-muted" />
+                    <div>
+                      <p class="text-[10px] text-ink-muted uppercase font-semibold">Dernière réunion</p>
+                      <p class="text-sm font-bold text-ink">{{ s.derniereReunion | date:'dd/MM/yyyy à HH:mm' }}</p>
+                    </div>
+                  </div>
+                  @if (s.derniereReunionObjectif) {
+                    <div class="ml-6">
+                      <p class="text-[10px] text-ink-muted uppercase font-semibold">Objectif</p>
+                      <p class="text-sm text-ink">{{ s.derniereReunionObjectif }}</p>
+                    </div>
+                  }
+                  @if (s.derniereReunionCompteRendu) {
+                    <div class="ml-6">
+                      <p class="text-[10px] text-ink-muted uppercase font-semibold">Compte rendu</p>
+                      <p class="text-sm text-ink">{{ s.derniereReunionCompteRendu }}</p>
+                    </div>
+                  }
+                  @if (s.derniereReunionDecisions) {
+                    <div class="ml-6">
+                      <p class="text-[10px] text-ink-muted uppercase font-semibold">Décisions</p>
+                      <p class="text-sm text-ink">{{ s.derniereReunionDecisions }}</p>
+                    </div>
+                  }
+                </div>
+              }
+              @if (s.prochaineReunion) {
+                <div class="space-y-2 border-t border-line/60 pt-4">
+                  <div class="flex items-center gap-2">
+                    <app-icon name="calendar" class="size-4 text-accent" />
+                    <div>
+                      <p class="text-[10px] text-ink-muted uppercase font-semibold">Prochaine réunion</p>
+                      <p class="text-sm font-bold text-ink">{{ s.prochaineReunion | date:'dd/MM/yyyy à HH:mm' }}</p>
+                    </div>
+                  </div>
+                  @if (s.prochaineReunionObjectif) {
+                    <div class="ml-6">
+                      <p class="text-[10px] text-ink-muted uppercase font-semibold">Objectif</p>
+                      <p class="text-sm text-ink">{{ s.prochaineReunionObjectif }}</p>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </app-card>
+        } @else {
+          <app-card padding="md">
+            <p class="text-sm text-ink-muted text-center">Aucune réunion enregistrée</p>
+          </app-card>
+        }
+      </div>
+    }
+
+    <!-- Cohorte -->
+    @if (suivi(); as s) {
+      @if (s.nomCohorte) {
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-ink-muted">Cohorte</h2>
+          </div>
+
+          <app-card padding="md">
+            <div class="flex items-center gap-2">
+              <app-icon name="users" class="size-4 text-accent" />
+              <p class="text-sm font-bold text-ink">{{ s.nomCohorte }}</p>
+            </div>
+          </app-card>
+        </div>
+      }
+    }
 
     <!-- Frise historique -->
     <div>
@@ -175,20 +527,47 @@ interface Promotion409 {
     <!-- Missions -->
     <div>
       <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Missions</h2>
-      @if (missions().length === 0) {
-        <p class="text-sm text-gray-400 italic">Aucune mission assignée.</p>
+      @if (missionsLoading()) {
+        <p class="text-sm text-gray-400 animate-pulse">Chargement des missions du projet...</p>
+      } @else if (missionsError()) {
+        <div class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+          {{ missionsError() }}
+        </div>
+      } @else if (missions().length === 0) {
+        <div class="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-500">
+          Aucune mission assignée à ce projet. Les missions créées depuis une étape apparaissent ici lorsqu’elles sont correctement rattachées au bon projet.
+        </div>
       } @else {
         <div class="rounded-2xl border border-gray-200 dark:border-white/10 overflow-hidden">
           <table class="w-full text-sm">
             <tbody class="divide-y divide-gray-100 dark:divide-white/5">
               @for (m of missions(); track m.id) {
-                <tr class="hover:bg-gray-50 dark:hover:bg-white/5">
+                <tr class="hover:bg-gray-50 dark:hover:bg-white/5 align-top">
                   <td class="px-4 py-3">
-                    <a [routerLink]="['/incubateur/missions', m.id]" class="font-medium text-gray-900 dark:text-white hover:text-indigo-500">{{ m.titre }}</a>
+                    <div class="flex flex-col gap-2">
+                      <div class="flex items-center gap-2">
+                        @if (estEnRetard(m)) {
+                          <app-icon name="warning" class="size-4 text-rose-600" />
+                        }
+                        <a [routerLink]="['/incubateur/missions', m.id]" class="font-medium text-gray-900 dark:text-white hover:text-indigo-500">{{ m.titre }}</a>
+                      </div>
+                      @if (m.description) {
+                        <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{{ m.description }}</p>
+                      }
+                      <div class="flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400">
+                        <span class="rounded-full border border-gray-200 px-2 py-0.5">{{ getMissionSourceLabel(m) }}</span>
+                        <span>Livrables: {{ m.nombreLivrablesDeposes ?? 0 }}/{{ m.nombreLivrablesAttendus ?? 0 }}</span>
+                      </div>
+                    </div>
                   </td>
-                  <td class="px-4 py-3 text-xs text-gray-400">{{ m.dateEcheance ?? '' }}</td>
-                  <td class="px-4 py-3 text-right">
-                    <app-badge size="sm">{{ m.statut }}</app-badge>
+                  <td class="px-4 py-3 text-xs text-gray-400 align-top">{{ m.dateEcheance ?? '—' }}</td>
+                  <td class="px-4 py-3 align-top">
+                    @if (m.priorite) {
+                      <app-badge [status]="badgePriorite(m.priorite)" size="sm">{{ m.priorite }}</app-badge>
+                    }
+                  </td>
+                  <td class="px-4 py-3 text-right align-top">
+                    <app-badge [status]="badgeStatut(m.statut)" size="sm">{{ m.statut }}</app-badge>
                   </td>
                 </tr>
               }
@@ -290,14 +669,35 @@ export class ProjetDetail implements OnInit {
   private readonly projetService = inject(ProjetService);
   private readonly missionService = inject(MissionService);
   private readonly structureCtx = inject(StructureContextService);
+  private readonly suiviProjetService = inject(SuiviProjetService);
+  private readonly progressionService = inject(ProgressionService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly projet = signal<Projet | undefined>(undefined);
   readonly missions = signal<Mission[]>([]);
+  readonly missionsLoading = signal(false);
+  readonly missionsError = signal<string | null>(null);
   readonly historique = signal<ParticipationCohorteResponse[]>([]);
-  
+  readonly suivi = signal<SuiviProjetDTO | undefined>(undefined);
+  readonly loadingSuivi = signal(false);
+
+  // Progression étapes
+  readonly etapesProgression = signal<Etape[]>([]);
+  readonly progressionId = signal<string | undefined>(undefined);
+  readonly loadingEtapes = signal(false);
+
   // Computed pour inverser l'ordre de l'historique (le plus ancien en premier, le plus récent en dernier)
   readonly historiqueInverse = computed(() => [...this.historique()].reverse());
+
+  // Computed pour les KPIs de suivi (à partir du vrai suivi API)
+  readonly missionsEnCours = computed(() => this.suivi()?.missionsEnCours ?? 0);
+  readonly missionsEnRetard = computed(() => this.suivi()?.missionsEnRetard ?? 0);
+  readonly missionsTerminees = computed(() => this.suivi()?.missionsTerminees ?? 0);
+  readonly missionsTotal = computed(() => this.suivi()?.missionsTotal ?? 0);
+  readonly livrablesEnAttente = computed(() => this.suivi()?.livrablesEnAttente ?? 0);
+  readonly livrablesValides = computed(() => this.suivi()?.livrablesValides ?? 0);
+  readonly livrablesRefuses = computed(() => this.suivi()?.livrablesRefuses ?? 0);
+  readonly livrablesTotal = computed(() => this.suivi()?.livrablesTotal ?? 0);
 
   readonly cohortesEligibles = signal<Cohorte[]>([]);
   readonly loading = signal(true);
@@ -339,9 +739,29 @@ export class ProjetDetail implements OnInit {
     this.projetService.getById(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (p) => {
         this.projet.set(p); this.loading.set(false);
-        this.missionService.getByProjet(p.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: m => this.missions.set(m), error: () => {} });
+        this.missionsLoading.set(true);
+        this.missionsError.set(null);
+        this.missionService.getByProjet(p.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+          next: (m) => {
+            this.missions.set(m ?? []);
+            this.missionsLoading.set(false);
+          },
+          error: () => {
+            this.missions.set([]);
+            this.missionsError.set("Les missions du projet n'ont pas pu être chargées.");
+            this.missionsLoading.set(false);
+          }
+        });
         this.loadingHistorique.set(true);
         this.projetService.getHistorique(p.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: h => { this.historique.set(h); this.loadingHistorique.set(false); }, error: () => this.loadingHistorique.set(false) });
+        // Charger le vrai suivi depuis l'API
+        this.loadingSuivi.set(true);
+        this.suiviProjetService.getSuiviProjet(p.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+          next: (s) => { this.suivi.set(s); this.loadingSuivi.set(false); },
+          error: () => this.loadingSuivi.set(false)
+        });
+        // Charger la progression d'étapes
+        this.chargerProgressionEtapes();
       },
       error: () => this.loading.set(false),
     });
@@ -376,8 +796,100 @@ export class ProjetDetail implements OnInit {
     this.projetService.restaurerProjet(p.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: () => this.projet.update(x => x ? { ...x, archive: false } : x), error: () => alert('Erreur restauration.') });
   }
 
-  statutBadge(statut: string): 'success' | 'warning' | 'neutral' | 'danger' {
+  badgePriorite(priorite?: string): 'success' | 'warning' | 'neutral' | 'danger' {
+    switch (priorite) {
+      case 'URGENTE':
+        return 'danger';
+      case 'HAUTE':
+        return 'warning';
+      case 'MOYENNE':
+        return 'neutral';
+      case 'BASSE':
+      default:
+        return 'neutral';
+    }
+  }
+
+  badgeStatut(statut: string): 'success' | 'warning' | 'neutral' | 'danger' {
     const m: Record<string, 'success' | 'warning' | 'neutral' | 'danger'> = { VALIDE: 'success', EN_COURS: 'warning', A_FAIRE: 'neutral', A_REVOIR: 'danger', SOUMIS: 'warning' };
     return m[statut] ?? 'neutral';
+  }
+
+  getMissionSourceLabel(m: Mission): 'Mission d’étape' | 'Mission de cohorte' | 'Mission' {
+    if (m.missionEtapeId) return 'Mission d’étape';
+    if (m.missionCohorteId) return 'Mission de cohorte';
+    return 'Mission';
+  }
+
+  estEnRetard(m: Mission): boolean {
+    if (m.statut === 'VALIDE') return false;
+    if (!m.dateEcheance) return false;
+    return new Date(m.dateEcheance) < new Date();
+  }
+
+  formatStatutProgression(statut: string | undefined): string {
+    if (!statut) return '';
+    switch (statut) {
+      case 'EN_COURS':
+        return 'En cours';
+      case 'EN_PAUSE':
+        return 'En pause';
+      case 'TERMINE':
+        return 'Terminé';
+      case 'ABANDONNE':
+        return 'Abandonné';
+      default:
+        return statut;
+    }
+  }
+
+  /**
+   * Charger la progression d'étapes pour le projet
+   */
+  chargerProgressionEtapes(): void {
+    const p = this.projet();
+    if (!p || !p.phaseId) {
+      this.loadingEtapes.set(false);
+      return;
+    }
+
+    this.loadingEtapes.set(true);
+
+    // Récupérer les progressions du projet
+    this.progressionService.getProgressionsByProjetId(p.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (progressions) => {
+        if (progressions.length > 0) {
+          const progression = progressions[0];
+          this.progressionId.set(progression.id);
+
+          // Utiliser le service pour récupérer les étapes avec leur statut de progression
+          this.progressionService.getEtapesProgression(progression.id, p.phaseId!).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+            next: (etapes) => {
+              this.etapesProgression.set(etapes);
+              this.loadingEtapes.set(false);
+            },
+            error: () => this.loadingEtapes.set(false)
+          });
+        } else {
+          this.loadingEtapes.set(false);
+        }
+      },
+      error: () => this.loadingEtapes.set(false)
+    });
+  }
+
+  /**
+   * Recharger la progression après validation
+   */
+  onEtapeValidee(): void {
+    this.chargerProgressionEtapes();
+  }
+
+  /**
+   * Vérifier si l'utilisateur peut valider les étapes
+   */
+  peutValiderEtapes(): boolean {
+    const r = this.structureCtx.activeRole();
+    return r === 'ADMIN_STRUCTURE' || r === 'COACH';
   }
 }

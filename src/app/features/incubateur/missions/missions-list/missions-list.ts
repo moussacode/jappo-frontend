@@ -114,8 +114,16 @@ export type FiltreStatutMission = 'TOUTES' | 'EN_COURS' | 'A_REVOIR' | 'VALIDEE'
                   <div class="flex items-center gap-1.5">
                     <span class="text-[11px] text-ink-muted">Priorité :</span>
                     <app-badge [status]="badgePrioriteStatus(m.priorite)" size="sm">
-                      {{ m.priorite }}
+                      {{ prioriteLabel(m.priorite) }}
                     </app-badge>
+                  </div>
+                }
+
+                <!-- Indicateur de retard -->
+                @if (estEnRetard(m)) {
+                  <div class="flex items-center gap-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 px-2 py-1">
+                    <app-icon name="warning" class="size-3 text-rose-600" />
+                    <span class="text-[11px] font-semibold text-rose-600">{{ m.nombreEnRetard }} en retard</span>
                   </div>
                 }
 
@@ -398,13 +406,33 @@ protected calculerProgression(m: MissionCohorteResponse): number {
   protected badgePrioriteStatus(priorite?: PrioriteMission): BadgeStatus {
     switch (priorite) {
       case 'URGENTE':
-      case 'HAUTE':
         return 'danger';
-      case 'MOYENNE':
+      case 'HAUTE':
         return 'warning';
+      case 'MOYENNE':
+        return 'neutral';
       case 'BASSE':
       default:
         return 'neutral';
     }
+  }
+
+  protected prioriteLabel(priorite?: PrioriteMission): string {
+    switch (priorite) {
+      case 'URGENTE':
+        return 'Urgente';
+      case 'HAUTE':
+        return 'Haute';
+      case 'MOYENNE':
+        return 'Moyenne';
+      case 'BASSE':
+        return 'Basse';
+      default:
+        return priorite || 'Non définie';
+    }
+  }
+
+  protected estEnRetard(m: MissionCohorteResponse): boolean {
+    return m.nombreEnRetard > 0;
   }
 }

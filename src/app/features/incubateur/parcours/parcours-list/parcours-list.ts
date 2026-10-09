@@ -52,7 +52,7 @@ const parOrdre = (a: { ordre?: number | null }, b: { ordre?: number | null }) =>
       <!-- En-tête Page -->
       <app-page-header
         title="Parcours d'accompagnement"
-        subtitle="Définissez les phases de progression de vos entrepreneurs."
+        subtitle="Structurez vos programmes en phases et étapes pour accompagner vos entrepreneurs."
       >
         @if (isAdmin()) {
           <app-button size="sm" (click)="ouvrirEditeur(null)">
@@ -124,7 +124,7 @@ const parOrdre = (a: { ordre?: number | null }, b: { ordre?: number | null }) =>
               <thead>
                 <tr class="border-b border-line/60 bg-surface-muted/50 font-semibold uppercase tracking-wider text-ink-muted">
                   <th class="w-3/12 px-5 py-3.5">Parcours</th>
-                  <th class="w-5/12 px-5 py-3.5">Configuration des phases</th>
+                  <th class="w-5/12 px-5 py-3.5">Phases (Programme → Parcours → Phase → Étape)</th>
                   <th class="w-2/12 px-5 py-3.5">Statut</th>
                   <th class="w-2/12 px-5 py-3.5 text-right">Actions</th>
                 </tr>
@@ -146,7 +146,7 @@ const parOrdre = (a: { ordre?: number | null }, b: { ordre?: number | null }) =>
                             </span>
                           }
                           <span class="text-[10px] text-ink-muted mt-1 font-medium">
-                            {{ item.phases.length }} phase(s)
+                            {{ item.phases.length }} phase(s) · Organisez vos étapes par phase
                           </span>
                         </div>
                       </div>

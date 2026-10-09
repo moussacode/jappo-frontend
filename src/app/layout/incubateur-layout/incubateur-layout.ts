@@ -85,6 +85,11 @@ export class IncubateurLayout {
           path: '/incubateur/cohortes',
           icon: 'cohortes',
         },
+         {
+          label: 'incubateur.nav.programmes',
+          path: '/incubateur/programmes',
+          icon: 'layers',
+        },
 
         {
           label: 'incubateur.nav.entrepreneurs',
@@ -128,15 +133,15 @@ export class IncubateurLayout {
        * Le parcours est accessible uniquement
        * à l'administrateur de la structure.
        */
-      if (role === 'ADMIN_STRUCTURE') {
+      // if (role === 'ADMIN_STRUCTURE') {
 
-        items.splice(2, 0, {
-          label: 'incubateur.nav.parcours',
-          path: '/incubateur/parcours',
-          icon: 'layers',
-        });
+      //   items.splice(2, 0, {
+      //     label: 'incubateur.nav.parcours',
+      //     path: '/incubateur/parcours',
+      //     icon: 'layers',
+      //   });
 
-      }
+      // }
 
 
       return items;

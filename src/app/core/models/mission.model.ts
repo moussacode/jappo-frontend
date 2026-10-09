@@ -1,41 +1,51 @@
 export type StatutMission = 'A_FAIRE' | 'EN_COURS' | 'SOUMIS' | 'VALIDE' | 'A_REVOIR';
 export type PrioriteMission = 'BASSE' | 'MOYENNE' | 'HAUTE' | 'URGENTE';
 
-export interface Mission {
-  id: string; // MissionProjet ID
-  missionCohorteId?: string;
+/**
+ * DTO backend réel : MissionResponse / MissionProjet.
+ * Ce contrat est explicite pour éviter toute hypothèse sur une relation mission/étape non exposée par l’API.
+ */
+export interface MissionProjet {
+  id: string;
+  missionCohorteId?: string | null;
+  missionEtapeId?: string | null;
   titre: string;
-  description?: string;
-  dateEcheance?: string; // YYYY-MM-DD
+  description?: string | null;
+  dateEcheance?: string | null;
   statut: StatutMission;
   priorite?: PrioriteMission;
-  
-  // Nouveaux champs de contexte
-  projetId?: string;
-  nomProjet?: string;
-  cohorteId?: string;
-  nomCohorte?: string;
-  entrepreneurId?: string;
-  nomEntrepreneur?: string;
-  
-  // Assignation & Créateur
-  assigneAId?: string;
-  nomAssigneA?: string;
-  creeParId?: string;
-  nomCreePar?: string;
-  
-  // Audit & Structure
-  structureId?: string;
-  dateCreation?: string;
-  dateModification?: string;
 
-  // Avancement
+  projetId?: string | null;
+  nomProjet?: string | null;
+  cohorteId?: string | null;
+  nomCohorte?: string | null;
+  entrepreneurId?: string | null;
+  nomEntrepreneur?: string | null;
+
+  assigneAId?: string | null;
+  nomAssigneA?: string | null;
+  creeParId?: string | null;
+  nomCreePar?: string | null;
+
+  structureId?: string | null;
+  dateCreation?: string | null;
+  dateModification?: string | null;
+
   nombreLivrablesAttendus?: number;
   nombreLivrablesDeposes?: number;
 }
 
-/** Alias contrat backend MissionResponse (suivi MissionProjet). */
-export type MissionResponse = Mission;
+export function getMissionSourceLabel(
+  mission: Pick<MissionProjet, 'missionEtapeId' | 'missionCohorteId'>,
+): 'Mission d’étape' | 'Mission de cohorte' | 'Mission' {
+  if (mission.missionEtapeId) return 'Mission d’étape';
+  if (mission.missionCohorteId) return 'Mission de cohorte';
+  return 'Mission';
+}
+
+/** Alias legacy conservé pour les écrans existants de l’application. */
+export type Mission = MissionProjet;
+export type MissionResponse = MissionProjet;
 
 /**
  * DTO pour une mission de cohorte agrégée avec ses statistiques de suivi.

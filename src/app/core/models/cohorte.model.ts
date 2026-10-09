@@ -38,6 +38,7 @@ export interface CreateCohorteRequest {
   dateFin?: string;
   parcoursId: string;
   phaseId: string;
+  programmeId?: string;
   coachIds?: string[];
 }
 
@@ -64,8 +65,9 @@ export interface Phase {
   id: string;
   nom: string;
   description?: string;
-  archive?: boolean;
-  dateCreation?: string;
+  ordre?: number;
+  archive: boolean;
+  dateCreation: string;
   dateModification?: string;
 }
 
@@ -80,12 +82,15 @@ export interface Parcours {
   archive: boolean;
   dateCreation: string;
   dateModification?: string;
+  programmeId?: string;
+  programmeNom?: string;
   phases?: ParcoursPhase[];
 }
 
 export interface CreateParcoursRequest {
   nom: string;
   description?: string;
+  programmeId?: string;
 }
 
 export interface CreatePhaseRequest {

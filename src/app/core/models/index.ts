@@ -11,3 +11,5 @@ export * from './note-coach.model';
 export * from './notification.model';
 export * from './conversation-ia.model';
 export * from './projet.model';
+export * from './parcours.model';
+export * from './suivi-projet.model';

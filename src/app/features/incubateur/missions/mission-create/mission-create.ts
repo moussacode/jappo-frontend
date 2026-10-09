@@ -111,65 +111,7 @@ import { ModalComponent } from '../../../../shared/components/modal/modal.compon
         <!-- ════════════════════════════════════════════════════
              SECTION PARCOURS → PHASE (optionnel)
         ════════════════════════════════════════════════════ -->
-        <div class="flex flex-col gap-3 pt-3 border-t border-line">
-          <div class="flex items-center justify-between">
-            <label class="text-xs font-semibold text-ink">
-              Rattacher à un parcours
-              <span class="text-ink-muted font-normal">(optionnel)</span>
-            </label>
-
-            @if (parcoursLoading()) {
-              <span class="text-[11px] text-ink-muted animate-pulse">
-                Chargement…
-              </span>
-            }
-          </div>
-
-          <!-- Sélection Parcours -->
-          <select
-            formControlName="parcoursId"
-            class="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs text-ink focus:border-accent focus:outline-none transition-colors"
-          >
-            <option value="">— Aucun parcours —</option>
-
-            @for (p of parcoursList(); track p.id) {
-              <option [value]="p.id">
-                {{ p.nom }}
-              </option>
-            }
-          </select>
-
-          <!-- Sélection Phase -->
-          @if (missionForm.get('parcoursId')?.value) {
-            <select
-              formControlName="phaseId"
-              class="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs text-ink focus:border-accent focus:outline-none transition-colors"
-              [disabled]="phasesList().length === 0"
-            >
-              <option value="">— Toutes les phases —</option>
-
-              @for (ph of phasesList(); track ph.id) {
-                <option [value]="ph.id">
-                  {{ ph.nom }}
-                </option>
-              }
-            </select>
-          }
-
-          <!-- Fil d'Ariane de la sélection -->
-          @if (selectionResume()) {
-            <div
-              class="flex items-center gap-1.5 px-3 py-2 bg-[var(--color-info-100)] dark:bg-[var(--color-slate)] rounded-[var(--radius-button)] text-xs text-[var(--color-info-500)] dark:text-[var(--color-silver)]"
-            >
-              <app-icon
-                name="route"
-                class="size-3.5 shrink-0"
-              ></app-icon>
-
-              <span>{{ selectionResume() }}</span>
-            </div>
-          }
-        </div>
+        
 
         <!-- Périmètre d'attribution -->
         <div class="flex flex-col gap-3 pt-3 border-t border-line">

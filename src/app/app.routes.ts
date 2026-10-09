@@ -167,6 +167,26 @@ export const routes: Routes = [
           import('./features/incubateur/parcours/parcours-list/parcours-list').then((m) => m.ParcoursList),
       },
       {
+        path: 'programmes',
+        loadComponent: () =>
+          import('./features/incubateur/programmes/programmes-list/programmes-list').then((m) => m.ProgrammesListComponent),
+      },
+      {
+        path: 'programmes/:id',
+        loadComponent: () =>
+          import('./features/incubateur/programmes/programme-detail/programme-detail').then((m) => m.ProgrammeDetailComponent),
+      },
+      {
+        path: 'programmes/etapes/:id',
+        loadComponent: () =>
+          import('./features/incubateur/programmes/etape-detail/etape-detail').then((m) => m.EtapeDetailComponent),
+      },
+      {
+        path: 'programmes/:programmeId/parcours/:parcoursId',
+        loadComponent: () =>
+          import('./features/incubateur/programmes/parcours-detail/parcours-detail').then((m) => m.ParcoursDetailComponent),
+      },
+      {
         path: 'entrepreneurs',
         loadComponent: () =>
           import('./features/incubateur/entrepreneurs/entrepreneurs-list/entrepreneurs-list').then(
