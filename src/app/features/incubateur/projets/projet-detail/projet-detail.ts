@@ -812,6 +812,7 @@ export class ProjetDetail implements OnInit {
       .subscribe({
         next: (route) => {
           this.feuilleRoute.set(route);
+          console.log('Feuille de route chargée :', route);
           this.loadingEtapes.set(false);
         },
         error: () => {
@@ -840,4 +841,5 @@ export class ProjetDetail implements OnInit {
     const r = this.structureCtx.activeRole();
     return r === 'ADMIN_STRUCTURE' || r === 'COACH';
   }
+
 }
