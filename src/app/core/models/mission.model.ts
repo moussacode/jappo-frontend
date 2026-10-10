@@ -1,6 +1,8 @@
 export type StatutMission = 'A_FAIRE' | 'EN_COURS' | 'SOUMIS' | 'VALIDE' | 'A_REVOIR';
 export type PrioriteMission = 'BASSE' | 'MOYENNE' | 'HAUTE' | 'URGENTE';
 
+import type { TemplateField } from './parcours.model';
+
 export interface LivrableAttenduMission {
   id: string;
   titre: string;
@@ -9,6 +11,7 @@ export interface LivrableAttenduMission {
   obligatoire: boolean;
   type: string;
   templateType?: string | null;
+  templateFields?: TemplateField[];
 }
 
 /**
@@ -72,6 +75,8 @@ export interface MissionCohorteResponse {
   // Contexte cohorte
   cohorteId?: string;
   nomCohorte?: string;
+  etapeId?: string;
+  nomEtape?: string;
 
   // Structure & Audit
   structureId?: string;
@@ -81,6 +86,9 @@ export interface MissionCohorteResponse {
   nombreProjetsConcernes: number;
   nombreValides: number;
   nombreEnRevue: number;
+  nombreSoumis?: number;
+  nombreACorriger?: number;
+  nombreNonSoumis?: number;
   nombreEnRetard: number;
   nombreAFaire: number;
 

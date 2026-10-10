@@ -2,7 +2,7 @@ import { Component, inject, signal, OnInit, OnDestroy, DestroyRef } from '@angul
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { forkJoin, switchMap } from 'rxjs';
+import { forkJoin, switchMap, tap } from 'rxjs';
 import { DatePipe } from '@angular/common';
 
 import {
@@ -23,14 +23,18 @@ import { Icon } from '../../../../shared/components/icon/icon';
 import { Projet, StatutMission } from '../../../../core/models';
 import { STATUT_MISSION_CONFIG } from '../../../../core/constants/statut-mission.constant';
 import { STATUT_LIVRABLE_CONFIG } from '../../../../core/constants/statut-livrable.constant';
+import { LivrableAttenduMission } from '../../../../core/models/mission.model';
+import { TemplateField } from '../../../../core/models/parcours.model';
 
 export interface LivrableItem {
   id: string;
-  type: 'fichier' | 'lien';
+  type: 'fichier' | 'lien' | 'texte' | 'template';
   titre: string;
   valeur: string;
+  livrableAttenduId?: string;
   taille?: string;
   fichier?: File;
+  uploadedUrl?: string;
 }
 
 @Component({
@@ -70,21 +74,27 @@ export class MissionDetail implements OnInit, OnDestroy {
 
   // Gestion des multi-livrables initiaux
   protected readonly items = signal<LivrableItem[]>([]);
+  protected readonly reponsesBmc = signal<Record<string, Record<string, string>>>({});
   protected readonly noteEntrepreneur = signal<string>('');
 
   // Formulaire d'ajout de lien initial
   protected readonly showLinkForm = signal(false);
   protected readonly newLinkUrl = signal('');
   protected readonly newLinkTitle = signal('');
+  protected readonly showTextForm = signal(false);
+  protected readonly newTextTitle = signal('');
+  protected readonly newTextBody = signal('');
 
   // ────────────────────────────────────────────────────────────────
   // Gestion du redépôt d'une nouvelle version (Cycle de révision)
   // ────────────────────────────────────────────────────────────────
   protected readonly activeRedepositId = signal<string | null>(null);
-  protected readonly redepositType = signal<'FICHIER' | 'LIEN'>('FICHIER');
+  protected readonly redepositType = signal<TypeLivrable>('FICHIER');
+  protected readonly reponsesBmcRedepot = signal<Record<string, string>>({});
   protected readonly redepositFile = signal<File | null>(null);
   protected readonly redepositLinkUrl = signal<string>('');
   protected readonly redepositLinkTitle = signal<string>('');
+  protected readonly redepositText = signal<string>('');
   protected readonly redepositComment = signal<string>('');
   protected readonly submittingRedeposit = signal<boolean>(false);
   protected readonly redepositError = signal<string | null>(null);
@@ -176,41 +186,222 @@ export class MissionDetail implements OnInit, OnDestroy {
     this.showLinkForm.set(false);
   }
 
+  protected ajouterTexte(): void {
+    const body = this.newTextBody().trim();
+    if (!body || body.length > 1000) return;
+    this.items.update((prev) => [...prev, {
+      id: crypto.randomUUID(),
+      type: 'texte',
+      titre: this.newTextTitle().trim() || 'Réponse texte',
+      valeur: body,
+    }]);
+    this.newTextBody.set('');
+    this.newTextTitle.set('');
+    this.showTextForm.set(false);
+  }
+
   protected supprimerItem(id: string): void {
     this.items.update((prev) => prev.filter((item) => item.id !== id));
   }
 
+  protected attendusPourItem(item: LivrableItem) {
+    const attendus = this.mission()?.livrablesAttendus ?? [];
+    return attendus.filter((attendu) => {
+      if (attendu.id === item.livrableAttenduId) return true;
+      const dejaDepose = this.livrablesExistants().some(
+        (livrable) => livrable.livrableAttenduId === attendu.id,
+      );
+      const dejaSelectionne = this.items().some(
+        (queued) => queued.id !== item.id && queued.livrableAttenduId === attendu.id,
+      );
+      return !dejaDepose && !dejaSelectionne;
+    });
+  }
+
+  protected associerAttendu(itemId: string, attenduId: string): void {
+    this.items.update((items) => items.map((item) => item.id === itemId
+      ? { ...item, livrableAttenduId: attenduId || undefined }
+      : item));
+  }
+
+  protected champsTemplate(attendu: LivrableAttenduMission): TemplateField[] {
+    return attendu.templateFields ?? [];
+  }
+
+  protected modifierReponseBmc(attenduId: string, champId: string, valeur: string): void {
+    this.reponsesBmc.update((current) => ({
+      ...current,
+      [attenduId]: { ...current[attenduId], [champId]: valeur },
+    }));
+  }
+
+  protected reponseBmcComplete(attendu: LivrableAttenduMission): boolean {
+    const fields = this.champsTemplate(attendu);
+    const answers = this.reponsesBmc()[attendu.id] ?? {};
+    return fields.length > 0 && fields.every((field) => Boolean(answers[field.id]?.trim()));
+  }
+
+  protected modifierReponseBmcRedepot(champId: string, valeur: string): void {
+    this.reponsesBmcRedepot.update((answers) => ({ ...answers, [champId]: valeur }));
+  }
+
+  protected bmcDejaSoumis(attenduId: string): boolean {
+    return this.livrablesExistants().some((livrable) => livrable.livrableAttenduId === attenduId)
+      || this.items().some((item) => item.livrableAttenduId === attenduId);
+  }
+
+  protected ajouterReponseBmc(attendu: LivrableAttenduMission): void {
+    if (!this.reponseBmcComplete(attendu) || this.bmcDejaSoumis(attendu.id)) {
+      return;
+    }
+    const answers = this.reponsesBmc()[attendu.id] ?? {};
+    this.items.update((items) => [...items, {
+      id: crypto.randomUUID(),
+      type: 'template',
+      titre: attendu.titre,
+      valeur: JSON.stringify(Object.fromEntries(
+        this.champsTemplate(attendu).map((field) => [field.id, answers[field.id].trim()]),
+      )),
+      livrableAttenduId: attendu.id,
+    }]);
+  }
+
+  protected reponseTemplate(contenu: string | null | undefined, champId: string): string {
+    if (!contenu) return '';
+    try {
+      const answers: unknown = JSON.parse(contenu);
+      if (typeof answers !== 'object' || answers === null || Array.isArray(answers)) return '';
+      const value = (answers as Record<string, unknown>)[champId];
+      return typeof value === 'string' ? value : '';
+    } catch {
+      return '';
+    }
+  }
+
+  protected remiseCompatibleAvecAttendu(item: LivrableItem): boolean {
+    const attendus = this.mission()?.livrablesAttendus ?? [];
+    if (attendus.length === 0) return true;
+    const attendu = attendus.find((candidate) => candidate.id === item.livrableAttenduId);
+    if (!attendu) return false;
+    const typeSoumis: TypeLivrable = item.type === 'fichier'
+      ? 'FICHIER'
+      : item.type === 'lien'
+        ? 'LIEN'
+        : item.type === 'template'
+          ? 'TEMPLATE'
+          : 'TEXTE';
+    if (attendu.type === 'TEMPLATE' && (attendu.templateFields?.length ?? 0) > 0) {
+      return typeSoumis === 'TEMPLATE';
+    }
+    return attendu.type === 'TEMPLATE'
+      ? typeSoumis === 'FICHIER' || typeSoumis === 'LIEN'
+      : attendu.type === typeSoumis;
+  }
+
+  protected peutSoumettre(): boolean {
+    return this.items().length > 0 && this.items().every((item) => this.remiseCompatibleAvecAttendu(item));
+  }
+
+  protected attenduPourLivrable(livrable: LivrableResponse) {
+    return (this.mission()?.livrablesAttendus ?? []).find(
+      (attendu) => attendu.id === livrable.livrableAttenduId,
+    );
+  }
+
+  protected formatCompatiblePourRedepot(livrable: LivrableResponse, type: TypeLivrable): boolean {
+    const attendu = this.attenduPourLivrable(livrable);
+    if (!attendu) return true;
+    if (attendu.type === 'TEMPLATE' && (attendu.templateFields?.length ?? 0) > 0) {
+      return type === 'TEMPLATE';
+    }
+    return attendu.type === 'TEMPLATE'
+      ? type === 'FICHIER' || type === 'LIEN'
+      : attendu.type === type;
+  }
+
+  protected libelleFormatAttendu(type: string): string {
+    if (type === 'TEMPLATE') return 'Modèle à compléter';
+    if (type === 'FICHIER') return 'Fichier';
+    if (type === 'LIEN') return 'Lien web';
+    if (type === 'TEXTE') return 'Réponse texte';
+    return type;
+  }
+
   protected soumettre(): void {
-    if (this.items().length === 0) return;
+    if (!this.peutSoumettre()) return;
 
     this.submitting.set(true);
     this.errorMessage.set(null);
 
     const requests = this.items().map((item) => {
+      if (item.type === 'template') {
+        const payload: CreateLivrableRequest = {
+          nom: item.titre,
+          url: '',
+          contenu: item.valeur,
+          typePiece: 'TEMPLATE',
+          missionProjetId: this.missionId,
+          livrableAttenduId: item.livrableAttenduId,
+        };
+        return this.livrableService.soumettreLivrable(payload).pipe(
+          tap(() => this.retirerItemConfirme(item.id)),
+        );
+      }
       if (item.type === 'lien') {
         const payload: CreateLivrableRequest = {
           nom: item.titre,
           url: item.valeur,
           typePiece: 'LIEN',
           missionProjetId: this.missionId,
+          livrableAttenduId: item.livrableAttenduId,
         };
-        return this.livrableService.soumettreLivrable(payload);
+        return this.livrableService.soumettreLivrable(payload).pipe(
+          tap(() => this.retirerItemConfirme(item.id)),
+        );
+      }
+
+      if (item.type === 'texte') {
+        const payload: CreateLivrableRequest = {
+          nom: item.titre,
+          url: item.valeur,
+          typePiece: 'TEXTE',
+          missionProjetId: this.missionId,
+          livrableAttenduId: item.livrableAttenduId,
+        };
+        return this.livrableService.soumettreLivrable(payload).pipe(
+          tap(() => this.retirerItemConfirme(item.id)),
+        );
       }
 
       if (!item.fichier) {
         throw new Error(`Le fichier "${item.titre}" est introuvable.`);
       }
 
+      if (item.uploadedUrl) {
+        return this.livrableService.soumettreLivrable({
+          nom: item.titre,
+          url: item.uploadedUrl,
+          typePiece: 'FICHIER',
+          missionProjetId: this.missionId,
+          livrableAttenduId: item.livrableAttenduId,
+        }).pipe(tap(() => this.retirerItemConfirme(item.id)));
+      }
+
       return this.livrableService.uploaderFichier(item.fichier).pipe(
         switchMap((uploadResponse) => {
+          this.items.update((current) => current.map((queued) => queued.id === item.id
+            ? { ...queued, uploadedUrl: uploadResponse.url }
+            : queued));
           const payload: CreateLivrableRequest = {
             nom: item.titre,
             url: uploadResponse.url,
             typePiece: 'FICHIER',
             missionProjetId: this.missionId,
+            livrableAttenduId: item.livrableAttenduId,
           };
           return this.livrableService.soumettreLivrable(payload);
-        })
+        }),
+        tap(() => this.retirerItemConfirme(item.id)),
       );
     });
 
@@ -235,6 +426,10 @@ export class MissionDetail implements OnInit, OnDestroy {
       });
   }
 
+  private retirerItemConfirme(itemId: string): void {
+    this.items.update((current) => current.filter((item) => item.id !== itemId));
+  }
+
   // ────────────────────────────────────────────────────────────────
   // REDÉPÔT D'UNE NOUVELLE VERSION (V{n+1})
   // ────────────────────────────────────────────────────────────────
@@ -243,8 +438,25 @@ export class MissionDetail implements OnInit, OnDestroy {
     this.redepositFile.set(null);
     this.redepositLinkUrl.set('');
     this.redepositLinkTitle.set('');
+    this.redepositText.set('');
     this.redepositComment.set('');
     this.redepositError.set(null);
+    const livrable = this.livrablesExistants().find((item) => item.id === livrableId);
+    if (livrable) {
+      const formatsPossibles: TypeLivrable[] = ['FICHIER', 'LIEN', 'TEXTE', 'TEMPLATE'];
+      const formatsAcceptes = formatsPossibles
+        .filter((type): type is TypeLivrable => this.formatCompatiblePourRedepot(livrable, type));
+      this.redepositType.set(formatsAcceptes.includes(livrable.typePiece)
+        ? livrable.typePiece
+        : formatsAcceptes[0] ?? 'FICHIER');
+      const attendu = this.attenduPourLivrable(livrable);
+      this.reponsesBmcRedepot.set(Object.fromEntries(
+        (attendu?.templateFields ?? []).map((field) => [
+          field.id,
+          this.reponseTemplate(livrable.contenu, field.id),
+        ]),
+      ));
+    }
   }
 
   protected fermerRedepot(): void {
@@ -252,6 +464,7 @@ export class MissionDetail implements OnInit, OnDestroy {
     this.redepositFile.set(null);
     this.redepositLinkUrl.set('');
     this.redepositLinkTitle.set('');
+    this.redepositText.set('');
     this.redepositComment.set('');
     this.redepositError.set(null);
   }
@@ -264,10 +477,63 @@ export class MissionDetail implements OnInit, OnDestroy {
   }
 
   protected soumettreNouvelleVersion(livrable: LivrableResponse): void {
+    if (!this.formatCompatiblePourRedepot(livrable, this.redepositType())) {
+      this.redepositError.set('Le format de la nouvelle version doit respecter le livrable attendu.');
+      return;
+    }
     this.submittingRedeposit.set(true);
     this.redepositError.set(null);
 
+    if (this.redepositType() === 'TEMPLATE') {
+      const attendu = this.attenduPourLivrable(livrable);
+      const fields = attendu?.templateFields ?? [];
+      const answers = this.reponsesBmcRedepot();
+      if (fields.length === 0 || !fields.every((field) => Boolean(answers[field.id]?.trim()))) {
+        this.redepositError.set('Veuillez renseigner toutes les rubriques du Business Model Canvas.');
+        this.submittingRedeposit.set(false);
+        return;
+      }
+      const payload: SoumettreVersionRequest = {
+        nom: livrable.nom,
+        url: '',
+        contenu: JSON.stringify(Object.fromEntries(
+          fields.map((field) => [field.id, answers[field.id].trim()]),
+        )),
+        typePiece: 'TEMPLATE',
+        commentaireEntrepreneur: this.redepositComment().trim() || undefined,
+      };
+      this.livrableService.soumettreNouvelleVersion(livrable.id, payload)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: () => this.handleRedepositSuccess(livrable.id),
+          error: (err) => this.handleRedepositError(err),
+        });
+      return;
+    }
+
     const isLien = this.redepositType() === 'LIEN';
+
+    if (this.redepositType() === 'TEXTE') {
+      const body = this.redepositText().trim();
+      if (!body || body.length > 1000) {
+        this.redepositError.set('Le texte doit contenir entre 1 et 1000 caractères.');
+        this.submittingRedeposit.set(false);
+        return;
+      }
+      const payload: SoumettreVersionRequest = {
+        nom: livrable.nom,
+        url: body,
+        typePiece: 'TEXTE',
+        commentaireEntrepreneur: this.redepositComment().trim() || undefined,
+      };
+      this.livrableService.soumettreNouvelleVersion(livrable.id, payload)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: () => this.handleRedepositSuccess(livrable.id),
+          error: (err) => this.handleRedepositError(err),
+        });
+      return;
+    }
 
     if (isLien) {
       const url = this.redepositLinkUrl().trim();

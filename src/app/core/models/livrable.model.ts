@@ -1,4 +1,4 @@
-export type TypeLivrable = 'FICHIER' | 'LIEN';
+export type TypeLivrable = 'FICHIER' | 'LIEN' | 'TEXTE' | 'TEMPLATE';
 
 export type StatutLivrable = 'EN_ATTENTE' | 'VALIDE' | 'A_CORRIGER' | 'REJETE';
 
@@ -7,6 +7,7 @@ export interface LivrableVersionResponse {
   numeroVersion: number;
   nom: string;
   url: string;
+  contenu?: string | null;
   typePiece: TypeLivrable;
   statut: StatutLivrable;
   note?: number;
@@ -24,6 +25,7 @@ export interface LivrableSoumis {
   id: string;
   nom: string;
   url: string;
+  contenu?: string | null;
   typePiece: TypeLivrable;
   statut: StatutLivrable;
   numeroVersion?: number;
@@ -36,6 +38,7 @@ export interface LivrableSoumis {
   dateDepot?: string;             // ISO LocalDateTime
   dateEvaluation?: string;        // ISO LocalDateTime
   missionProjetId: string;
+  livrableAttenduId?: string | null;
   titreMission?: string;
   projetId: string;
   nomProjet?: string;
@@ -56,13 +59,16 @@ export type Livrable = LivrableSoumis;
 export interface CreateLivrableRequest {
   nom: string;
   url: string;
+  contenu?: string;
   typePiece?: TypeLivrable;
   missionProjetId: string;
+  livrableAttenduId?: string;
 }
 
 export interface SoumettreVersionRequest {
   nom?: string;
   url: string;
+  contenu?: string;
   typePiece?: TypeLivrable;
   commentaireEntrepreneur?: string;
 }

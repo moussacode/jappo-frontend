@@ -7,7 +7,7 @@ import { CommonModule, DatePipe } from '@angular/common';
 // Services & Modèles
 import { MissionService } from '../../../../core/services/mission.service';
 import { LivrableService } from '../../../../core/services/livrable.service';
-import { Mission, StatutMission } from '../../../../core/models/mission.model';
+import { LivrableAttenduMission, Mission, StatutMission } from '../../../../core/models/mission.model';
 import { LivrableResponse, StatutLivrable } from '../../../../core/models/livrable.model';
 import { STATUT_MISSION_CONFIG } from '../../../../core/constants/statut-mission.constant';
 import { STATUT_LIVRABLE_CONFIG } from '../../../../core/constants/statut-livrable.constant';
@@ -18,6 +18,8 @@ import { ButtonComponent } from '../../../../shared/components/button/button.com
 import { Icon } from '../../../../shared/components/icon/icon';
 import { CardComponent } from '../../../../shared/components/card/card.component';
 import { BreadcrumbComponent, BreadcrumbItem } from '../../../../shared/components/breadcrumb/breadcrumb.component';
+import { FormFieldComponent } from '../../../../shared/components/input/form-field.component';
+import { InputComponent } from '../../../../shared/components/input/input.component';
 
 interface CorrectionFormState {
   motif: string;
@@ -39,6 +41,8 @@ interface CorrectionFormState {
     Icon,
     CardComponent,
     BreadcrumbComponent,
+    FormFieldComponent,
+    InputComponent,
   ],
   template: `
     <div class="mx-auto flex w-full max-w-4xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
@@ -115,14 +119,9 @@ interface CorrectionFormState {
             </div>
 
             <div class="flex flex-col gap-3">
-              <div class="flex flex-col gap-1">
-                <label class="text-xs font-semibold text-ink">Titre <span class="text-danger-500">*</span></label>
-                <input
-                  type="text"
-                  [(ngModel)]="editForm().titre"
-                  class="rounded-lg border border-line bg-surface px-3 py-2 text-xs text-ink placeholder:text-ink-muted/50 focus:border-accent focus:outline-none"
-                />
-              </div>
+              <app-form-field label="Titre" [required]="true">
+                <app-input [(ngModel)]="editForm().titre" name="titre" placeholder="Titre de la mission" />
+              </app-form-field>
 
               <div class="flex flex-col gap-1">
                 <label class="text-xs font-semibold text-ink">Description</label>
@@ -147,14 +146,9 @@ interface CorrectionFormState {
                   </select>
                 </div>
 
-                <div class="flex flex-col gap-1">
-                  <label class="text-xs font-semibold text-ink">Date d'échéance</label>
-                  <input
-                    type="date"
-                    [(ngModel)]="editForm().dateEcheance"
-                    class="rounded-lg border border-line bg-surface px-3 py-2 text-xs text-ink focus:border-accent focus:outline-none"
-                  />
-                </div>
+                <app-form-field label="Date d'échéance">
+                  <app-input type="date" [(ngModel)]="editForm().dateEcheance" name="dateEcheance" />
+                </app-form-field>
               </div>
             </div>
 
@@ -247,14 +241,20 @@ interface CorrectionFormState {
                         <div class="flex items-center gap-2 text-xs text-ink-muted mt-0.5">
                           <span>Déposée le {{ l.dateDepot ? (l.dateDepot | date:'dd MMMM yyyy à HH:mm') : 'Récemment' }}</span>
                           <span>•</span>
-                          <button
-                            type="button"
-                            (click)="ouvrirLivrable(l)"
-                            class="text-accent font-semibold hover:underline inline-flex items-center gap-1 cursor-pointer"
-                          >
-                            <span>Voir le document actuel</span>
-                            <app-icon name="arrow-right" class="size-3" />
-                          </button>
+                          @if (l.typePiece === 'TEXTE') {
+                            <span class="text-ink-muted">Réponse texte</span>
+                            } @else if (l.typePiece === 'TEMPLATE') {
+                              <span class="text-ink-muted">Réponse au template</span>
+                            } @else {
+                            <button
+                              type="button"
+                              (click)="ouvrirLivrable(l)"
+                              class="text-accent font-semibold hover:underline inline-flex items-center gap-1 cursor-pointer"
+                            >
+                              <span>Voir le document actuel</span>
+                              <app-icon name="arrow-right" class="size-3" />
+                            </button>
+                          }
                         </div>
                       </div>
                     </div>
@@ -278,6 +278,20 @@ interface CorrectionFormState {
                       }
                     </div>
                   </div>
+
+                  @if (l.typePiece === 'TEXTE') {
+                    <pre class="mt-3 whitespace-pre-wrap break-words rounded-lg border border-line bg-surface-muted/30 p-3 text-xs text-ink">{{ l.url }}</pre>
+                  }
+                  @if (l.typePiece === 'TEMPLATE' && attenduPourLivrable(l); as attendu) {
+                    <div class="space-y-3 rounded-lg border border-line bg-surface-muted/30 p-3">
+                      @for (champ of attendu.templateFields ?? []; track champ.id) {
+                        <div>
+                          <p class="text-[11px] font-semibold text-ink-muted">{{ champ.label }}</p>
+                          <p class="mt-1 whitespace-pre-wrap text-xs text-ink">{{ reponseTemplate(l.contenu, champ.id) }}</p>
+                        </div>
+                      }
+                    </div>
+                  }
 
                   <!-- Bandeau d'état et Prochaine Action (UX Guidée) -->
                   @if (l.statut === 'EN_ATTENTE') {
@@ -499,19 +513,34 @@ interface CorrectionFormState {
                                 {{ statutBadgeLivrable(v.statut).label }}
                               </app-badge>
 
-                              <button
-                                type="button"
-                                (click)="ouvrirLivrableParUrl(v.url)"
-                                class="text-accent text-xs font-semibold hover:underline"
-                              >
-                                Ouvrir ↗
-                              </button>
+                              @if (v.typePiece !== 'TEXTE' && v.typePiece !== 'TEMPLATE') {
+                                <button
+                                  type="button"
+                                  (click)="ouvrirLivrableParUrl(v.url)"
+                                  class="text-accent text-xs font-semibold hover:underline"
+                                >
+                                  Ouvrir ↗
+                                </button>
+                              }
                             </div>
                           </div>
 
                           @if (v.commentaireEntrepreneur) {
                             <div class="text-xs text-ink-muted italic bg-surface-muted/30 p-2 rounded border border-line/40">
                               Note entrepreneur : "{{ v.commentaireEntrepreneur }}"
+                            </div>
+                          }
+                          @if (v.typePiece === 'TEXTE') {
+                            <pre class="whitespace-pre-wrap break-words rounded-lg border border-line bg-surface-muted/30 p-3 text-xs text-ink">{{ v.url }}</pre>
+                          }
+                          @if (v.typePiece === 'TEMPLATE' && attenduPourLivrable(l); as attendu) {
+                            <div class="space-y-2 rounded-lg border border-line bg-surface-muted/30 p-3">
+                              @for (champ of attendu.templateFields ?? []; track champ.id) {
+                                <div>
+                                  <p class="text-[10px] font-semibold text-ink-muted">{{ champ.label }}</p>
+                                  <p class="mt-1 whitespace-pre-wrap text-xs text-ink">{{ reponseTemplate(v.contenu, champ.id) }}</p>
+                                </div>
+                              }
                             </div>
                           }
 
@@ -667,6 +696,24 @@ export class MissionDetail implements OnInit, OnDestroy {
 
   ouvrirLivrableParUrl(url: string): void {
     this.livrableService.ouvrirFichier(url);
+  }
+
+  protected attenduPourLivrable(livrable: LivrableResponse): LivrableAttenduMission | undefined {
+    return this.mission()?.livrablesAttendus?.find(
+      (attendu) => attendu.id === livrable.livrableAttenduId,
+    );
+  }
+
+  protected reponseTemplate(contenu: string | null | undefined, champId: string): string {
+    if (!contenu) return '';
+    try {
+      const answers: unknown = JSON.parse(contenu);
+      if (typeof answers !== 'object' || answers === null || Array.isArray(answers)) return '';
+      const value = (answers as Record<string, unknown>)[champId];
+      return typeof value === 'string' ? value : '';
+    } catch {
+      return '';
+    }
   }
 
   private chargerMission(): void {

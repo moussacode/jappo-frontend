@@ -23,6 +23,7 @@ import {
   Etape,
   LivrableAttendu,
   MissionEtape,
+  TemplateField,
 } from '../../../../core/models/parcours.model';
 import { PhaseService } from '../../../../core/services/phase.service';
 import { StructureContextService } from '../../../../core/services/structure-context.service';
@@ -45,6 +46,8 @@ import {
   PageHeaderComponent,
 } from '../../../../shared/components/page-header/page-header.component';
 import { ModalComponent } from '../../../../shared/components/modal/modal.component';
+import { FormFieldComponent } from '../../../../shared/components/input/form-field.component';
+import { InputComponent } from '../../../../shared/components/input/input.component';
 
 @Component({
   selector: 'app-etape-detail',
@@ -58,6 +61,8 @@ import { ModalComponent } from '../../../../shared/components/modal/modal.compon
     Icon,
     ModalComponent,
     PageHeaderComponent,
+    FormFieldComponent,
+    InputComponent,
   ],
   template: `
     <div class="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
@@ -306,16 +311,13 @@ import { ModalComponent } from '../../../../shared/components/modal/modal.compon
           <form [formGroup]="missionForm" (ngSubmit)="soumettreMission()" class="flex flex-col gap-5">
             <div class="grid gap-4 sm:grid-cols-2">
               <div class="sm:col-span-2">
-                <label class="mb-1.5 block text-xs font-semibold text-ink">Titre <span class="text-rose-500">*</span></label>
-                <input
-                  type="text"
+                <app-form-field label="Titre" [required]="true" [error]="missionForm.controls.titre.touched && missionForm.controls.titre.invalid ? 'Le titre est obligatoire.' : undefined">
+                  <app-input
                   formControlName="titre"
-                  class="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted/60 focus:border-accent focus:outline-none transition-colors"
+                  [invalid]="missionForm.controls.titre.touched && missionForm.controls.titre.invalid"
                   placeholder="Ex : Valider le modèle économique"
                 />
-                @if (missionForm.controls.titre.invalid && missionForm.controls.titre.touched) {
-                  <p class="mt-1 text-[11px] text-rose-600">Le titre est obligatoire.</p>
-                }
+                </app-form-field>
               </div>
 
               <div class="sm:col-span-2">
@@ -408,16 +410,13 @@ import { ModalComponent } from '../../../../shared/components/modal/modal.compon
           <form [formGroup]="livrableForm" (ngSubmit)="soumettreLivrable()" class="flex flex-col gap-5">
             <div class="grid gap-4 sm:grid-cols-2">
               <div class="sm:col-span-2">
-                <label class="mb-1.5 block text-xs font-semibold text-ink">Titre <span class="text-rose-500">*</span></label>
-                <input
-                  type="text"
+                <app-form-field label="Titre du livrable" [required]="true" [error]="livrableForm.controls.titre.touched && livrableForm.controls.titre.invalid ? 'Le titre est obligatoire.' : undefined">
+                  <app-input
                   formControlName="titre"
-                  class="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted/60 focus:border-accent focus:outline-none transition-colors"
+                  [invalid]="livrableForm.controls.titre.touched && livrableForm.controls.titre.invalid"
                   placeholder="Ex : Business Model Canvas"
                 />
-                @if (livrableForm.controls.titre.invalid && livrableForm.controls.titre.touched) {
-                  <p class="mt-1 text-[11px] text-rose-600">Le titre est obligatoire.</p>
-                }
+                </app-form-field>
               </div>
 
               <div class="sm:col-span-2">
@@ -466,10 +465,33 @@ import { ModalComponent } from '../../../../shared/components/modal/modal.compon
                   <input
                     type="text"
                     formControlName="templateType"
+                    (input)="initialiserChampsBmcSiNecessaire($any($event.target).value)"
                     class="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted/60 focus:border-accent focus:outline-none transition-colors"
                     placeholder="Ex : BMC, BUSINESS_PLAN"
                   />
-                  <p class="mt-1 text-[11px] text-ink-muted">Cette zone prépare les futurs templates interactifs sans créer encore l’éditeur.</p>
+                  @if (livrableForm.controls.templateType.value.trim().toUpperCase() === 'BMC') {
+                    <div class="mt-3 space-y-2">
+                      <p class="text-[11px] text-ink-muted">Configurez les rubriques que l’entrepreneur devra remplir.</p>
+                      @for (champ of livrableForm.controls.templateFields.value; track champ.id; let index = $index) {
+                        <div class="flex gap-2">
+                          <input
+                            type="text"
+                            [value]="champ.label"
+                            (input)="modifierChampTemplate(index, $any($event.target).value)"
+                            maxlength="120"
+                            class="min-w-0 flex-1 rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+                            placeholder="Nom de la rubrique"
+                          />
+                          <button type="button" (click)="supprimerChampTemplate(index)" class="rounded-lg px-3 text-xs text-danger-600 hover:bg-danger-50">Retirer</button>
+                        </div>
+                      }
+                      <button type="button" (click)="ajouterChampTemplate()" class="text-xs font-semibold text-accent hover:underline">
+                        Ajouter une rubrique
+                      </button>
+                    </div>
+                  } @else {
+                    <p class="mt-1 text-[11px] text-ink-muted">Saisissez « BMC » pour configurer un modèle Business Model Canvas interactif.</p>
+                  }
                 </div>
               }
             </div>
@@ -584,6 +606,7 @@ export class EtapeDetailComponent implements OnInit {
     ordre: new FormControl(1, { nonNullable: true, validators: [Validators.required, Validators.min(1)] }),
     obligatoire: new FormControl(true, { nonNullable: true }),
     templateType: new FormControl('', { nonNullable: true }),
+    templateFields: new FormControl<TemplateField[]>([], { nonNullable: true }),
   });
 
   ngOnInit(): void {
@@ -843,6 +866,7 @@ export class EtapeDetailComponent implements OnInit {
       ordre,
       obligatoire: true,
       templateType: '',
+      templateFields: [],
     });
     this.livrableModalOpen.set(true);
   }
@@ -862,6 +886,7 @@ export class EtapeDetailComponent implements OnInit {
       ordre: livrable.ordre ?? this.calculerOrdreLivrable(mission),
       obligatoire: livrable.obligatoire,
       templateType: livrable.templateType ?? '',
+      templateFields: livrable.templateFields ?? [],
     });
     this.livrableModalOpen.set(true);
   }
@@ -878,7 +903,51 @@ export class EtapeDetailComponent implements OnInit {
       ordre: 1,
       obligatoire: true,
       templateType: '',
+      templateFields: [],
     });
+  }
+
+  initialiserChampsBmcSiNecessaire(templateTypeValue = this.livrableForm.controls.templateType.value): void {
+    const { type, templateFields } = this.livrableForm.getRawValue();
+    if (type !== 'TEMPLATE' || templateTypeValue.trim().toUpperCase() !== 'BMC') {
+      if (templateFields.length > 0) {
+        this.livrableForm.controls.templateFields.setValue([]);
+      }
+      return;
+    }
+    if (templateFields.length > 0) {
+      return;
+    }
+    this.livrableForm.controls.templateFields.setValue([
+      { id: 'valuePropositions', label: 'Propositions de valeur' },
+      { id: 'customerSegments', label: 'Segments de clientèle' },
+      { id: 'channels', label: 'Canaux' },
+      { id: 'customerRelationships', label: 'Relations clients' },
+      { id: 'revenueStreams', label: 'Sources de revenus' },
+      { id: 'keyResources', label: 'Ressources clés' },
+      { id: 'keyActivities', label: 'Activités clés' },
+      { id: 'keyPartners', label: 'Partenaires clés' },
+      { id: 'costStructure', label: 'Structure des coûts' },
+    ]);
+  }
+
+  modifierChampTemplate(index: number, label: string): void {
+    const fields = [...this.livrableForm.controls.templateFields.value];
+    fields[index] = { ...fields[index], label };
+    this.livrableForm.controls.templateFields.setValue(fields);
+  }
+
+  ajouterChampTemplate(): void {
+    this.livrableForm.controls.templateFields.setValue([
+      ...this.livrableForm.controls.templateFields.value,
+      { id: crypto.randomUUID(), label: '' },
+    ]);
+  }
+
+  supprimerChampTemplate(index: number): void {
+    this.livrableForm.controls.templateFields.setValue(
+      this.livrableForm.controls.templateFields.value.filter((_, fieldIndex) => fieldIndex !== index),
+    );
   }
 
   demanderSuppressionLivrable(mission: MissionEtape, livrable: LivrableAttendu): void {
@@ -936,6 +1005,11 @@ export class EtapeDetailComponent implements OnInit {
       templateType:
         this.livrableForm.value.type === 'TEMPLATE'
           ? this.livrableForm.value.templateType?.trim() || undefined
+          : undefined,
+      templateFields:
+        this.livrableForm.value.type === 'TEMPLATE'
+          && this.livrableForm.value.templateType?.trim().toUpperCase() === 'BMC'
+          ? this.livrableForm.value.templateFields ?? []
           : undefined,
     };
 

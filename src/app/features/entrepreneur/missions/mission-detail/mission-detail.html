@@ -47,6 +47,71 @@
           </p>
         </div>
 
+        <section class="rounded-[var(--radius-card-lg)] border border-line bg-surface p-6 shadow-[var(--shadow-subtle)]">
+          <div class="flex items-center justify-between gap-3 border-b border-line pb-3">
+            <h2 class="text-base font-semibold text-ink">Livrables attendus</h2>
+            <span class="text-xs text-ink-muted">{{ m.livrablesAttendus?.length ?? 0 }}</span>
+          </div>
+          @if (m.livrablesAttendus?.length) {
+            <ul class="mt-2 divide-y divide-line/60">
+              @for (attendu of m.livrablesAttendus; track attendu.id) {
+                <li class="flex flex-wrap items-start justify-between gap-3 py-3">
+                  <div class="min-w-0">
+                    <p class="text-sm font-semibold text-ink">{{ attendu.titre }}</p>
+                    @if (attendu.description) {
+                      <p class="mt-1 text-xs text-ink-muted">{{ attendu.description }}</p>
+                    }
+                    @if (attendu.type === 'TEMPLATE' && attendu.templateType === 'BMC' && champsTemplate(attendu).length > 0) {
+                      <div class="mt-3 w-full space-y-3">
+                        <p class="text-xs font-semibold text-ink">Complétez le Business Model Canvas</p>
+                        @for (champ of champsTemplate(attendu); track champ.id) {
+                          <label class="block text-xs font-medium text-ink">
+                            {{ champ.label }}
+                            <textarea
+                              rows="2"
+                              [value]="reponsesBmc()[attendu.id]?.[champ.id] ?? ''"
+                              (input)="modifierReponseBmc(attendu.id, champ.id, $any($event.target).value)"
+                              maxlength="10000"
+                              class="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-xs text-ink"
+                            ></textarea>
+                          </label>
+                        }
+                        @if (bmcDejaSoumis(attendu.id)) {
+                          <p class="text-xs text-ink-muted">Une remise est déjà associée à cet attendu.</p>
+                        } @else {
+                          <button
+                            type="button"
+                            (click)="ajouterReponseBmc(attendu)"
+                            [disabled]="!reponseBmcComplete(attendu)"
+                            class="rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                          >
+                            Ajouter le BMC aux remises
+                          </button>
+                        }
+                      </div>
+                    } @else if (attendu.type === 'TEMPLATE' && attendu.templateType) {
+                      <p class="mt-1 text-xs text-ink-muted">Modèle {{ attendu.templateType }} : déposez le document complété en fichier ou en lien.</p>
+                    }
+                  </div>
+                  <div class="flex shrink-0 items-center gap-2">
+                    <app-badge [status]="attendu.obligatoire ? 'warning' : 'neutral'" size="sm">
+                      {{ attendu.obligatoire ? 'Obligatoire' : 'Facultatif' }}
+                    </app-badge>
+                    <app-badge status="neutral" size="sm">{{ libelleFormatAttendu(attendu.type) }}</app-badge>
+                  </div>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="mt-3 text-xs text-ink-muted">Aucun livrable attendu n’est configuré.</p>
+          }
+          @if ((m.livrablesAttendus?.length ?? 0) > 0) {
+            <p class="mt-3 border-t border-line pt-3 text-[11px] text-ink-muted">
+              Chaque remise doit être associée à un attendu et respecter son format.
+            </p>
+          }
+        </section>
+
         <!-- Section Livrables Existants & Cycle de Révision -->
         @if (livrablesExistants().length > 0) {
           <div class="flex flex-col gap-4">
@@ -63,8 +128,10 @@
                       <div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent/10 border border-accent/20 text-accent">
                         @if (l.typePiece === 'LIEN') {
                           <app-icon name="link" class="size-4" />
-                        } @else {
+                        } @else if (l.typePiece !== 'TEMPLATE') {
                           <app-icon name="missions" class="size-4" />
+                        } @else {
+                          <app-icon name="document-text" class="size-4" />
                         }
                       </div>
 
@@ -86,20 +153,40 @@
                         {{ statutBadgeLivrable(l.statut).label }}
                       </app-badge>
 
-                      <button
-                        type="button"
-                        (click)="ouvrirFichier(l.url)"
-                        class="text-xs font-semibold text-accent hover:underline flex items-center gap-1 cursor-pointer"
-                        title="Consulter le fichier ou le lien"
-                      >
-                        <span>Ouvrir</span>
-                        <app-icon name="arrow-right" class="size-3" />
-                      </button>
+                      @if (l.typePiece === 'TEXTE') {
+                        <span class="text-xs text-ink-muted">Réponse texte</span>
+                      } @else if (l.typePiece === 'TEMPLATE') {
+                        <span class="text-xs text-ink-muted">Template rempli</span>
+                      } @else {
+                        <button
+                          type="button"
+                          (click)="ouvrirFichier(l.url)"
+                          class="text-xs font-semibold text-accent hover:underline flex items-center gap-1 cursor-pointer"
+                          title="Consulter le fichier ou le lien"
+                        >
+                          <span>Ouvrir</span>
+                          <app-icon name="arrow-right" class="size-3" />
+                        </button>
+                      }
                     </div>
                   </div>
 
+                  @if (l.typePiece === 'TEXTE') {
+                    <pre class="whitespace-pre-wrap break-words rounded-lg border border-line bg-surface-muted/30 p-3 text-xs text-ink">{{ l.url }}</pre>
+                  }
+                  @if (l.typePiece === 'TEMPLATE' && attenduPourLivrable(l); as attendu) {
+                    <div class="space-y-3 rounded-lg border border-line bg-surface-muted/30 p-3">
+                      @for (champ of champsTemplate(attendu); track champ.id) {
+                        <div>
+                          <p class="text-[11px] font-semibold text-ink-muted">{{ champ.label }}</p>
+                          <p class="mt-1 whitespace-pre-wrap text-xs text-ink">{{ reponseTemplate(l.contenu, champ.id) }}</p>
+                        </div>
+                      }
+                    </div>
+                  }
+
                   <!-- CAS 1 : CORRECTION DEMANDÉE (RETOUR STRUCTURÉ DU COACH) -->
-                  @if (l.statut === 'A_CORRIGER') {
+                  @if (l.statut === 'A_CORRIGER' || l.statut === 'REJETE') {
                     <div class="rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50/60 dark:bg-amber-950/20 p-5 flex flex-col gap-4">
                       
                       <div class="flex items-start gap-3">
@@ -237,6 +324,7 @@
 
                       <!-- Type : Fichier ou Lien -->
                       <div class="flex items-center gap-3">
+                        @if (formatCompatiblePourRedepot(l, 'FICHIER')) {
                         <button
                           type="button"
                           (click)="redepositType.set('FICHIER')"
@@ -245,6 +333,8 @@
                         >
                           Joindre un nouveau fichier
                         </button>
+                        }
+                        @if (formatCompatiblePourRedepot(l, 'LIEN')) {
                         <button
                           type="button"
                           (click)="redepositType.set('LIEN')"
@@ -253,7 +343,49 @@
                         >
                           Renseigner un lien web
                         </button>
+                        }
+                        @if (formatCompatiblePourRedepot(l, 'TEXTE')) {
+                        <button
+                          type="button"
+                          (click)="redepositType.set('TEXTE')"
+                          class="px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors"
+                          [class]="redepositType() === 'TEXTE' ? 'border-accent bg-accent/10 text-accent font-semibold' : 'border-line bg-surface text-ink hover:bg-surface-muted'"
+                        >
+                          Saisir un texte
+                        </button>
+                        }
+                        @if (formatCompatiblePourRedepot(l, 'TEMPLATE')) {
+                        <button
+                          type="button"
+                          (click)="redepositType.set('TEMPLATE')"
+                          class="px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors"
+                          [class]="redepositType() === 'TEMPLATE' ? 'border-accent bg-accent/10 text-accent font-semibold' : 'border-line bg-surface text-ink hover:bg-surface-muted'"
+                        >
+                          Compléter le BMC
+                        </button>
+                        }
                       </div>
+                      @if (attenduPourLivrable(l); as attendu) {
+                        <p class="text-xs text-ink-muted">
+                          Nouvelle version pour « {{ attendu.titre }} » · format : {{ libelleFormatAttendu(attendu.type) }}
+                        </p>
+                        @if (redepositType() === 'TEMPLATE') {
+                          <div class="space-y-3">
+                            @for (champ of champsTemplate(attendu); track champ.id) {
+                              <label class="block text-xs font-medium text-ink">
+                                {{ champ.label }}
+                                <textarea
+                                  rows="2"
+                                  [value]="reponsesBmcRedepot()[champ.id] ?? ''"
+                                  (input)="modifierReponseBmcRedepot(champ.id, $any($event.target).value)"
+                                  maxlength="10000"
+                                  class="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-xs text-ink"
+                                ></textarea>
+                              </label>
+                            }
+                          </div>
+                        }
+                      }
 
                       <!-- Champ Fichier -->
                       @if (redepositType() === 'FICHIER') {
@@ -299,6 +431,14 @@
                         </div>
                       }
 
+                      @if (redepositType() === 'TEXTE') {
+                        <label class="flex flex-col gap-1 text-xs font-semibold text-ink">
+                          Réponse (1000 caractères maximum)
+                          <textarea [ngModel]="redepositText()" (ngModelChange)="redepositText.set($event)" maxlength="1000" rows="5"
+                            class="rounded-lg border border-line bg-surface p-3 text-xs text-ink focus:border-accent focus:outline-none resize-y"></textarea>
+                        </label>
+                      }
+
                       <!-- Note explicative pour le coach -->
                       <div class="flex flex-col gap-1">
                         <label class="text-xs font-semibold text-ink">
@@ -331,7 +471,7 @@
 
                         <app-button
                           size="sm"
-                          [disabled]="submittingRedeposit() || (redepositType() === 'FICHIER' && !redepositFile()) || (redepositType() === 'LIEN' && !redepositLinkUrl().trim())"
+                          [disabled]="submittingRedeposit() || (redepositType() === 'FICHIER' && !redepositFile()) || (redepositType() === 'LIEN' && !redepositLinkUrl().trim()) || (redepositType() === 'TEXTE' && (!redepositText().trim() || redepositText().length > 1000))"
                           (click)="soumettreNouvelleVersion(l)"
                         >
                           {{ submittingRedeposit() ? 'Dépôt en cours...' : ('Déposer la Version ' + ((l.numeroVersion || 1) + 1)) }}
@@ -379,15 +519,30 @@
                                   <app-badge [status]="statutBadgeLivrable(v.statut).status" size="sm">
                                     {{ statutBadgeLivrable(v.statut).label }}
                                   </app-badge>
-                                  <button
+                                  @if (v.typePiece === 'TEMPLATE') {
+                                    <span class="text-xs text-ink-muted">BMC</span>
+                                  } @else {
+                                    <button
                                     type="button"
                                     (click)="ouvrirFichier(v.url)"
                                     class="text-xs text-accent font-semibold hover:underline"
                                   >
                                     Ouvrir ↗
-                                  </button>
+                                    </button>
+                                  }
                                 </div>
                               </div>
+
+                              @if (v.typePiece === 'TEMPLATE' && attenduPourLivrable(l); as attendu) {
+                                <div class="space-y-2 rounded-lg border border-line bg-surface p-3">
+                                  @for (champ of champsTemplate(attendu); track champ.id) {
+                                    <div>
+                                      <p class="text-[10px] font-semibold text-ink-muted">{{ champ.label }}</p>
+                                      <p class="mt-1 whitespace-pre-wrap text-xs text-ink">{{ reponseTemplate(v.contenu, champ.id) }}</p>
+                                    </div>
+                                  }
+                                </div>
+                              }
 
                               @if (v.motifRefus || v.commentaireCoach) {
                                 <div class="text-xs text-ink-muted bg-surface p-2 rounded border border-line text-[11px] leading-relaxed">
@@ -411,12 +566,17 @@
         }
 
         <!-- Carte Soumission de nouveau livrable (si aucun livrable encore déposé) -->
-        @if (livrablesExistants().length === 0) {
           <div class="rounded-[var(--radius-card-lg)] border border-line bg-surface p-6 shadow-[var(--shadow-subtle)]">
             <div class="flex items-center justify-between pb-4 border-b border-line">
               <div>
-                <h2 class="text-base font-semibold text-ink">Déposer mon livrable</h2>
-                <p class="text-xs text-ink-muted mt-0.5">Ajoutez vos fichiers ou liens pour soumettre votre premier travail.</p>
+                <h2 class="text-base font-semibold text-ink">Ajouter une remise</h2>
+                <p class="text-xs text-ink-muted mt-0.5">
+                  @if (m.livrablesAttendus?.length) {
+                    Associez chaque remise à un attendu et respectez son format.
+                  } @else {
+                    Déposez un fichier, un lien ou une réponse texte.
+                  }
+                </p>
               </div>
             </div>
 
@@ -425,11 +585,11 @@
                 <div>
                   <p class="font-semibold text-sm">Livrables soumis avec succès !</p>
                   <p class="mt-1 text-ink-muted font-normal">
-                    Votre coach a été notifié et examinera votre travail sous peu.
+                    Votre coach a été notifié. Vous pouvez ajouter une autre remise si nécessaire.
                   </p>
                 </div>
               </div>
-            } @else {
+            }
               <div class="mt-6 flex flex-col gap-5">
                 
                 <!-- 1. Note / Explication -->
@@ -460,6 +620,14 @@
                   >
                     <app-icon name="link" class="size-3.5 text-accent" />
                     <span>Ajouter un lien Web</span>
+                  </button>
+                  <button
+                    type="button"
+                    (click)="showTextForm.set(!showTextForm())"
+                    class="inline-flex items-center gap-2 rounded-lg border border-line bg-surface px-3.5 py-2 text-xs font-medium text-ink hover:bg-surface-muted transition-colors"
+                  >
+                    <app-icon name="document-text" class="size-3.5 text-accent" />
+                    <span>Ajouter un texte</span>
                   </button>
                 </div>
 
@@ -496,6 +664,25 @@
                   </div>
                 }
 
+                @if (showTextForm()) {
+                  <div class="p-4 rounded-xl border border-line bg-surface-muted/40 flex flex-col gap-3">
+                    <label class="flex flex-col gap-1 text-xs font-semibold text-ink">
+                      Intitulé
+                      <input type="text" [ngModel]="newTextTitle()" (ngModelChange)="newTextTitle.set($event)" maxlength="150"
+                        class="rounded-lg border border-line bg-surface px-3 py-2 text-xs text-ink focus:border-accent focus:outline-none" />
+                    </label>
+                    <label class="flex flex-col gap-1 text-xs font-semibold text-ink">
+                      Réponse (1000 caractères maximum)
+                      <textarea [ngModel]="newTextBody()" (ngModelChange)="newTextBody.set($event)" maxlength="1000" rows="4"
+                        class="rounded-lg border border-line bg-surface p-3 text-xs text-ink focus:border-accent focus:outline-none resize-y"></textarea>
+                    </label>
+                    <div class="flex justify-end gap-2">
+                      <button type="button" (click)="showTextForm.set(false)" class="px-3 py-1.5 text-xs text-ink-muted">Annuler</button>
+                      <app-button size="xs" (click)="ajouterTexte()" [disabled]="!newTextBody().trim() || newTextBody().length > 1000">Ajouter</app-button>
+                    </div>
+                  </div>
+                }
+
                 <!-- Dropzone neutre s'il n'y a aucun élément -->
                 @if (items().length === 0) {
                   <label class="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line bg-surface-muted/20 p-6 text-center cursor-pointer hover:border-accent/40 transition-colors">
@@ -516,31 +703,59 @@
                     <p class="text-xs font-semibold text-ink">Éléments rattachés ({{ items().length }})</p>
                     <div class="divide-y divide-line rounded-xl border border-line bg-surface overflow-hidden">
                       @for (item of items(); track item.id) {
-                        <div class="flex items-center justify-between px-4 py-3 hover:bg-surface-muted/30 transition-colors">
-                          <div class="flex items-center gap-3 min-w-0">
-                            <div class="h-8 w-8 rounded-lg bg-surface-muted border border-line flex items-center justify-center text-accent shrink-0">
-                              @if (item.type === 'fichier') {
-                                <app-icon name="File-Text" class="size-4" />
-                              } @else {
-                                <app-icon name="link" class="size-4" />
-                              }
+                        <div class="flex flex-col gap-3 px-4 py-3 hover:bg-surface-muted/30 transition-colors">
+                          <div class="flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-3 min-w-0">
+                              <div class="h-8 w-8 rounded-lg bg-surface-muted border border-line flex items-center justify-center text-accent shrink-0">
+                                @if (item.type === 'fichier') {
+                                  <app-icon name="File-Text" class="size-4" />
+                                } @else if (item.type === 'lien') {
+                                  <app-icon name="link" class="size-4" />
+                                }                                 @else if (item.type === 'template') {
+                                  <app-icon name="document-text" class="size-4" />
+                                } @else {
+                                  <app-icon name="document-text" class="size-4" />
+                                }
+                              </div>
+                              <div class="flex flex-col min-w-0">
+                                <span class="text-xs font-semibold text-ink truncate">{{ item.titre }}</span>
+                                <span class="text-[10px] text-ink-muted truncate font-mono">
+                                  @if (item.type === 'texte') { Réponse texte ({{ item.valeur.length }} caractères) }
+                                  @else if (item.type === 'template') { Réponse BMC préparée }
+                                  @else { {{ item.valeur }} }
+                                  @if (item.taille) { • {{ item.taille }} }
+                                </span>
+                              </div>
                             </div>
-                            <div class="flex flex-col min-w-0">
-                              <span class="text-xs font-semibold text-ink truncate">{{ item.titre }}</span>
-                              <span class="text-[10px] text-ink-muted truncate font-mono">
-                                {{ item.valeur }} @if (item.taille) { • {{ item.taille }} }
-                              </span>
-                            </div>
+                            <button
+                              type="button"
+                              (click)="supprimerItem(item.id)"
+                              class="p-1.5 text-ink-muted hover:text-red-500 transition-colors rounded-md cursor-pointer"
+                              title="Supprimer"
+                            >
+                              <app-icon name="x" class="size-4" />
+                            </button>
                           </div>
-
-                          <button
-                            type="button"
-                            (click)="supprimerItem(item.id)"
-                            class="p-1.5 text-ink-muted hover:text-red-500 transition-colors rounded-md cursor-pointer"
-                            title="Supprimer"
-                          >
-                            <app-icon name="x" class="size-4" />
-                          </button>
+                          @if (m.livrablesAttendus?.length) {
+                            <label class="flex flex-col gap-1 text-[11px] font-semibold text-ink-muted">
+                              Livrable attendu
+                              <select
+                                [ngModel]="item.livrableAttenduId ?? ''"
+                                (ngModelChange)="associerAttendu(item.id, $event)"
+                                class="rounded-lg border border-line bg-surface px-3 py-2 text-xs text-ink"
+                              >
+                                <option value="">Choisir l’attendu correspondant</option>
+                                @for (attendu of attendusPourItem(item); track attendu.id) {
+                                  <option [value]="attendu.id">
+                                    {{ attendu.titre }} — {{ libelleFormatAttendu(attendu.type) }}
+                                  </option>
+                                }
+                              </select>
+                            </label>
+                            @if (item.livrableAttenduId && !remiseCompatibleAvecAttendu(item)) {
+                              <p role="alert" class="text-[11px] text-danger-600">Le type de cette remise ne correspond pas au format attendu.</p>
+                            }
+                          }
                         </div>
                       }
                     </div>
@@ -558,7 +773,7 @@
                   <app-button
                     [fullWidth]="true"
                     size="md"
-                    [disabled]="submitting() || items().length === 0"
+                    [disabled]="submitting() || !peutSoumettre()"
                     (click)="soumettre()"
                   >
                     {{ submitting() ? 'Envoi en cours…' : 'Soumettre mon travail' }}
@@ -566,9 +781,7 @@
                 </div>
 
               </div>
-            }
           </div>
-        }
 
       </div>
 

@@ -42,6 +42,11 @@ export interface MissionEtape {
 
 export type LivrableAttenduType = 'FICHIER' | 'LIEN' | 'TEXTE' | 'TEMPLATE';
 
+export interface TemplateField {
+  id: string;
+  label: string;
+}
+
 export interface LivrableAttendu {
   id: string;
   titre: string;
@@ -50,6 +55,7 @@ export interface LivrableAttendu {
   obligatoire: boolean;
   type: LivrableAttenduType;
   templateType?: string | null;
+  templateFields?: TemplateField[];
   missionEtapeId: string;
   etapeId: string;
   structureId: string;
@@ -63,6 +69,7 @@ export interface CreateLivrableAttenduRequest {
   obligatoire?: boolean;
   type?: LivrableAttenduType;
   templateType?: string | null;
+  templateFields?: TemplateField[];
 }
 
 export interface UpdateLivrableAttenduRequest {
@@ -72,6 +79,7 @@ export interface UpdateLivrableAttenduRequest {
   obligatoire?: boolean;
   type?: LivrableAttenduType;
   templateType?: string | null;
+  templateFields?: TemplateField[];
 }
 
 export interface Progression {

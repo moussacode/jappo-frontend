@@ -251,8 +251,15 @@ const FILTRES_COHORTES: { value: CohorteFilter; label: string }[] = [
                         {{ formatDate(item.cohorte.dateDebut) }} → {{ formatDate(item.cohorte.dateFin) }}
                       </p>
                     </button>
-                    @if (isAdmin()) {
-                      <div class="flex justify-end border-t border-line/60 px-4 py-2">
+                    <div class="flex items-center justify-between gap-2 border-t border-line/60 px-4 py-2">
+                      <a
+                        [routerLink]="['/incubateur/cohortes', item.cohorte.id]"
+                        class="inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1.5 text-xs font-semibold text-accent hover:bg-accent/5 transition-colors"
+                      >
+                        <app-icon name="arrow-right" class="size-3.5" />
+                        Voir le détail
+                      </a>
+                      @if (isAdmin()) {
                         @if (item.cohorte.statut === 'ARCHIVEE') {
                           <button
                             type="button"
@@ -270,8 +277,8 @@ const FILTRES_COHORTES: { value: CohorteFilter; label: string }[] = [
                             Archiver
                           </button>
                         }
-                      </div>
-                    }
+                      }
+                    </div>
                   </div>
                 } @empty {
                   <p class="py-8 text-center text-sm text-ink-muted">Aucune cohorte.</p>
@@ -284,7 +291,7 @@ const FILTRES_COHORTES: { value: CohorteFilter; label: string }[] = [
                   <table class="w-full min-w-[650px] border-collapse text-left text-sm">
                     <thead>
                       <tr class="border-b border-line bg-surface-muted/30 text-xs font-bold uppercase tracking-wider text-ink-muted">
-                        <th class="w-4/12 px-6 py-4">
+                        <th class="w-3/12 px-6 py-4">
                           <button (click)="toggleGlobalSort('nom')" class="flex items-center gap-1.5 hover:text-ink transition-colors">
                             Programme
                             @if (globalSortBy() === 'nom') {
@@ -295,9 +302,7 @@ const FILTRES_COHORTES: { value: CohorteFilter; label: string }[] = [
                         <th class="w-3/12 px-6 py-4">Période</th>
                         <th class="w-2/12 px-6 py-4 text-center">Startups</th>
                         <th class="w-2/12 px-6 py-4 text-center">Maturité</th>
-                        @if (isAdmin()) {
-                          <th class="w-1/12 px-6 py-4 text-right">Actions</th>
-                        }
+                        <th class="w-2/12 px-6 py-4 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-line/60 bg-surface">
@@ -322,8 +327,16 @@ const FILTRES_COHORTES: { value: CohorteFilter; label: string }[] = [
                               <span class="w-9 text-right text-xs font-bold text-ink">{{ item.scoreMoyen }}%</span>
                             </div>
                           </td>
-                          @if (isAdmin()) {
-                            <td class="px-6 py-4 text-right">
+                          <td class="px-6 py-4 text-right">
+                            <div class="flex items-center justify-end gap-2">
+                              <a
+                                [routerLink]="['/incubateur/cohortes', item.cohorte.id]"
+                                class="inline-flex items-center gap-1 whitespace-nowrap rounded-md border border-line px-2.5 py-1.5 text-xs font-semibold text-accent hover:bg-accent/5 transition-colors"
+                              >
+                                <app-icon name="arrow-right" class="size-3.5" />
+                                Détail
+                              </a>
+                              @if (isAdmin()) {
                               @if (item.cohorte.statut === 'ARCHIVEE') {
                                 <button
                                   type="button"
@@ -343,8 +356,9 @@ const FILTRES_COHORTES: { value: CohorteFilter; label: string }[] = [
                                   Archiver
                                 </button>
                               }
-                            </td>
-                          }
+                              }
+                            </div>
+                          </td>
                         </tr>
                       }
                     </tbody>
