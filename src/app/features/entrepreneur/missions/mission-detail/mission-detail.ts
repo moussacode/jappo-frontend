@@ -25,6 +25,10 @@ import { STATUT_MISSION_CONFIG } from '../../../../core/constants/statut-mission
 import { STATUT_LIVRABLE_CONFIG } from '../../../../core/constants/statut-livrable.constant';
 import { LivrableAttenduMission } from '../../../../core/models/mission.model';
 import { TemplateField } from '../../../../core/models/parcours.model';
+import {
+  BMC_DEFAULT_FIELDS,
+  BmcCanvasComponent,
+} from '../../../../shared/components/bmc-canvas/bmc-canvas.component';
 
 export interface LivrableItem {
   id: string;
@@ -40,7 +44,15 @@ export interface LivrableItem {
 @Component({
   selector: 'app-mission-detail',
   standalone: true,
-  imports: [RouterLink, BadgeComponent, ButtonComponent, Icon, FormsModule, DatePipe],
+  imports: [
+    RouterLink,
+    BadgeComponent,
+    ButtonComponent,
+    Icon,
+    FormsModule,
+    DatePipe,
+    BmcCanvasComponent,
+  ],
   templateUrl: './mission-detail.html',
   styleUrl: './mission-detail.css',
 })
@@ -99,6 +111,8 @@ export class MissionDetail implements OnInit, OnDestroy {
   protected readonly submittingRedeposit = signal<boolean>(false);
   protected readonly redepositError = signal<string | null>(null);
   protected readonly redepositSuccessId = signal<string | null>(null);
+  protected readonly validationSuccessId = signal<string | null>(null);
+  private validationSuccessTimer: ReturnType<typeof setTimeout> | undefined;
 
   // Gestion de l'historique déroulant
   protected readonly historiquesOuverts = signal<Record<string, boolean>>({});
@@ -108,6 +122,18 @@ export class MissionDetail implements OnInit, OnDestroy {
     // - charge les livrables initiaux
     // - active l'écoute WebSocket pour cette mission
     this.livrableService.setActiveMission(this.missionId);
+    this.livrableService.validationEvents
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((livrableId) => {
+        this.validationSuccessId.set(livrableId);
+        if (this.validationSuccessTimer) {
+          clearTimeout(this.validationSuccessTimer);
+        }
+        this.validationSuccessTimer = setTimeout(() => {
+          this.validationSuccessId.set(null);
+          this.validationSuccessTimer = undefined;
+        }, 5000);
+      });
 
     const userId = this.authService.currentUser()?.id;
     if (userId) {
@@ -122,6 +148,9 @@ export class MissionDetail implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.validationSuccessTimer) {
+      clearTimeout(this.validationSuccessTimer);
+    }
     // Libère le contexte mission pour éviter les mises à jour parasites
     this.livrableService.clearActiveMission();
   }
@@ -225,7 +254,24 @@ export class MissionDetail implements OnInit, OnDestroy {
   }
 
   protected champsTemplate(attendu: LivrableAttenduMission): TemplateField[] {
-    return attendu.templateFields ?? [];
+    return attendu.templateFields?.length
+      ? attendu.templateFields
+      : attendu.templateType?.toUpperCase() === 'BMC'
+        ? BMC_DEFAULT_FIELDS
+        : [];
+  }
+
+  protected reponsesTemplate(contenu: string | null | undefined): Record<string, string> {
+    if (!contenu) return {};
+    try {
+      const answers: unknown = JSON.parse(contenu);
+      if (typeof answers !== 'object' || answers === null || Array.isArray(answers)) return {};
+      return Object.fromEntries(
+        Object.entries(answers).filter((entry): entry is [string, string] => typeof entry[1] === 'string'),
+      );
+    } catch {
+      return {};
+    }
   }
 
   protected modifierReponseBmc(attenduId: string, champId: string, valeur: string): void {

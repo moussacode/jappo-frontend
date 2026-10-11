@@ -16,15 +16,17 @@
 (window as any).global = window;
 
 /**
- * Polyfill pour 'process' (si nécessaire)
- *
- * Certaines librairies peuvent utiliser 'process.env'.
+ * Polyfill minimal pour 'process' lorsque le navigateur ne le fournit pas.
+ * Préserve l'objet Node des tests, notamment process.stderr utilisé par debug.
  */
-(window as any).process = {
-  env: {
-    NODE_ENV: 'development'
-  }
+const processLike = (globalThis as any).process ?? (window as any).process ?? {
+  env: {},
+  stderr: { fd: 2 },
+  stdout: { fd: 1 },
 };
+processLike.env ??= {};
+processLike.env.NODE_ENV ??= 'development';
+(window as any).process = processLike;
 
 /**
  * Polyfill pour 'Buffer' (si nécessaire)

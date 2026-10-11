@@ -2,13 +2,14 @@ import { Component, inject, signal, computed, OnInit, OnDestroy, DestroyRef } fr
 import { ActivatedRoute, RouterLink, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { CommonModule, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 
 // Services & Modèles
 import { MissionService } from '../../../../core/services/mission.service';
 import { LivrableService } from '../../../../core/services/livrable.service';
 import { LivrableAttenduMission, Mission, StatutMission } from '../../../../core/models/mission.model';
 import { LivrableResponse, StatutLivrable } from '../../../../core/models/livrable.model';
+import { TemplateField } from '../../../../core/models/parcours.model';
 import { STATUT_MISSION_CONFIG } from '../../../../core/constants/statut-mission.constant';
 import { STATUT_LIVRABLE_CONFIG } from '../../../../core/constants/statut-livrable.constant';
 
@@ -17,9 +18,16 @@ import { BadgeComponent } from '../../../../shared/components/badge/badge';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 import { Icon } from '../../../../shared/components/icon/icon';
 import { CardComponent } from '../../../../shared/components/card/card.component';
+import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { LoadingState } from '../../../../shared/components/loading-state/loading-state';
+import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state';
 import { BreadcrumbComponent, BreadcrumbItem } from '../../../../shared/components/breadcrumb/breadcrumb.component';
 import { FormFieldComponent } from '../../../../shared/components/input/form-field.component';
 import { InputComponent } from '../../../../shared/components/input/input.component';
+import {
+  BMC_DEFAULT_FIELDS,
+  BmcCanvasComponent,
+} from '../../../../shared/components/bmc-canvas/bmc-canvas.component';
 
 interface CorrectionFormState {
   motif: string;
@@ -35,116 +43,96 @@ interface CorrectionFormState {
   imports: [
     RouterLink,
     FormsModule,
-    CommonModule,
+    DatePipe,
     BadgeComponent,
     ButtonComponent,
     Icon,
     CardComponent,
+    PageHeaderComponent,
+    LoadingState,
+    EmptyStateComponent,
     BreadcrumbComponent,
     FormFieldComponent,
     InputComponent,
+    BmcCanvasComponent,
   ],
   template: `
-    <div class="mx-auto flex w-full max-w-4xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
-      
-      <!-- Fil d'Ariane Contextuel -->
+    <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
+
+      <!-- Fil d'Ariane contextuel -->
       <app-breadcrumb [items]="breadcrumbItems()" />
 
       @if (mission(); as m) {
-        
-        <!-- En-tête de la Mission -->
-        <div class="flex flex-col gap-3">
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-              <h1 class="text-xl font-bold tracking-tight text-ink sm:text-2xl">{{ m.titre }}</h1>
-              <div class="flex items-center gap-3 text-xs text-ink-muted mt-1.5 flex-wrap">
-                <span>Startup : <strong class="text-ink font-semibold">{{ m.nomProjet || 'Non assigné' }}</strong></span>
-                @if (m.nomEntrepreneur) {
-                  <span>·</span>
-                  <span>Porteur : <strong class="text-ink font-semibold">{{ m.nomEntrepreneur }}</strong></span>
-                }
-                @if (m.nomCohorte) {
-                  <span>·</span>
-                  <span>Cohorte : {{ m.nomCohorte }}</span>
-                }
-                @if (m.dateEcheance) {
-                  <span>·</span>
-                  <span class="flex items-center gap-1">
-                    <app-icon name="calendar" class="size-3.5" />
-                    <span>Échéance mission : {{ m.dateEcheance }}</span>
-                  </span>
-                }
-              </div>
-            </div>
 
-            <div class="flex items-center gap-2">
-              <app-badge [status]="statutBadge(m.statut).status" size="md">
-                {{ statutBadge(m.statut).label }}
-              </app-badge>
+        <!-- En-tête -->
+        <app-page-header [title]="m.titre" [subtitle]="sousTitre(m)">
+          <div class="flex flex-wrap items-center gap-2">
+            <app-badge [status]="statutBadge(m.statut).status" size="md">
+              {{ statutBadge(m.statut).label }}
+            </app-badge>
 
-              @if (!isEditMode()) {
-                @if (!hasSubmittedLivrables()) {
-                  <app-button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    (click)="ouvrirEditMode()"
-                  >
-                    <app-icon name="edit" class="size-3.5 mr-1" />
-                    <span>Modifier</span>
-                  </app-button>
-                } @else {
-                  <div class="flex items-center gap-2 text-xs text-ink-muted">
-                    <app-icon name="lock" class="size-3.5" />
-                    <span>Édition verrouillée (livrables soumis)</span>
-                  </div>
-                }
+            @if (!isEditMode()) {
+              @if (!hasSubmittedLivrables()) {
+                <app-button type="button" variant="secondary" size="sm" (click)="ouvrirEditMode()">
+                  <app-icon name="edit" class="mr-1.5 size-4" />
+                  Modifier
+                </app-button>
+              } @else {
+                <span class="flex items-center gap-1.5 text-xs text-ink-muted">
+                  <app-icon name="lock" class="size-3.5" />
+                  Édition verrouillée (livrables soumis)
+                </span>
               }
-            </div>
+            }
           </div>
-        </div>
+        </app-page-header>
 
+        <!-- Erreur d'action (validation, correction, sauvegarde) -->
+        @if (erreur()) {
+          <div role="alert" class="flex items-center justify-between gap-3 rounded-card border border-danger/40 bg-danger/10 p-3 text-sm text-danger">
+            <span class="flex items-center gap-2">
+              <app-icon name="warning" class="size-4 shrink-0" />
+              {{ erreur() }}
+            </span>
+            <button type="button" (click)="erreur.set(null)"
+              class="shrink-0 rounded-input text-xs font-medium underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger">
+              Fermer
+            </button>
+          </div>
+        }
+
+        <!-- Formulaire de modification de mission -->
         @if (isEditMode()) {
-          <!-- Formulaire de modification de mission -->
-          <app-card padding="lg" class="flex flex-col gap-4">
-            <div class="flex items-center justify-between border-b border-line pb-2.5">
-              <h2 class="text-xs font-bold text-ink uppercase tracking-wider">Modifier la mission</h2>
-              <button
-                type="button"
-                (click)="fermerEditMode()"
-                class="text-xs text-ink-muted hover:text-ink cursor-pointer"
-              >
-                Annuler
-              </button>
+          <app-card padding="lg">
+            <div class="mb-4 flex items-center justify-between border-b border-line pb-3">
+              <h2 class="text-base font-semibold text-ink">Modifier la mission</h2>
             </div>
 
-            <div class="flex flex-col gap-3">
+            <div class="flex flex-col gap-4">
               <app-form-field label="Titre" [required]="true">
                 <app-input [(ngModel)]="editForm().titre" name="titre" placeholder="Titre de la mission" />
               </app-form-field>
 
-              <div class="flex flex-col gap-1">
-                <label class="text-xs font-semibold text-ink">Description</label>
+              <app-form-field label="Description">
                 <textarea
                   [(ngModel)]="editForm().description"
                   rows="3"
-                  class="rounded-lg border border-line bg-surface p-3 text-xs text-ink placeholder:text-ink-muted/50 focus:border-accent focus:outline-none resize-none leading-relaxed"
+                  class="w-full resize-none rounded-input border border-input-border bg-surface px-3 py-2 text-sm leading-relaxed text-ink placeholder:text-ink-faint focus-visible:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 ></textarea>
-              </div>
+              </app-form-field>
 
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div class="flex flex-col gap-1">
-                  <label class="text-xs font-semibold text-ink">Priorité</label>
+              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <app-form-field label="Priorité">
                   <select
                     [(ngModel)]="editForm().priorite"
-                    class="rounded-lg border border-line bg-surface px-3 py-2 text-xs text-ink focus:border-accent focus:outline-none"
+                    class="w-full rounded-input border border-input-border bg-surface px-3 py-2 text-sm text-ink focus-visible:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                   >
                     <option value="">Sélectionner...</option>
                     <option value="HAUTE">Haute</option>
                     <option value="MOYENNE">Moyenne</option>
                     <option value="BASSE">Basse</option>
                   </select>
-                </div>
+                </app-form-field>
 
                 <app-form-field label="Date d'échéance">
                   <app-input type="date" [(ngModel)]="editForm().dateEcheance" name="dateEcheance" />
@@ -152,325 +140,225 @@ interface CorrectionFormState {
               </div>
             </div>
 
-            <div class="flex items-center justify-end gap-2 pt-2">
-              <app-button
-                type="button"
-                variant="secondary"
-                size="sm"
-                (click)="fermerEditMode()"
-              >
-                Annuler
-              </app-button>
-              <app-button
-                type="button"
-                size="sm"
-                [disabled]="traitement()"
-                (click)="sauvegarderMission()"
-              >
+            <div class="mt-5 flex items-center justify-end gap-2 border-t border-line pt-4">
+              <app-button type="button" variant="ghost" size="sm" (click)="fermerEditMode()">Annuler</app-button>
+              <app-button type="button" size="sm" [disabled]="traitement()" (click)="sauvegarderMission()">
                 {{ traitement() ? 'Sauvegarde...' : 'Sauvegarder' }}
               </app-button>
             </div>
           </app-card>
         }
 
-        <!-- Consignes & Description -->
-        <app-card padding="lg" class="flex flex-col gap-2">
-          <h2 class="text-xs font-bold uppercase tracking-wider text-ink-muted">Consignes & Attentes</h2>
-          <p class="text-xs sm:text-sm text-ink leading-relaxed whitespace-pre-line">
-            {{ m.description || 'Aucune consigne détaillée pour cette mission.' }}
-          </p>
-        </app-card>
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
 
-        <app-card padding="lg" class="flex flex-col gap-3">
-          <div class="flex items-center justify-between gap-3">
-            <h2 class="text-xs font-bold uppercase tracking-wider text-ink-muted">Livrables attendus</h2>
-            <span class="text-xs text-ink-muted">{{ m.livrablesAttendus?.length ?? 0 }}</span>
-          </div>
-          @if (m.livrablesAttendus?.length) {
-            <ul class="divide-y divide-line/60">
-              @for (attendu of m.livrablesAttendus; track attendu.id) {
-                <li class="flex flex-wrap items-center justify-between gap-2 py-2">
-                  <div>
-                    <p class="text-sm font-semibold text-ink">{{ attendu.titre }}</p>
-                    @if (attendu.description) {
-                      <p class="mt-0.5 text-xs text-ink-muted">{{ attendu.description }}</p>
-                    }
-                  </div>
-                  <app-badge [status]="attendu.obligatoire ? 'warning' : 'neutral'" size="sm">
-                    {{ attendu.obligatoire ? 'Obligatoire' : 'Optionnel' }}
-                  </app-badge>
-                </li>
-              }
-            </ul>
-          } @else {
-            <p class="text-xs text-ink-muted">Aucun livrable attendu n’est défini pour cette mission.</p>
-          }
-        </app-card>
+          <!-- ─── COLONNE PRINCIPALE : revue des livrables ─── -->
+          <div class="flex min-w-0 flex-col gap-8 lg:col-span-2">
 
-        <!-- Livrables soumis et cycle de révision -->
-        <div class="flex flex-col gap-4">
-          <div class="flex items-center justify-between">
-            <div>
-              <h2 class="text-base font-bold text-ink">Livrables à évaluer ({{ livrables().length }})</h2>
-              <p class="text-xs text-ink-muted">Chaque livrable regroupe sa version actuelle et son historique de corrections.</p>
-            </div>
-          </div>
+            <section class="flex flex-col gap-4" aria-label="Livrables à évaluer">
+              <div>
+                <h2 class="text-base font-semibold text-ink">Livrables à évaluer ({{ livrables().length }})</h2>
+                <p class="text-xs text-ink-muted">Chaque livrable regroupe sa version actuelle et son historique de corrections.</p>
+              </div>
 
-          <div class="flex flex-col gap-4">
-            @for (l of livrables(); track l.id) {
-              <div class="rounded-xl border border-line bg-surface overflow-hidden shadow-xs">
-                
-                <!-- En-tête Livrable : Objet, Version actuelle, Statut -->
-                <div class="p-5 flex flex-col gap-4 border-b border-line/60 bg-surface">
-                  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div class="flex items-center gap-3 min-w-0">
-                      <div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent/10 border border-accent/20 text-accent">
-                        @if (l.typePiece === 'LIEN') {
-                          <app-icon name="link" class="size-4" />
-                        } @else {
-                          <app-icon name="missions" class="size-4" />
-                        }
-                      </div>
-                      <div class="flex flex-col min-w-0">
-                        <div class="flex items-center gap-2 flex-wrap">
-                          <span class="text-sm font-bold text-ink truncate">{{ l.nom || 'Livrable' }}</span>
-                          <span class="inline-flex items-center rounded-md bg-surface-muted px-2 py-0.5 text-[11px] font-semibold text-ink-muted border border-line">
-                            Version {{ l.numeroVersion || 1 }}
-                          </span>
-                        </div>
-                        <div class="flex items-center gap-2 text-xs text-ink-muted mt-0.5">
-                          <span>Déposée le {{ l.dateDepot ? (l.dateDepot | date:'dd MMMM yyyy à HH:mm') : 'Récemment' }}</span>
-                          <span>•</span>
-                          @if (l.typePiece === 'TEXTE') {
-                            <span class="text-ink-muted">Réponse texte</span>
-                            } @else if (l.typePiece === 'TEMPLATE') {
-                              <span class="text-ink-muted">Réponse au template</span>
-                            } @else {
-                            <button
-                              type="button"
-                              (click)="ouvrirLivrable(l)"
-                              class="text-accent font-semibold hover:underline inline-flex items-center gap-1 cursor-pointer"
-                            >
-                              <span>Voir le document actuel</span>
-                              <app-icon name="arrow-right" class="size-3" />
-                            </button>
-                          }
-                        </div>
-                      </div>
-                    </div>
+              @for (l of livrablesTries(); track l.id) {
+                <article
+                  class="overflow-hidden rounded-card border bg-surface"
+                  [class]="l.statut === 'EN_ATTENTE' ? 'border-warning/50' : 'border-line'"
+                >
 
-                    <div class="flex items-center gap-2 self-start sm:self-auto shrink-0">
-                      <app-badge [status]="statutBadgeLivrable(l.statut).status">
-                        {{ statutBadgeLivrable(l.statut).label }}
-                      </app-badge>
-
-                      <!-- Bouton toggle historique -->
-                      @if (l.historique && l.historique.length > 1) {
-                        <button
-                          type="button"
-                          (click)="toggleHistorique(l.id)"
-                          class="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 py-1 text-xs font-medium text-ink-muted hover:text-ink hover:bg-surface-muted transition-colors"
-                        >
-                          <app-icon name="clock" class="size-3.5" />
-                          <span>Historique ({{ l.historique.length }})</span>
-                          <app-icon [name]="isHistoriqueOpen(l.id) ? 'chevron-up' : 'chevron-down'" class="size-3" />
-                        </button>
-                      }
-                    </div>
-                  </div>
-
-                  @if (l.typePiece === 'TEXTE') {
-                    <pre class="mt-3 whitespace-pre-wrap break-words rounded-lg border border-line bg-surface-muted/30 p-3 text-xs text-ink">{{ l.url }}</pre>
-                  }
-                  @if (l.typePiece === 'TEMPLATE' && attenduPourLivrable(l); as attendu) {
-                    <div class="space-y-3 rounded-lg border border-line bg-surface-muted/30 p-3">
-                      @for (champ of attendu.templateFields ?? []; track champ.id) {
-                        <div>
-                          <p class="text-[11px] font-semibold text-ink-muted">{{ champ.label }}</p>
-                          <p class="mt-1 whitespace-pre-wrap text-xs text-ink">{{ reponseTemplate(l.contenu, champ.id) }}</p>
-                        </div>
-                      }
-                    </div>
-                  }
-
-                  <!-- Bandeau d'état et Prochaine Action (UX Guidée) -->
-                  @if (l.statut === 'EN_ATTENTE') {
-                    <div class="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3.5 flex items-start gap-2.5 text-xs text-amber-800 dark:text-amber-300">
-                      <app-icon name="clock" class="size-4 shrink-0 mt-0.5 text-amber-600" />
-                      <div class="flex-1 leading-relaxed">
-                        <span class="font-semibold">Action requise du coach :</span>
-                        Cette version attend votre évaluation. Examinez le document, puis validez le livrable ou demandez des modifications précises.
-                      </div>
-                    </div>
-                  } @else if (l.statut === 'A_CORRIGER') {
-                    <div class="rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 p-4 flex flex-col gap-2 text-xs">
-                      <div class="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-semibold">
-                        <app-icon name="warning" class="size-4 text-amber-600" />
-                        <span>Correction demandée — En attente du dépôt de la Version {{ (l.numeroVersion || 1) + 1 }}</span>
-                      </div>
-
-                      @if (l.motifRefus) {
-                        <div class="text-ink">
-                          <span class="font-semibold text-ink-muted">Motif : </span>
-                          <span>{{ l.motifRefus }}</span>
-                        </div>
-                      }
-
-                      @if (l.pointsACorriger) {
-                        <div class="mt-1 flex flex-col gap-1 text-ink">
-                          <span class="font-semibold text-ink-muted">Points à modifier :</span>
-                          <div class="rounded-md bg-surface p-2.5 border border-line whitespace-pre-line text-xs">
-                            {{ l.pointsACorriger }}
-                          </div>
-                        </div>
-                      }
-
-                      @if (l.ressourceRecommandee) {
-                        <div class="text-ink">
-                          <span class="font-semibold text-ink-muted">Ressource conseillée : </span>
-                          <span class="text-accent font-medium">{{ l.ressourceRecommandee }}</span>
-                        </div>
-                      }
-
-                      @if (l.dateEcheanceCorrection) {
-                        <div class="text-ink text-[11px] text-ink-muted">
-                          Échéance de retour souhaitée : <span class="font-semibold text-ink">{{ l.dateEcheanceCorrection }}</span>
-                        </div>
-                      }
-                    </div>
-                  } @else if (l.statut === 'VALIDE') {
-                    <div class="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3.5 flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-300">
-                      <div class="flex items-center gap-2">
-                        <app-icon name="check" class="size-4 text-emerald-600" />
-                        <span class="font-semibold">Livrable validé avec succès !</span>
-                      </div>
-                      @if (l.note !== undefined && l.note !== null) {
-                        <span class="font-bold text-ink bg-surface px-2 py-0.5 rounded border border-line">
-                          Note attribuée : {{ l.note }}/20
+                  <!-- En-tête du livrable -->
+                  <div class="flex flex-col gap-4 p-5">
+                    <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                      <div class="flex min-w-0 items-center gap-3">
+                        <span class="flex size-10 shrink-0 items-center justify-center rounded-button bg-accent-soft text-accent">
+                          <app-icon [name]="l.typePiece === 'LIEN' ? 'link' : 'missions'" class="size-4" />
                         </span>
-                      }
-                    </div>
-                  }
-                </div>
-
-                <!-- Formulaire d'évaluation structurée (Quand statut = EN_ATTENTE) -->
-                @if (l.statut === 'EN_ATTENTE') {
-                  <div class="p-5 bg-surface-muted/30 flex flex-col gap-4">
-                    
-                    @if (!isFormCorrectionOpen(l.id)) {
-                      <!-- Barre d'actions rapides -->
-                      <div class="flex items-center justify-between gap-3 flex-wrap">
-                        <div class="text-xs text-ink-muted">
-                          Sélectionnez la décision pour la Version {{ l.numeroVersion || 1 }} :
-                        </div>
-
-                        <div class="flex items-center gap-2">
-                          <app-button
-                            type="button"
-                            variant="secondary"
-                            size="sm"
-                            (click)="ouvrirFormCorrection(l.id)"
-                          >
-                            <app-icon name="edit" class="size-3.5 mr-1" />
-                            <span>Demander une correction</span>
-                          </app-button>
-
-                          <app-button
-                            type="button"
-                            size="sm"
-                            [disabled]="traitement()"
-                            (click)="validerLivrable(l.id)"
-                          >
-                            <app-icon name="check" class="size-3.5 mr-1" />
-                            <span>{{ traitement() ? 'Validation...' : 'Valider ce livrable' }}</span>
-                          </app-button>
+                        <div class="min-w-0">
+                          <div class="flex flex-wrap items-center gap-2">
+                            <h3 class="truncate text-sm font-semibold text-ink">{{ l.nom || 'Livrable' }}</h3>
+                            <app-badge status="neutral" size="sm">Version {{ l.numeroVersion || 1 }}</app-badge>
+                          </div>
+                          <div class="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-ink-muted">
+                            <span>Déposée le {{ l.dateDepot ? (l.dateDepot | date:'dd MMMM yyyy à HH:mm') : 'Récemment' }}</span>
+                            <span aria-hidden="true">•</span>
+                            @if (l.typePiece === 'TEXTE') {
+                              <span>Réponse texte</span>
+                            } @else if (l.typePiece === 'TEMPLATE') {
+                              <span>Réponse au template</span>
+                            } @else {
+                              <button
+                                type="button"
+                                (click)="ouvrirLivrable(l)"
+                                class="inline-flex cursor-pointer items-center gap-1 rounded-input font-medium text-accent hover:text-accent-strong hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                              >
+                                Voir le document actuel
+                                <app-icon name="arrow-right" class="size-3" />
+                              </button>
+                            }
+                          </div>
                         </div>
                       </div>
-                    } @else {
-                      <!-- Formulaire complet de demande de correction -->
-                      <div class="rounded-xl border border-line bg-surface p-4 flex flex-col gap-4">
-                        <div class="flex items-center justify-between border-b border-line pb-2.5">
-                          <div class="flex items-center gap-2">
-                            <span class="text-xs font-bold text-ink uppercase tracking-wider">Demande de correction structurée</span>
-                            <span class="text-[11px] text-ink-muted">(Version {{ l.numeroVersion || 1 }})</span>
-                          </div>
+
+                      <div class="flex shrink-0 flex-wrap items-center gap-2 self-start sm:self-auto">
+                        <app-badge [status]="statutBadgeLivrable(l.statut).status">
+                          {{ statutBadgeLivrable(l.statut).label }}
+                        </app-badge>
+
+                        @if (l.historique && l.historique.length > 1) {
                           <button
                             type="button"
-                            (click)="fermerFormCorrection(l.id)"
-                            class="text-xs text-ink-muted hover:text-ink cursor-pointer"
+                            (click)="toggleHistorique(l.id)"
+                            [attr.aria-expanded]="isHistoriqueOpen(l.id)"
+                            class="inline-flex cursor-pointer items-center gap-1.5 rounded-button border border-line bg-surface px-2.5 py-1 text-xs font-medium text-ink-muted transition-colors hover:bg-surface-subtle hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                           >
-                            Annuler
+                            <app-icon name="clock" class="size-3.5" />
+                            Historique ({{ l.historique.length }})
+                            <app-icon [name]="isHistoriqueOpen(l.id) ? 'chevron-up' : 'chevron-down'" class="size-3" />
                           </button>
-                        </div>
+                        }
+                      </div>
+                    </div>
 
-                        <div class="flex flex-col gap-3">
-                          <!-- Motif principal -->
-                          <div class="flex flex-col gap-1">
-                            <label class="text-xs font-semibold text-ink">
-                              Motif de la demande <span class="text-danger-500">*</span>
-                            </label>
-                            <input
-                              type="text"
-                              [(ngModel)]="correctionForms[l.id].motif"
-                              placeholder="Ex : L'étude de marché doit être approfondie..."
-                              class="rounded-lg border border-line bg-surface px-3 py-2 text-xs text-ink placeholder:text-ink-muted/50 focus:border-accent focus:outline-none"
-                            />
+                    <!-- Contenu déposé -->
+                    @if (l.typePiece === 'TEXTE') {
+                      <pre class="whitespace-pre-wrap break-words rounded-card border border-line bg-surface-muted p-3 font-sans text-sm text-ink">{{ l.url }}</pre>
+                    }
+                    @if (l.typePiece === 'TEMPLATE' && attenduPourLivrable(l); as attendu) {
+                      @if (attendu.templateType?.toUpperCase() === 'BMC') {
+                        <app-bmc-canvas
+                          [fields]="champsTemplate(attendu)"
+                          [values]="reponsesTemplate(l.contenu)"
+                        />
+                      } @else {
+                        <div class="flex flex-col gap-3 rounded-card border border-line bg-surface-muted p-3">
+                          @for (champ of champsTemplate(attendu); track champ.id) {
+                            <div>
+                              <p class="text-xs font-semibold text-ink-muted">{{ champ.label }}</p>
+                              <p class="mt-1 whitespace-pre-wrap text-sm text-ink">{{ reponseTemplate(l.contenu, champ.id) }}</p>
+                            </div>
+                          }
+                        </div>
+                      }
+                    }
+
+                    <!-- Bandeau d'état / prochaine action -->
+                    @if (l.statut === 'EN_ATTENTE') {
+                      <div class="flex items-start gap-2.5 rounded-card border border-warning/40 bg-warning/10 p-3.5 text-sm text-ink">
+                        <app-icon name="clock" class="mt-0.5 size-4 shrink-0 text-warning" />
+                        <p class="leading-relaxed">
+                          <span class="font-semibold">Action requise du coach :</span>
+                          cette version attend votre évaluation. Examinez le document, puis validez le livrable ou demandez des modifications précises.
+                        </p>
+                      </div>
+                    } @else if (l.statut === 'A_CORRIGER') {
+                      <div class="flex flex-col gap-2 rounded-card border border-warning/40 bg-warning/10 p-4 text-sm">
+                        <p class="flex items-center gap-2 font-semibold text-ink">
+                          <app-icon name="warning" class="size-4 text-warning" />
+                          Correction demandée — en attente du dépôt de la Version {{ (l.numeroVersion || 1) + 1 }}
+                        </p>
+
+                        @if (l.motifRefus) {
+                          <p class="text-ink"><span class="font-semibold text-ink-muted">Motif : </span>{{ l.motifRefus }}</p>
+                        }
+
+                        @if (l.pointsACorriger) {
+                          <div class="flex flex-col gap-1 text-ink">
+                            <span class="font-semibold text-ink-muted">Points à modifier :</span>
+                            <div class="whitespace-pre-line rounded-button border border-line bg-surface p-2.5">{{ l.pointsACorriger }}</div>
+                          </div>
+                        }
+
+                        @if (l.ressourceRecommandee) {
+                          <p class="text-ink"><span class="font-semibold text-ink-muted">Ressource conseillée : </span>
+                            <span class="font-medium text-accent">{{ l.ressourceRecommandee }}</span></p>
+                        }
+
+                        @if (l.dateEcheanceCorrection) {
+                          <p class="text-xs text-ink-muted">
+                            Échéance de retour souhaitée :
+                            <span class="font-semibold text-ink">{{ l.dateEcheanceCorrection | date:'dd/MM/yyyy' }}</span>
+                          </p>
+                        }
+                      </div>
+                    }
+
+                    @if (validationSuccessId() === l.id) {
+                      <div role="status" class="flex items-center gap-2 rounded-card border border-success/40 bg-success/10 p-3.5 text-sm text-ink">
+                        <app-icon name="check" class="size-4 text-success" />
+                        <span class="font-semibold">Livrable validé avec succès !</span>
+                      </div>
+                    }
+
+                    @if (l.statut === 'VALIDE' && l.note !== undefined && l.note !== null) {
+                      <p class="text-sm text-ink-muted">
+                        Note attribuée : <span class="font-semibold text-ink">{{ l.note }}/20</span>
+                      </p>
+                    }
+                  </div>
+
+                  <!-- Évaluation (statut = EN_ATTENTE) -->
+                  @if (l.statut === 'EN_ATTENTE') {
+                    <div class="flex flex-col gap-4 border-t border-line bg-surface-muted p-5">
+
+                      @if (!isFormCorrectionOpen(l.id)) {
+                        <div class="flex flex-wrap items-center justify-between gap-3">
+                          <p class="text-sm text-ink-muted">Décision pour la Version {{ l.numeroVersion || 1 }} :</p>
+                          <div class="flex flex-wrap items-center gap-2">
+                            <app-button type="button" variant="secondary" size="sm" (click)="ouvrirFormCorrection(l.id)">
+                              <app-icon name="edit" class="mr-1.5 size-4" />
+                              Demander une correction
+                            </app-button>
+                            <app-button type="button" size="sm" [disabled]="traitement()" (click)="validerLivrable(l.id)">
+                              <app-icon name="check" class="mr-1.5 size-4" />
+                              {{ traitement() ? 'Validation...' : 'Valider ce livrable' }}
+                            </app-button>
+                          </div>
+                        </div>
+                      } @else {
+                        <!-- Demande de correction structurée -->
+                        <div class="flex flex-col gap-4 rounded-card border border-line bg-surface p-4">
+                          <div class="flex items-center justify-between border-b border-line pb-3">
+                            <h4 class="text-sm font-semibold text-ink">
+                              Demande de correction
+                              <span class="font-normal text-ink-muted">(Version {{ l.numeroVersion || 1 }})</span>
+                            </h4>
                           </div>
 
-                          <!-- Points précis à corriger -->
-                          <div class="flex flex-col gap-1">
-                            <label class="text-xs font-semibold text-ink">
-                              Points à modifier / Checklist attendue <span class="text-danger-500">*</span>
-                            </label>
+                          <app-form-field label="Motif de la demande" [required]="true">
+                            <app-input
+                              [(ngModel)]="correctionForms[l.id].motif"
+                              placeholder="Ex : L'étude de marché doit être approfondie..."
+                            />
+                          </app-form-field>
+
+                          <app-form-field label="Points à modifier / checklist attendue" [required]="true">
                             <textarea
                               [(ngModel)]="correctionForms[l.id].pointsACorriger"
                               rows="3"
                               placeholder="• Ajouter au moins 3 concurrents directs&#10;• Citer les sources chiffrées&#10;• Revoir la segmentation de la clientèle cible"
-                              class="rounded-lg border border-line bg-surface p-3 text-xs text-ink placeholder:text-ink-muted/50 focus:border-accent focus:outline-none resize-none leading-relaxed"
+                              class="w-full resize-none rounded-input border border-input-border bg-surface px-3 py-2 text-sm leading-relaxed text-ink placeholder:text-ink-faint focus-visible:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                             ></textarea>
-                            <span class="text-[11px] text-ink-muted">Indiquez clairement ce que l'entrepreneur doit rectifier avant le redépôt.</span>
-                          </div>
+                            <p class="mt-1 text-xs text-ink-muted">Indiquez clairement ce que l'entrepreneur doit rectifier avant le redépôt.</p>
+                          </app-form-field>
 
-                          <!-- Grille : Ressource recommandée & Échéance -->
-                          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div class="flex flex-col gap-1">
-                              <label class="text-xs font-semibold text-ink">
-                                Ressource / Guide conseillé <span class="text-ink-muted font-normal">(Optionnel)</span>
-                              </label>
-                              <input
-                                type="text"
+                          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <app-form-field label="Ressource / guide conseillé (optionnel)">
+                              <app-input
                                 [(ngModel)]="correctionForms[l.id].ressourceRecommandee"
-                                placeholder="Ex: Guide — Réaliser une étude de marché"
-                                class="rounded-lg border border-line bg-surface px-3 py-2 text-xs text-ink placeholder:text-ink-muted/50 focus:border-accent focus:outline-none"
+                                placeholder="Ex : Guide — Réaliser une étude de marché"
                               />
-                            </div>
+                            </app-form-field>
 
-                            <div class="flex flex-col gap-1">
-                              <label class="text-xs font-semibold text-ink">
-                                Échéance de correction <span class="text-ink-muted font-normal">(Optionnel)</span>
-                              </label>
-                              <input
-                                type="date"
-                                [(ngModel)]="correctionForms[l.id].dateEcheance"
-                                class="rounded-lg border border-line bg-surface px-3 py-2 text-xs text-ink focus:border-accent focus:outline-none"
-                              />
-                            </div>
+                            <app-form-field label="Échéance de correction (optionnel)">
+                              <app-input type="date" [(ngModel)]="correctionForms[l.id].dateEcheance" />
+                            </app-form-field>
                           </div>
 
-                          <!-- Actions de soumission -->
-                          <div class="flex items-center justify-end gap-2 pt-2 border-t border-line mt-1">
+                          <div class="flex items-center justify-end gap-2 border-t border-line pt-4">
+                            <app-button type="button" variant="ghost" size="sm" (click)="fermerFormCorrection(l.id)">Annuler</app-button>
                             <app-button
                               type="button"
-                              variant="secondary"
-                              size="xs"
-                              (click)="fermerFormCorrection(l.id)"
-                            >
-                              Annuler
-                            </app-button>
-
-                            <app-button
-                              type="button"
-                              size="xs"
+                              size="sm"
                               [disabled]="traitement() || !isCorrectionFormValid(l.id)"
                               (click)="envoyerDemandeCorrection(l.id)"
                             >
@@ -478,116 +366,209 @@ interface CorrectionFormState {
                             </app-button>
                           </div>
                         </div>
-
-                      </div>
-                    }
-
-                  </div>
-                }
-
-                <!-- Section Historique des versions (Dépliable) -->
-                @if (isHistoriqueOpen(l.id) && l.historique && l.historique.length > 0) {
-                  <div class="bg-surface-muted/50 p-5 border-t border-line flex flex-col gap-3">
-                    <div class="flex items-center justify-between">
-                      <span class="text-xs font-bold uppercase tracking-wider text-ink-muted">
-                        Historique des versions de ce livrable ({{ l.historique.length }})
-                      </span>
-                    </div>
-
-                    <div class="divide-y divide-line rounded-xl border border-line bg-surface overflow-hidden">
-                      @for (v of l.historique; track v.id) {
-                        <div class="p-4 flex flex-col gap-2.5 transition-colors hover:bg-surface-muted/20">
-                          <div class="flex items-center justify-between gap-2">
-                            <div class="flex items-center gap-2.5">
-                              <span class="font-bold text-xs px-2 py-0.5 rounded bg-surface-muted border border-line text-ink">
-                                V{{ v.numeroVersion }}
-                              </span>
-                              <span class="text-xs font-semibold text-ink">{{ v.nom }}</span>
-                              <span class="text-[11px] text-ink-muted">
-                                · {{ v.dateDepot | date:'dd/MM/yyyy à HH:mm' }}
-                              </span>
-                            </div>
-
-                            <div class="flex items-center gap-2">
-                              <app-badge [status]="statutBadgeLivrable(v.statut).status" size="sm">
-                                {{ statutBadgeLivrable(v.statut).label }}
-                              </app-badge>
-
-                              @if (v.typePiece !== 'TEXTE' && v.typePiece !== 'TEMPLATE') {
-                                <button
-                                  type="button"
-                                  (click)="ouvrirLivrableParUrl(v.url)"
-                                  class="text-accent text-xs font-semibold hover:underline"
-                                >
-                                  Ouvrir ↗
-                                </button>
-                              }
-                            </div>
-                          </div>
-
-                          @if (v.commentaireEntrepreneur) {
-                            <div class="text-xs text-ink-muted italic bg-surface-muted/30 p-2 rounded border border-line/40">
-                              Note entrepreneur : "{{ v.commentaireEntrepreneur }}"
-                            </div>
-                          }
-                          @if (v.typePiece === 'TEXTE') {
-                            <pre class="whitespace-pre-wrap break-words rounded-lg border border-line bg-surface-muted/30 p-3 text-xs text-ink">{{ v.url }}</pre>
-                          }
-                          @if (v.typePiece === 'TEMPLATE' && attenduPourLivrable(l); as attendu) {
-                            <div class="space-y-2 rounded-lg border border-line bg-surface-muted/30 p-3">
-                              @for (champ of attendu.templateFields ?? []; track champ.id) {
-                                <div>
-                                  <p class="text-[10px] font-semibold text-ink-muted">{{ champ.label }}</p>
-                                  <p class="mt-1 whitespace-pre-wrap text-xs text-ink">{{ reponseTemplate(v.contenu, champ.id) }}</p>
-                                </div>
-                              }
-                            </div>
-                          }
-
-                          @if (v.motifRefus || v.commentaireCoach) {
-                            <div class="text-xs text-ink-muted flex flex-col gap-1 border-l-2 border-accent/40 pl-3 py-1">
-                              @if (v.motifRefus) {
-                                <p><strong class="text-ink">Motif :</strong> {{ v.motifRefus }}</p>
-                              }
-                              @if (v.pointsACorriger) {
-                                <p class="whitespace-pre-line"><strong class="text-ink">Consignes :</strong> {{ v.pointsACorriger }}</p>
-                              }
-                              @if (v.commentaireCoach && !v.motifRefus) {
-                                <p><em>"{{ v.commentaireCoach }}"</em></p>
-                              }
-                            </div>
-                          }
-                        </div>
                       }
                     </div>
+                  }
+
+                  <!-- Historique des versions (dépliable) -->
+                  @if (isHistoriqueOpen(l.id) && l.historique && l.historique.length > 0) {
+                    <div class="flex flex-col gap-3 border-t border-line bg-surface-muted p-5">
+                      <h4 class="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                        Historique des versions ({{ l.historique.length }})
+                      </h4>
+
+                      <ul class="divide-y divide-line overflow-hidden rounded-card border border-line bg-surface">
+                        @for (v of l.historique; track v.id) {
+                          <li class="flex flex-col gap-2.5 p-4">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                              <div class="flex flex-wrap items-center gap-2.5">
+                                <app-badge status="neutral" size="sm">V{{ v.numeroVersion }}</app-badge>
+                                <span class="text-sm font-medium text-ink">{{ v.nom }}</span>
+                                <span class="text-xs text-ink-muted">· {{ v.dateDepot | date:'dd/MM/yyyy à HH:mm' }}</span>
+                              </div>
+
+                              <div class="flex items-center gap-2">
+                                <app-badge [status]="statutBadgeLivrable(v.statut).status" size="sm">
+                                  {{ statutBadgeLivrable(v.statut).label }}
+                                </app-badge>
+
+                                @if (v.typePiece !== 'TEXTE' && v.typePiece !== 'TEMPLATE') {
+                                  <button
+                                    type="button"
+                                    (click)="ouvrirLivrableParUrl(v.url)"
+                                    class="rounded-input text-xs font-medium text-accent hover:text-accent-strong hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                                  >
+                                    Ouvrir ↗
+                                  </button>
+                                }
+                              </div>
+                            </div>
+
+                            @if (v.commentaireEntrepreneur) {
+                              <p class="rounded-button border border-line bg-surface-muted p-2 text-xs italic text-ink-muted">
+                                Note entrepreneur : « {{ v.commentaireEntrepreneur }} »
+                              </p>
+                            }
+                            @if (v.typePiece === 'TEXTE') {
+                              <pre class="whitespace-pre-wrap break-words rounded-card border border-line bg-surface-muted p-3 font-sans text-sm text-ink">{{ v.url }}</pre>
+                            }
+                            @if (v.typePiece === 'TEMPLATE' && attenduPourLivrable(l); as attendu) {
+                              @if (attendu.templateType?.toUpperCase() === 'BMC') {
+                                <app-bmc-canvas
+                                  [fields]="champsTemplate(attendu)"
+                                  [values]="reponsesTemplate(v.contenu)"
+                                />
+                              } @else {
+                                <div class="flex flex-col gap-2 rounded-card border border-line bg-surface-muted p-3">
+                                  @for (champ of champsTemplate(attendu); track champ.id) {
+                                    <div>
+                                      <p class="text-xs font-semibold text-ink-muted">{{ champ.label }}</p>
+                                      <p class="mt-1 whitespace-pre-wrap text-sm text-ink">{{ reponseTemplate(v.contenu, champ.id) }}</p>
+                                    </div>
+                                  }
+                                </div>
+                              }
+                            }
+
+                            @if (v.motifRefus || v.commentaireCoach) {
+                              <div class="flex flex-col gap-1 border-l-2 border-accent/40 py-1 pl-3 text-xs text-ink-muted">
+                                @if (v.motifRefus) {
+                                  <p><strong class="text-ink">Motif :</strong> {{ v.motifRefus }}</p>
+                                }
+                                @if (v.pointsACorriger) {
+                                  <p class="whitespace-pre-line"><strong class="text-ink">Consignes :</strong> {{ v.pointsACorriger }}</p>
+                                }
+                                @if (v.commentaireCoach && !v.motifRefus) {
+                                  <p><em>« {{ v.commentaireCoach }} »</em></p>
+                                }
+                              </div>
+                            }
+                          </li>
+                        }
+                      </ul>
+                    </div>
+                  }
+                </article>
+              } @empty {
+                <app-empty-state
+                  iconName="missions"
+                  title="Aucun livrable soumis"
+                  description="L'entrepreneur n'a pas encore versé de document pour cette mission."
+                />
+              }
+            </section>
+
+            <!-- Livrables attendus -->
+            <section class="flex flex-col gap-3" aria-label="Livrables attendus">
+              <div class="flex items-center justify-between gap-3">
+                <h2 class="text-base font-semibold text-ink">Livrables attendus</h2>
+                <app-badge status="neutral" size="sm">{{ nbAttendus() }}</app-badge>
+              </div>
+              @if (m.livrablesAttendus?.length) {
+                <app-card padding="md">
+                  <ul class="divide-y divide-line">
+                    @for (attendu of m.livrablesAttendus; track attendu.id) {
+                      <li class="flex flex-col gap-3 py-3 first:pt-0 last:pb-0">
+                        <div class="flex items-start justify-between gap-3">
+                          <div class="min-w-0">
+                            <p class="text-sm font-semibold text-ink">{{ attendu.titre }}</p>
+                            @if (attendu.description) {
+                              <p class="mt-0.5 text-xs text-ink-muted">{{ attendu.description }}</p>
+                            }
+                          </div>
+                          <app-badge [status]="attendu.obligatoire ? 'warning' : 'neutral'" size="sm">
+                            {{ attendu.obligatoire ? 'Obligatoire' : 'Optionnel' }}
+                          </app-badge>
+                        </div>
+                        @if (attendu.type === 'TEMPLATE' && attendu.templateType?.toUpperCase() === 'BMC') {
+                          <app-bmc-canvas [fields]="champsTemplate(attendu)" />
+                        }
+                      </li>
+                    }
+                  </ul>
+                </app-card>
+              } @else {
+                <p class="text-sm text-ink-muted">Aucun livrable attendu n’est défini pour cette mission.</p>
+              }
+            </section>
+          </div>
+
+          <!-- ─── COLONNE LATÉRALE : synthèse + consignes ─── -->
+          <aside class="flex min-w-0 flex-col gap-4 lg:sticky lg:top-6 lg:self-start" aria-label="Synthèse de la mission">
+
+            <!-- Avancement de la revue -->
+            <app-card padding="md">
+              <h2 class="mb-3 text-sm font-semibold text-ink">Avancement de la revue</h2>
+              <p class="text-3xl font-bold tracking-tight text-ink">
+                {{ nbValides() }}<span class="text-lg font-medium text-ink-faint">/{{ nbAttendus() || livrables().length }}</span>
+              </p>
+              <p class="text-xs text-ink-muted">livrable(s) validé(s)</p>
+              <div
+                class="mt-3 h-2 overflow-hidden rounded-pill bg-line"
+                role="progressbar"
+                aria-label="Livrables validés"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                [attr.aria-valuenow]="pourcentageValides()"
+              >
+                <div class="h-full rounded-pill bg-accent transition-[width] duration-500 ease-out motion-reduce:transition-none"
+                     [style.width.%]="pourcentageValides()"></div>
+              </div>
+              <dl class="mt-4 flex flex-col gap-2 text-sm">
+                <div class="flex items-center justify-between gap-2">
+                  <dt class="text-ink-muted">À évaluer</dt>
+                  <dd><app-badge [status]="nbAEvaluer() > 0 ? 'warning' : 'neutral'" size="sm">{{ nbAEvaluer() }}</app-badge></dd>
+                </div>
+                <div class="flex items-center justify-between gap-2">
+                  <dt class="text-ink-muted">À corriger</dt>
+                  <dd><app-badge status="neutral" size="sm">{{ nbACorriger() }}</app-badge></dd>
+                </div>
+                <div class="flex items-center justify-between gap-2">
+                  <dt class="text-ink-muted">Déposés</dt>
+                  <dd class="font-semibold text-ink">{{ livrables().length }}{{ nbAttendus() ? ' / ' + nbAttendus() : '' }}</dd>
+                </div>
+              </dl>
+            </app-card>
+
+            <!-- Consignes -->
+            <app-card padding="md">
+              <h2 class="mb-3 text-sm font-semibold text-ink">Consignes & attentes</h2>
+              <p class="whitespace-pre-line text-sm leading-relaxed text-ink">
+                {{ m.description || 'Aucune consigne détaillée pour cette mission.' }}
+              </p>
+              <dl class="mt-4 flex flex-col gap-2 border-t border-line pt-4 text-sm">
+                @if (m.dateEcheance) {
+                  <div class="flex items-center justify-between gap-2">
+                    <dt class="flex items-center gap-1.5 text-ink-muted">
+                      <app-icon name="calendar" class="size-3.5" /> Échéance
+                    </dt>
+                    <dd class="font-medium text-ink">{{ m.dateEcheance | date:'dd/MM/yyyy' }}</dd>
                   </div>
                 }
-
-              </div>
-            } @empty {
-              <div class="rounded-xl border border-line bg-surface p-12 text-center flex flex-col items-center justify-center">
-                <div class="flex size-10 items-center justify-center rounded-full bg-surface-muted text-ink-muted mb-2 border border-line">
-                  <app-icon name="missions" class="size-5" />
-                </div>
-                <p class="text-xs font-semibold text-ink">Aucun livrable soumis</p>
-                <p class="text-[11px] text-ink-muted mt-0.5">L'entrepreneur n'a pas encore versé de document pour cette mission.</p>
-              </div>
-            }
-          </div>
+                @if (m.priorite) {
+                  <div class="flex items-center justify-between gap-2">
+                    <dt class="text-ink-muted">Priorité</dt>
+                    <dd class="font-medium text-ink">{{ libellePriorite(m.priorite) }}</dd>
+                  </div>
+                }
+              </dl>
+            </app-card>
+          </aside>
         </div>
 
       } @else if (isLoading()) {
-        <app-card padding="lg" class="animate-pulse flex flex-col gap-4 text-center py-12">
-          <p class="text-xs text-ink-muted">Chargement des détails de la mission...</p>
-        </app-card>
+        <app-loading-state message="Chargement des détails de la mission..." />
       } @else {
-        <app-card padding="lg" class="text-center py-12">
-          <h2 class="text-sm font-bold text-ink">Mission introuvable</h2>
-          <p class="text-xs text-ink-muted mt-1">La mission demandée n'existe pas ou a été supprimée.</p>
-          <a routerLink="/incubateur/missions" class="mt-4 inline-block text-xs font-semibold text-accent hover:underline">
+        <app-empty-state
+          iconName="missions"
+          title="Mission introuvable"
+          description="La mission demandée n'existe pas ou a été supprimée."
+        >
+          <a routerLink="/incubateur/missions"
+             class="rounded-input text-sm font-medium text-accent hover:text-accent-strong hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
             Retourner à la liste des missions
           </a>
-        </app-card>
+        </app-empty-state>
       }
 
     </div>
@@ -612,6 +593,9 @@ export class MissionDetail implements OnInit, OnDestroy {
 
   protected readonly isLoading = signal<boolean>(true);
   protected readonly traitement = signal(false);
+  protected readonly erreur = signal<string | null>(null);
+  protected readonly validationSuccessId = signal<string | null>(null);
+  private validationSuccessTimer: ReturnType<typeof setTimeout> | undefined;
 
   // Gestion du formulaire de modification de mission
   protected readonly isEditMode = signal<boolean>(false);
@@ -632,6 +616,25 @@ export class MissionDetail implements OnInit, OnDestroy {
   // Vérifier si des livrables ont été soumis (empêche la modification de mission)
   protected readonly hasSubmittedLivrables = computed(() => {
     return this.livrables().length > 0;
+  });
+
+  // Livrables à évaluer en premier, puis le reste dans l'ordre d'origine
+  protected readonly livrablesTries = computed(() => {
+    const liste = this.livrables();
+    return [
+      ...liste.filter((l) => l.statut === 'EN_ATTENTE'),
+      ...liste.filter((l) => l.statut !== 'EN_ATTENTE'),
+    ];
+  });
+
+  // Synthèse de la revue
+  protected readonly nbAttendus = computed(() => this.mission()?.livrablesAttendus?.length ?? 0);
+  protected readonly nbAEvaluer = computed(() => this.livrables().filter((l) => l.statut === 'EN_ATTENTE').length);
+  protected readonly nbACorriger = computed(() => this.livrables().filter((l) => l.statut === 'A_CORRIGER').length);
+  protected readonly nbValides = computed(() => this.livrables().filter((l) => l.statut === 'VALIDE').length);
+  protected readonly pourcentageValides = computed(() => {
+    const total = this.nbAttendus() || this.livrables().length;
+    return total > 0 ? Math.min(100, Math.round((this.nbValides() / total) * 100)) : 0;
   });
 
   protected readonly breadcrumbItems = computed<BreadcrumbItem[]>(() => {
@@ -686,8 +689,23 @@ export class MissionDetail implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.validationSuccessTimer) {
+      clearTimeout(this.validationSuccessTimer);
+    }
     // Libère le contexte mission pour éviter les mises à jour parasites
     this.livrableService.clearActiveMission();
+  }
+
+  protected sousTitre(m: Mission): string {
+    const parts: string[] = [`Startup : ${m.nomProjet || 'Non assigné'}`];
+    if (m.nomEntrepreneur) parts.push(`Porteur : ${m.nomEntrepreneur}`);
+    if (m.nomCohorte) parts.push(`Cohorte : ${m.nomCohorte}`);
+    return parts.join(' · ');
+  }
+
+  protected libellePriorite(priorite: string): string {
+    const labels: Record<string, string> = { URGENTE: 'Urgente', HAUTE: 'Haute', MOYENNE: 'Moyenne', BASSE: 'Basse' };
+    return labels[priorite] ?? priorite;
   }
 
   ouvrirLivrable(l: LivrableResponse): void {
@@ -702,6 +720,27 @@ export class MissionDetail implements OnInit, OnDestroy {
     return this.mission()?.livrablesAttendus?.find(
       (attendu) => attendu.id === livrable.livrableAttenduId,
     );
+  }
+
+  protected champsTemplate(attendu: LivrableAttenduMission): TemplateField[] {
+    return attendu.templateFields?.length
+      ? attendu.templateFields
+      : attendu.templateType?.toUpperCase() === 'BMC'
+        ? BMC_DEFAULT_FIELDS
+        : [];
+  }
+
+  protected reponsesTemplate(contenu: string | null | undefined): Record<string, string> {
+    if (!contenu) return {};
+    try {
+      const answers: unknown = JSON.parse(contenu);
+      if (typeof answers !== 'object' || answers === null || Array.isArray(answers)) return {};
+      return Object.fromEntries(
+        Object.entries(answers).filter((entry): entry is [string, string] => typeof entry[1] === 'string'),
+      );
+    } catch {
+      return {};
+    }
   }
 
   protected reponseTemplate(contenu: string | null | undefined, champId: string): string {
@@ -805,6 +844,7 @@ export class MissionDetail implements OnInit, OnDestroy {
     }
 
     this.traitement.set(true);
+    this.erreur.set(null);
 
     this.missionService
       .updateMissionDetails(m.id, changements)
@@ -818,6 +858,7 @@ export class MissionDetail implements OnInit, OnDestroy {
         error: (err) => {
           console.error('Erreur modification mission:', err);
           this.traitement.set(false);
+          this.erreur.set('Impossible de modifier la mission. Réessayez.');
         },
       });
   }
@@ -825,6 +866,7 @@ export class MissionDetail implements OnInit, OnDestroy {
   // Validation
   protected validerLivrable(livrableId: string): void {
     this.traitement.set(true);
+    this.erreur.set(null);
 
     this.livrableService
       .evaluerLivrable(livrableId, {
@@ -835,6 +877,14 @@ export class MissionDetail implements OnInit, OnDestroy {
       .subscribe({
         next: () => {
           this.traitement.set(false);
+          this.validationSuccessId.set(livrableId);
+          if (this.validationSuccessTimer) {
+            clearTimeout(this.validationSuccessTimer);
+          }
+          this.validationSuccessTimer = setTimeout(() => {
+            this.validationSuccessId.set(null);
+            this.validationSuccessTimer = undefined;
+          }, 5000);
           // Le WebSocket enverra LIVRABLE_VALIDE → rafraîchissement automatique via signal
           // On recharge quand même par sécurité pour la cohérence immédiate (avant l'event WS)
           this.livrableService.rechargerLivrablesMissionActive();
@@ -842,6 +892,7 @@ export class MissionDetail implements OnInit, OnDestroy {
         error: (err) => {
           console.error('Erreur validation livrable:', err);
           this.traitement.set(false);
+          this.erreur.set('Impossible de valider le livrable. Réessayez.');
         },
       });
   }
@@ -852,6 +903,7 @@ export class MissionDetail implements OnInit, OnDestroy {
     if (!form || !form.motif.trim() || !form.pointsACorriger.trim()) return;
 
     this.traitement.set(true);
+    this.erreur.set(null);
 
     this.livrableService
       .evaluerLivrable(livrableId, {
@@ -873,6 +925,7 @@ export class MissionDetail implements OnInit, OnDestroy {
         error: (err) => {
           console.error('Erreur demande de correction:', err);
           this.traitement.set(false);
+          this.erreur.set("Impossible d'envoyer la demande de correction. Réessayez.");
         },
       });
   }

@@ -1,14 +1,26 @@
 import '@angular/compiler';
-import { signal } from '@angular/core';
+import { signal, WritableSignal } from '@angular/core';
 import { describe, expect, it } from 'vitest';
 
 import { LivrableResponse } from '../../../../core/models/livrable.model';
 import { Mission } from '../../../../core/models/mission.model';
-import { MissionDetail } from './mission-detail';
+import { LivrableItem, MissionDetail } from './mission-detail';
+
+interface MissionDetailTestHarness {
+  mission: WritableSignal<Mission | undefined>;
+  livrablesExistants: WritableSignal<LivrableResponse[]>;
+  items: WritableSignal<LivrableItem[]>;
+  reponsesBmc: WritableSignal<Record<string, Record<string, string>>>;
+  remiseCompatibleAvecAttendu(item: LivrableItem): boolean;
+  formatCompatiblePourRedepot(livrable: LivrableResponse, type: string): boolean;
+  modifierReponseBmc(attenduId: string, champId: string, valeur: string): void;
+  reponseBmcComplete(attendu: NonNullable<Mission['livrablesAttendus']>[number]): boolean;
+  ajouterReponseBmc(attendu: NonNullable<Mission['livrablesAttendus']>[number]): void;
+}
 
 describe('MissionDetail formats de remise', () => {
-  function createComponent(): MissionDetail {
-    const component = Object.create(MissionDetail.prototype) as MissionDetail;
+  function createComponent(): MissionDetailTestHarness {
+    const component = Object.create(MissionDetail.prototype) as unknown as MissionDetailTestHarness;
     Object.assign(component, {
       mission: signal({
         id: 'mission-1',
@@ -59,12 +71,15 @@ describe('MissionDetail formats de remise', () => {
 
   it('autorise un fichier ou un lien pour un modèle, mais pas une réponse texte', () => {
     const component = createComponent();
-    component.mission.update((mission) => ({
-      ...mission,
-      livrablesAttendus: mission.livrablesAttendus?.map((attendu) => attendu.id === 'expected-template'
-        ? { ...attendu, templateFields: undefined }
-        : attendu),
-    }));
+    component.mission.update((mission) => {
+      if (!mission) return undefined;
+      return {
+        ...mission,
+        livrablesAttendus: mission.livrablesAttendus?.map((attendu) => attendu.id === 'expected-template'
+          ? { ...attendu, templateFields: undefined }
+          : attendu),
+      };
+    });
     const expectedTemplate = {
       id: 'livrable-bmc',
       nom: 'BMC complété',

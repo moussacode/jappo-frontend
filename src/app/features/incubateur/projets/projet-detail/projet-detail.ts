@@ -1,7 +1,7 @@
 import { Component, inject, signal, computed, OnInit, DestroyRef } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { DatePipe } from '@angular/common';
+import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
 
@@ -27,36 +27,58 @@ import { ModalComponent } from '../../../../shared/components/modal/modal.compon
 import { BreadcrumbComponent, BreadcrumbItem } from '../../../../shared/components/breadcrumb/breadcrumb.component';
 import { LoadingState } from '../../../../shared/components/loading-state/loading-state';
 import { EtapeTimelineComponent } from '../../../../shared/components/etape-timeline/etape-timeline.component';
+import { AvatarComponent } from '../../../../shared/components/avatar/avatar.component';
+import { TabFilterComponent, TabOption } from '../../../../shared/components/tab-filter/tab-filter.component';
+import { FormFieldComponent } from '../../../../shared/components/input/form-field.component';
 
 interface Promotion409 {
   message: string;
   missionsNonValidees: { titre: string; statut: string }[];
 }
 
+type OngletProjet = 'apercu' | 'missions' | 'parcours' | 'reunions';
+type FiltreMissions = 'TOUTES' | 'EN_RETARD' | 'A_EVALUER' | 'VALIDEES';
+type StatutBadge = 'success' | 'warning' | 'neutral' | 'danger' | 'info';
+
+/** Anneau de progression (SVG) : rayon et circonférence. */
+const ANNEAU_RAYON = 52;
+const ANNEAU_CIRCONFERENCE = 2 * Math.PI * ANNEAU_RAYON;
+
 @Component({
   selector: 'app-projet-detail',
   standalone: true,
   imports: [
-    RouterLink, FormsModule, DatePipe,
+    RouterLink, FormsModule, DatePipe, NgTemplateOutlet,
     BadgeComponent, Icon, CardComponent, PageHeaderComponent,
     ButtonComponent, EmptyStateComponent, ModalComponent,
     BreadcrumbComponent,
     LoadingState,
-    EtapeTimelineComponent
+    EtapeTimelineComponent,
+    AvatarComponent,
+    TabFilterComponent,
+    FormFieldComponent,
   ],
   template: `
 <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
-  <!-- <app-breadcrumb [items]="breadcrumbItems()" /> -->
+
   @if (loading()) {
     <app-loading-state message="Chargement du projet..." />
   }
 
   @if (!loading() && projet(); as p) {
+
+    <!-- ─── EN-TÊTE ─── -->
+    <app-breadcrumb [items]="breadcrumbItems()" />
+
     <app-page-header [title]="p.nom" [subtitle]="soustitre(p)">
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
+        @if (p.archive) {
+          <app-badge status="warning" size="sm">Archivé</app-badge>
+        }
         @if (canPromote()) {
           <app-button variant="secondary" size="sm" (click)="ouvrirPromotion()">
-           Promouvoir
+            <app-icon name="arrow-right" class="mr-1.5 size-4" />
+            Promouvoir
           </app-button>
         }
         @if (!p.archive) {
@@ -67,468 +89,481 @@ interface Promotion409 {
       </div>
     </app-page-header>
 
-    <!-- KPIs -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <app-card padding="lg">
-        <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Phase actuelle</p>
-        <p class="text-sm font-bold text-gray-900 dark:text-white truncate">{{ p.nomPhase || '—' }}</p>
-      </app-card>
-      <app-card padding="lg">
-        <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Missions validées</p>
-        <p class="text-xl font-extrabold text-gray-900 dark:text-white">
-          {{ p.nombreMissionsValidees ?? 0 }}<span class="text-sm font-normal text-gray-400">/{{ p.nombreMissionsTotal ?? 0 }}</span>
-        </p>
-      </app-card>
-      <app-card padding="lg">
-        <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Entrepreneur</p>
-        <p class="text-sm font-bold text-gray-900 dark:text-white truncate">{{ p.nomEntrepreneur ?? '—' }}</p>
-      </app-card>
-    </div>
+    <!-- ─── SYNTHÈSE : anneau d'avancement + chiffres clés ─── -->
+    <app-card padding="lg">
+      @if (loadingSuivi()) {
+        <app-loading-state message="Chargement du suivi du projet..." />
+      } @else {
+        <div class="flex flex-col gap-6 md:flex-row md:items-center">
 
-    <!-- Feuille de route du parcours -->
-    @if (loadingEtapes()) {
-      <p class="text-sm text-ink-muted animate-pulse">Chargement de la feuille de route...</p>
-    } @else if (feuilleRoute()) {
-      <app-etape-timeline
-        [feuilleRoute]="feuilleRoute()"
-        [peutValider]="peutValiderEtapes()"
-        (validation)="onEtapeValidee()"
-      />
-    }
-
-    <!-- Progression -->
-    @if (suivi(); as s) {
-      @if (s.statutProgression) {
-        <div>
-          <div class="flex items-center justify-between mb-3">
-            <h2 class="text-xs font-bold uppercase tracking-wider text-ink-muted">Progression</h2>
-          </div>
-
-          <app-card padding="md">
-            <div class="space-y-3">
-              <div class="flex items-center justify-between">
-                <span class="text-sm font-bold text-ink">{{ formatStatutProgression(s.statutProgression || '') }}</span>
-                <span class="text-sm font-bold text-ink">{{ s.pourcentageAvancement ?? 0 }}%</span>
-              </div>
-              <!-- Barre de progression -->
-              <div class="w-full bg-gray-200 dark:bg-white/10 rounded-full h-2">
-                <div class="bg-accent h-2 rounded-full transition-all" [style.width.%]="s.pourcentageAvancement ?? 0"></div>
-              </div>
-              <div class="flex items-center justify-between text-xs text-ink-muted">
-                @if (s.dateDebutProgression) {
-                  <span>Début : {{ s.dateDebutProgression | date:'dd/MM/yyyy' }}</span>
-                }
-                @if (s.dateDerniereMajProgression) {
-                  <span>Màj : {{ s.dateDerniereMajProgression | date:'dd/MM/yyyy' }}</span>
-                }
-                @if (s.dateFinProgression) {
-                  <span>Fin : {{ s.dateFinProgression | date:'dd/MM/yyyy' }}</span>
-                }
+          <!-- Anneau -->
+          <div class="flex items-center gap-5 md:flex-col md:gap-3 md:border-r md:border-line md:pr-8">
+            <div
+              class="relative size-28 shrink-0"
+              role="img"
+              [attr.aria-label]="'Avancement du projet : ' + avancement() + ' pour cent'"
+            >
+              <svg viewBox="0 0 120 120" class="size-full -rotate-90">
+                <circle cx="60" cy="60" [attr.r]="rayon" fill="none" stroke-width="10" class="stroke-line" />
+                <circle
+                  cx="60" cy="60" [attr.r]="rayon" fill="none" stroke-width="10" stroke-linecap="round"
+                  class="stroke-accent transition-[stroke-dashoffset] duration-700 ease-out motion-reduce:transition-none"
+                  [attr.stroke-dasharray]="circonference"
+                  [attr.stroke-dashoffset]="anneauDecalage()"
+                />
+              </svg>
+              <div class="absolute inset-0 flex flex-col items-center justify-center">
+                <span class="text-2xl font-bold tracking-tight text-ink">{{ avancement() }}%</span>
+                <span class="text-[11px] text-ink-muted">avancement</span>
               </div>
             </div>
-          </app-card>
-        </div>
-      }
-    }
-
-    <!-- Historique de progression -->
-    @if (suivi(); as s) {
-      @if (s.historiqueProgression && s.historiqueProgression.length > 0) {
-        <div>
-          <div class="flex items-center justify-between mb-3">
-            <h2 class="text-xs font-bold uppercase tracking-wider text-ink-muted">Historique de progression</h2>
+            @if (suivi()?.statutProgression; as sp) {
+              <app-badge [status]="badgeStatutProgression(sp)" size="sm">{{ formatStatutProgression(sp) }}</app-badge>
+            }
           </div>
 
+          <!-- Chiffres clés -->
+          <div class="grid flex-1 grid-cols-2 gap-5 lg:grid-cols-4">
+            <ng-container *ngTemplateOutlet="tuile; context: {
+              icone: 'check', libelle: 'Missions validées',
+              valeur: (p.nombreMissionsValidees ?? 0) + '/' + (p.nombreMissionsTotal ?? 0), alerte: false }" />
+            <ng-container *ngTemplateOutlet="tuile; context: {
+              icone: 'missions', libelle: 'Missions en cours', valeur: missionsEnCours(), alerte: false }" />
+            <ng-container *ngTemplateOutlet="tuile; context: {
+              icone: 'warning', libelle: 'Missions en retard', valeur: missionsEnRetard(), alerte: missionsEnRetard() > 0 }" />
+            <ng-container *ngTemplateOutlet="tuile; context: {
+              icone: 'documents', libelle: 'Livrables à évaluer', valeur: livrablesEnAttente(), alerte: false }" />
+          </div>
+        </div>
+      }
+    </app-card>
+
+    <!-- À traiter -->
+    @if (!loadingSuivi() && (missionsEnRetard() > 0 || livrablesEnAttente() > 0)) {
+      <div role="status" class="flex flex-wrap items-center justify-between gap-3 rounded-card border border-warning/40 bg-warning/10 px-4 py-3">
+        <div class="flex min-w-0 items-center gap-2.5 text-sm text-ink">
+          <app-icon name="warning" class="size-4 shrink-0 text-warning" />
+          <p>
+            <span class="font-semibold">À traiter :</span>
+            @if (missionsEnRetard() > 0) {
+              {{ missionsEnRetard() }} mission(s) en retard
+            }
+            @if (missionsEnRetard() > 0 && livrablesEnAttente() > 0) { · }
+            @if (livrablesEnAttente() > 0) {
+              {{ livrablesEnAttente() }} livrable(s) à évaluer
+            }
+          </p>
+        </div>
+        <app-button variant="secondary" size="xs" (click)="allerAuxMissions()">Voir les missions</app-button>
+      </div>
+    }
+
+    <!-- ─── ONGLETS ─── -->
+    <app-tab-filter
+      [options]="optionsOnglets()"
+      [value]="ongletActif()"
+      (valueChange)="onOngletChange($event)"
+      class="w-full sm:w-fit"
+    />
+
+    <!-- ─── ONGLET : VUE D'ENSEMBLE ─── -->
+    @if (ongletActif() === 'apercu') {
+      <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+
+        <!-- Colonne principale : feuille de route -->
+        <section class="flex min-w-0 flex-col gap-3 lg:col-span-2" aria-label="Feuille de route">
+          <h2 class="text-base font-semibold text-ink">Feuille de route</h2>
+          @if (loadingEtapes()) {
+            <app-loading-state message="Chargement de la feuille de route..." />
+          } @else if (feuilleRoute(); as route) {
+            <app-etape-timeline
+              [feuilleRoute]="route"
+              [peutValider]="peutValiderEtapes()"
+              (validation)="onEtapeValidee()"
+            />
+          } @else {
+            <app-empty-state
+              icon="folder"
+              title="Aucune feuille de route"
+              description="Ce projet n'a pas encore de parcours associé."
+            />
+          }
+        </section>
+
+        <!-- Colonne latérale -->
+        <aside class="flex min-w-0 flex-col gap-4" aria-label="Informations du projet">
+
+          <!-- Fiche projet -->
           <app-card padding="md">
-            <div class="space-y-2">
-              @for (hist of s.historiqueProgression; track hist.id) {
-                <div class="flex items-start gap-3 py-2 border-b border-line/60 last:border-0">
-                  <div class="flex flex-col items-center min-w-[80px]">
-                    <span class="text-xs text-ink-muted">{{ hist.dateEntree | date:'dd/MM/yyyy' }}</span>
-                    <span class="text-[10px] text-ink-muted">{{ hist.dateEntree | date:'HH:mm' }}</span>
+            <h2 class="mb-4 text-sm font-semibold text-ink">Fiche projet</h2>
+            <dl class="flex flex-col gap-4 text-sm">
+              <div class="flex items-center gap-3">
+                <app-avatar [initials]="initiales(p.nomEntrepreneur || p.nom)" size="md" />
+                <div class="min-w-0">
+                  <dt class="text-xs text-ink-muted">Entrepreneur</dt>
+                  <dd class="truncate font-medium text-ink">{{ p.nomEntrepreneur ?? '—' }}</dd>
+                </div>
+              </div>
+              <div>
+                <dt class="text-xs text-ink-muted">Cohorte</dt>
+                <dd class="font-medium text-ink">
+                  @if (p.cohorteId && p.nomCohorte) {
+                    <a [routerLink]="['/incubateur/cohortes', p.cohorteId]"
+                       class="text-accent hover:text-accent-strong hover:underline">{{ p.nomCohorte }}</a>
+                  } @else {
+                    {{ suivi()?.nomCohorte ?? '—' }}
+                  }
+                </dd>
+              </div>
+              <div>
+                <dt class="text-xs text-ink-muted">Phase actuelle</dt>
+                <dd class="font-medium text-ink">{{ p.nomPhase || '—' }}</dd>
+              </div>
+              @if (suivi(); as s) {
+                @if (s.dateDebutProgression || s.dateDerniereMajProgression || s.dateFinProgression) {
+                  <div class="grid grid-cols-1 gap-3 border-t border-line pt-4">
+                    @if (s.dateDebutProgression) {
+                      <div class="flex items-center justify-between gap-2">
+                        <dt class="text-xs text-ink-muted">Début</dt>
+                        <dd class="text-xs font-medium text-ink">{{ s.dateDebutProgression | date:'dd/MM/yyyy' }}</dd>
+                      </div>
+                    }
+                    @if (s.dateDerniereMajProgression) {
+                      <div class="flex items-center justify-between gap-2">
+                        <dt class="text-xs text-ink-muted">Dernière mise à jour</dt>
+                        <dd class="text-xs font-medium text-ink">{{ s.dateDerniereMajProgression | date:'dd/MM/yyyy' }}</dd>
+                      </div>
+                    }
+                    @if (s.dateFinProgression) {
+                      <div class="flex items-center justify-between gap-2">
+                        <dt class="text-xs text-ink-muted">Fin</dt>
+                        <dd class="text-xs font-medium text-ink">{{ s.dateFinProgression | date:'dd/MM/yyyy' }}</dd>
+                      </div>
+                    }
                   </div>
-                  <div class="flex-1">
+                }
+              }
+            </dl>
+          </app-card>
+
+          <!-- Prochaines échéances -->
+          <app-card padding="md">
+            <h2 class="mb-3 text-sm font-semibold text-ink">Prochaines échéances</h2>
+            @if (suivi()?.prochainesEcheances?.length) {
+              <ul class="flex flex-col divide-y divide-line">
+                @for (echeance of suivi()!.prochainesEcheances; track echeance.missionId) {
+                  <li class="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
+                    <div class="min-w-0">
+                      <p class="truncate text-sm font-medium text-ink">{{ echeance.titreMission }}</p>
+                      <p class="text-xs text-ink-muted">{{ echeance.dateLimite | date:'dd/MM/yyyy' }}</p>
+                    </div>
+                    <app-badge [status]="badgePriorite(echeance.priorite)" size="sm">{{ libellePriorite(echeance.priorite) }}</app-badge>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="text-sm text-ink-muted">Aucune échéance à venir.</p>
+            }
+          </app-card>
+
+          <!-- Prochaine réunion -->
+          <app-card padding="md">
+            <h2 class="mb-3 text-sm font-semibold text-ink">Prochaine réunion</h2>
+            @if (suivi()?.prochaineReunion; as prochaine) {
+              <div class="flex items-start gap-3">
+                <span class="flex size-9 shrink-0 items-center justify-center rounded-button bg-accent-soft text-accent">
+                  <app-icon name="calendar" class="size-4" />
+                </span>
+                <div class="min-w-0">
+                  <p class="text-sm font-medium text-ink">{{ prochaine | date:'dd/MM/yyyy à HH:mm' }}</p>
+                  @if (suivi()?.prochaineReunionObjectif; as objectif) {
+                    <p class="mt-0.5 text-xs text-ink-muted">{{ objectif }}</p>
+                  }
+                </div>
+              </div>
+            } @else {
+              <p class="text-sm text-ink-muted">Aucune réunion planifiée.</p>
+            }
+          </app-card>
+        </aside>
+      </div>
+    }
+
+    <!-- ─── ONGLET : MISSIONS ─── -->
+    @if (ongletActif() === 'missions') {
+      <section class="flex flex-col gap-4" aria-label="Missions du projet">
+
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 class="text-base font-semibold text-ink">Missions</h2>
+            <p class="text-xs text-ink-muted">
+              {{ missionsTotal() }} au total · Livrables : {{ livrablesTotal() }} déposé(s) sur {{ livrablesAttendusTotal() }} attendu(s)
+              · {{ livrablesRefuses() }} à corriger · {{ livrablesValides() }} validé(s)
+            </p>
+          </div>
+          <app-tab-filter
+            [options]="optionsFiltreMissions()"
+            [value]="filtreMissions()"
+            (valueChange)="onFiltreMissionsChange($event)"
+          />
+        </div>
+
+        @if (missionsLoading()) {
+          <app-loading-state message="Chargement des missions du projet..." />
+        } @else if (missionsError()) {
+          <div role="alert" class="flex items-center gap-2 rounded-card border border-danger/40 bg-danger/10 p-4 text-sm text-danger">
+            <app-icon name="warning" class="size-4 shrink-0" />
+            <span>{{ missionsError() }}</span>
+          </div>
+        } @else if (missions().length === 0) {
+          <app-empty-state
+            icon="missions"
+            title="Aucune mission assignée"
+            description="Les missions créées depuis une étape apparaissent ici lorsqu’elles sont correctement rattachées au projet."
+          />
+        } @else if (missionsFiltrees().length === 0) {
+          <p class="rounded-card border border-dashed border-line-strong bg-surface p-6 text-center text-sm text-ink-muted">
+            Aucune mission ne correspond à ce filtre.
+          </p>
+        } @else {
+          <app-card padding="none" class="overflow-hidden">
+            <ul class="divide-y divide-line">
+              @for (m of missionsFiltrees(); track m.id) {
+                <li class="flex flex-col gap-3 p-4 transition-colors hover:bg-surface-subtle sm:flex-row sm:items-center sm:justify-between">
+                  <div class="flex min-w-0 flex-1 items-start gap-3">
+                    <span
+                      class="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-button"
+                      [class]="estEnRetard(m) ? 'bg-danger/10 text-danger' : 'bg-surface-subtle text-ink-muted'"
+                    >
+                      <app-icon [name]="estEnRetard(m) ? 'warning' : 'missions'" class="size-4" />
+                    </span>
+                    <div class="min-w-0">
+                      <a [routerLink]="['/incubateur/missions', m.id]"
+                         class="font-medium text-ink hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-input">{{ m.titre }}</a>
+                      @if (m.description) {
+                        <p class="mt-0.5 line-clamp-2 text-xs text-ink-muted">{{ m.description }}</p>
+                      }
+                      <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-ink-muted">
+                        <app-badge status="neutral" size="sm">{{ getMissionSourceLabel(m) }}</app-badge>
+                        <span>Livrables : {{ m.nombreLivrablesDeposes ?? 0 }}/{{ m.nombreLivrablesAttendus ?? 0 }}</span>
+                        @if (m.dateEcheance) {
+                          <span [class]="estEnRetard(m) ? 'font-medium text-danger' : ''">
+                            Échéance : {{ m.dateEcheance | date:'dd/MM/yyyy' }}
+                            @if (estEnRetard(m)) { · {{ joursDeRetard(m) }} j de retard }
+                          </span>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                  <div class="flex shrink-0 items-center gap-2 sm:justify-end">
+                    @if (m.priorite) {
+                      <app-badge [status]="badgePriorite(m.priorite)" size="sm">{{ libellePriorite(m.priorite) }}</app-badge>
+                    }
+                    <app-badge [status]="badgeStatut(m.statut)" size="sm">{{ libelleStatutMission(m.statut) }}</app-badge>
+                  </div>
+                </li>
+              }
+            </ul>
+          </app-card>
+        }
+      </section>
+    }
+
+    <!-- ─── ONGLET : PARCOURS ─── -->
+    @if (ongletActif() === 'parcours') {
+      <div class="flex flex-col gap-8">
+
+        <!-- Historique de parcours (phases) -->
+        <section class="flex flex-col gap-3" aria-label="Historique de parcours">
+          <div class="flex items-center justify-between gap-2">
+            <h2 class="text-base font-semibold text-ink">Historique de parcours</h2>
+            @if (!loadingHistorique() && historique().length > 0) {
+              <span class="text-xs font-medium text-ink-muted">{{ historique().length }} phase(s)</span>
+            }
+          </div>
+
+          @if (loadingHistorique()) {
+            <app-loading-state message="Chargement de l'historique..." />
+          } @else if (historique().length === 0) {
+            <app-empty-state icon="folder" title="Aucun historique" description="Aucun historique de parcours enregistré." />
+          } @else {
+            <app-card padding="none" class="overflow-hidden">
+              <div class="custom-scrollbar overflow-x-auto p-5">
+                <ol class="flex min-w-max items-start sm:min-w-0">
+                  @for (part of historiqueInverse(); track part.id; let i = $index; let last = $last) {
+                    <li
+                      class="relative min-w-[200px] flex-1 pr-6 last:pr-0"
+                      [attr.aria-current]="part.active ? 'step' : null"
+                    >
+                      @if (!last) {
+                        <div class="absolute left-3.5 top-3.5 z-0 h-0.5 w-full bg-line">
+                          @if (!part.active) {
+                            <div class="absolute inset-0 bg-success"></div>
+                          }
+                        </div>
+                      }
+
+                      <div class="relative z-10 flex size-7 items-center justify-center">
+                        @if (!part.active) {
+                          <span class="flex size-7 items-center justify-center rounded-pill bg-success text-white">
+                            <app-icon name="check" class="size-4" />
+                          </span>
+                        } @else {
+                          <span class="absolute size-7 animate-pulse rounded-pill bg-accent-soft motion-reduce:hidden"></span>
+                          <span class="relative flex size-7 items-center justify-center rounded-pill border-2 border-accent bg-surface text-xs font-bold text-accent">
+                            {{ i + 1 }}
+                          </span>
+                        }
+                      </div>
+
+                      <div class="mt-3 flex flex-col gap-1">
+                        <p class="truncate text-[11px] font-semibold uppercase tracking-wide text-ink-muted">{{ part.nomCohorte }}</p>
+                        <p class="text-sm font-semibold leading-tight text-ink">{{ part.nomPhase }}</p>
+                        <p class="text-xs text-ink-muted">
+                          {{ part.dateEntree | date:'dd/MM/yyyy' }}
+                          @if (part.dateSortie) { → {{ part.dateSortie | date:'dd/MM/yyyy' }} }
+                        </p>
+                        @if (part.motifSortie) {
+                          <p class="text-xs font-medium text-ink">Motif : {{ part.motifSortie }}</p>
+                        }
+                        @if (part.raison) {
+                          <p class="mt-1 rounded-button border border-line bg-surface-muted p-2 text-xs italic text-ink-muted">
+                            « {{ part.raison }} »
+                          </p>
+                        }
+                        <div class="mt-2">
+                          @if (part.active) {
+                            <app-badge status="info" size="sm">En cours</app-badge>
+                          } @else {
+                            <app-badge status="success" size="sm">Terminée</app-badge>
+                          }
+                        </div>
+                      </div>
+                    </li>
+                  }
+                </ol>
+              </div>
+            </app-card>
+          }
+        </section>
+
+        <!-- Journal de progression -->
+        @if (suivi()?.historiqueProgression?.length) {
+          <section class="flex flex-col gap-3" aria-label="Journal de progression">
+            <h2 class="text-base font-semibold text-ink">Journal de progression</h2>
+            <app-card padding="md">
+              <ol class="relative flex flex-col gap-5 border-l border-line pl-6">
+                @for (hist of suivi()!.historiqueProgression; track hist.id) {
+                  <li class="relative">
+                    <span class="absolute -left-[29px] top-1.5 size-2.5 rounded-pill border-2 border-surface bg-accent"></span>
+                    <p class="text-xs text-ink-muted">
+                      {{ hist.dateEntree | date:'dd/MM/yyyy' }} · {{ hist.dateEntree | date:'HH:mm' }}
+                    </p>
                     @if (hist.etapeEntree && hist.etapeSortie) {
-                      <p class="text-sm text-ink">
+                      <p class="mt-0.5 text-sm text-ink">
                         <span class="text-ink-muted">Transition :</span>
                         {{ hist.etapeEntree }} → {{ hist.etapeSortie }}
                       </p>
                     }
                     @if (hist.effectuePar) {
-                      <p class="text-xs text-ink-muted">Par : {{ hist.effectuePar }}</p>
+                      <p class="text-xs text-ink-muted">Par {{ hist.effectuePar }}</p>
                     }
-                  </div>
-                </div>
-              }
-            </div>
-          </app-card>
-        </div>
-      }
-    }
-
-    <!-- Section Suivi (KPIs) -->
-    <div>
-      <div class="flex items-center justify-between mb-3">
-        <h2 class="text-xs font-bold uppercase tracking-wider text-ink-muted">Suivi du projet</h2>
-        @if (loadingSuivi()) {
-          <span class="text-xs text-ink-muted animate-pulse">Chargement...</span>
-        }
-      </div>
-
-      @if (!loadingSuivi()) {
-        <app-card padding="md">
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <!-- Missions en cours -->
-            <div class="flex flex-col gap-1">
-              <div class="flex items-center gap-2">
-                <app-icon name="missions" class="size-4 text-accent" />
-                <span class="text-[11px] font-semibold text-ink-muted uppercase">Missions en cours</span>
-              </div>
-              <p class="text-lg font-bold text-ink">{{ missionsEnCours() }}</p>
-            </div>
-
-            <!-- Missions en retard -->
-            <div class="flex flex-col gap-1">
-              <div class="flex items-center gap-2">
-                <app-icon name="warning" class="size-4 text-rose-600" />
-                <span class="text-[11px] font-semibold text-ink-muted uppercase">En retard</span>
-              </div>
-              <p class="text-lg font-bold text-ink">{{ missionsEnRetard() }}</p>
-            </div>
-
-            <!-- Livrables en attente -->
-            <div class="flex flex-col gap-1">
-              <div class="flex items-center gap-2">
-                <app-icon name="documents" class="size-4 text-amber-600" />
-                <span class="text-[11px] font-semibold text-ink-muted uppercase">Livrables en attente</span>
-              </div>
-              <p class="text-lg font-bold text-ink">{{ livrablesEnAttente() }}</p>
-            </div>
-
-            <!-- Livrables validés -->
-            <div class="flex flex-col gap-1">
-              <div class="flex items-center gap-2">
-                <app-icon name="check" class="size-4 text-emerald-600" />
-                <span class="text-[11px] font-semibold text-ink-muted uppercase">Livrables validés</span>
-              </div>
-              <p class="text-lg font-bold text-ink">{{ livrablesValides() }}</p>
-            </div>
-          </div>
-        </app-card>
-      }
-    </div>
-
-    <!-- Détail missions et livrables -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <!-- Missions détaillées -->
-      <app-card padding="md">
-        <h3 class="text-xs font-bold uppercase tracking-wider text-ink-muted mb-3">Missions</h3>
-        <div class="space-y-2">
-          <div class="flex justify-between items-center">
-            <span class="text-sm text-ink-muted">Total</span>
-            <span class="text-sm font-bold text-ink">{{ missionsTotal() }}</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-sm text-ink-muted">En cours</span>
-            <span class="text-sm font-bold text-ink">{{ missionsEnCours() }}</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-sm text-ink-muted">En retard</span>
-            <span class="text-sm font-bold text-rose-600">{{ missionsEnRetard() }}</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-sm text-ink-muted">Terminées</span>
-            <span class="text-sm font-bold text-emerald-600">{{ missionsTerminees() }}</span>
-          </div>
-        </div>
-      </app-card>
-
-      <!-- Livrables détaillés -->
-      <app-card padding="md">
-        <h3 class="text-xs font-bold uppercase tracking-wider text-ink-muted mb-3">Livrables</h3>
-        <div class="space-y-2">
-          <div class="flex justify-between items-center">
-            <span class="text-sm text-ink-muted">Attendus</span>
-            <span class="text-sm font-bold text-ink">{{ livrablesAttendusTotal() }}</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-sm text-ink-muted">Déposés</span>
-            <span class="text-sm font-bold text-ink">{{ livrablesTotal() }}</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-sm text-ink-muted">En attente</span>
-            <span class="text-sm font-bold text-ink">{{ livrablesEnAttente() }}</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-sm text-ink-muted">À corriger</span>
-            <span class="text-sm font-bold text-amber-600">{{ livrablesRefuses() }}</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-sm text-ink-muted">Validés</span>
-            <span class="text-sm font-bold text-emerald-600">{{ livrablesValides() }}</span>
-          </div>
-        </div>
-      </app-card>
-    </div>
-
-    <!-- Prochaines échéances -->
-    @if (suivi(); as s) {
-      <div>
-        <div class="flex items-center justify-between mb-3">
-          <h2 class="text-xs font-bold uppercase tracking-wider text-ink-muted">Prochaines échéances</h2>
-        </div>
-
-        @if (s.prochainesEcheances && s.prochainesEcheances.length > 0) {
-          <app-card padding="md">
-            <div class="space-y-2">
-              @for (echeance of s.prochainesEcheances; track echeance.missionId) {
-                <div class="flex items-center justify-between py-2 border-b border-line/60 last:border-0">
-                  <div class="flex flex-col">
-                    <span class="text-sm font-medium text-ink">{{ echeance.titreMission }}</span>
-                    <span class="text-xs text-ink-muted">{{ echeance.dateLimite | date:'dd/MM/yyyy' }}</span>
-                  </div>
-                  <app-badge [status]="badgePriorite(echeance.priorite)" size="sm">{{ echeance.priorite }}</app-badge>
-                </div>
-              }
-            </div>
-          </app-card>
-        } @else {
-          <app-card padding="md">
-            <p class="text-sm text-ink-muted text-center">Aucune échéance à venir</p>
-          </app-card>
+                  </li>
+                }
+              </ol>
+            </app-card>
+          </section>
         }
       </div>
     }
 
-    <!-- Réunions -->
-    @if (suivi(); as s) {
-      <div>
-        <div class="flex items-center justify-between mb-3">
-          <h2 class="text-xs font-bold uppercase tracking-wider text-ink-muted">Réunions</h2>
-        </div>
+    <!-- ─── ONGLET : RÉUNIONS ─── -->
+    @if (ongletActif() === 'reunions') {
+      <section class="flex flex-col gap-4" aria-label="Réunions du projet">
+        <h2 class="text-base font-semibold text-ink">Réunions</h2>
 
-        @if (s.derniereReunion || s.prochaineReunion) {
-          <app-card padding="md">
-            <div class="space-y-4">
-              @if (s.derniereReunion) {
-                <div class="space-y-2">
-                  <div class="flex items-center gap-2">
-                    <app-icon name="calendar" class="size-4 text-ink-muted" />
-                    <div>
-                      <p class="text-[10px] text-ink-muted uppercase font-semibold">Dernière réunion</p>
-                      <p class="text-sm font-bold text-ink">{{ s.derniereReunion | date:'dd/MM/yyyy à HH:mm' }}</p>
-                    </div>
-                  </div>
-                  @if (s.derniereReunionObjectif) {
-                    <div class="ml-6">
-                      <p class="text-[10px] text-ink-muted uppercase font-semibold">Objectif</p>
-                      <p class="text-sm text-ink">{{ s.derniereReunionObjectif }}</p>
-                    </div>
-                  }
-                  @if (s.derniereReunionCompteRendu) {
-                    <div class="ml-6">
-                      <p class="text-[10px] text-ink-muted uppercase font-semibold">Compte rendu</p>
-                      <p class="text-sm text-ink">{{ s.derniereReunionCompteRendu }}</p>
-                    </div>
-                  }
-                  @if (s.derniereReunionDecisions) {
-                    <div class="ml-6">
-                      <p class="text-[10px] text-ink-muted uppercase font-semibold">Décisions</p>
-                      <p class="text-sm text-ink">{{ s.derniereReunionDecisions }}</p>
-                    </div>
-                  }
-                </div>
-              }
+        @if (suivi(); as s) {
+          @if (s.derniereReunion || s.prochaineReunion) {
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+
               @if (s.prochaineReunion) {
-                <div class="space-y-2 border-t border-line/60 pt-4">
-                  <div class="flex items-center gap-2">
-                    <app-icon name="calendar" class="size-4 text-accent" />
-                    <div>
-                      <p class="text-[10px] text-ink-muted uppercase font-semibold">Prochaine réunion</p>
-                      <p class="text-sm font-bold text-ink">{{ s.prochaineReunion | date:'dd/MM/yyyy à HH:mm' }}</p>
+                <app-card padding="md">
+                  <div class="flex items-start gap-3">
+                    <span class="flex size-9 shrink-0 items-center justify-center rounded-button bg-accent-soft text-accent">
+                      <app-icon name="calendar" class="size-4" />
+                    </span>
+                    <div class="min-w-0">
+                      <p class="text-xs font-semibold uppercase tracking-wide text-ink-muted">Prochaine réunion</p>
+                      <p class="mt-0.5 text-sm font-semibold text-ink">{{ s.prochaineReunion | date:'dd/MM/yyyy à HH:mm' }}</p>
                     </div>
                   </div>
                   @if (s.prochaineReunionObjectif) {
-                    <div class="ml-6">
-                      <p class="text-[10px] text-ink-muted uppercase font-semibold">Objectif</p>
-                      <p class="text-sm text-ink">{{ s.prochaineReunionObjectif }}</p>
+                    <div class="mt-4 border-t border-line pt-4">
+                      <p class="text-xs font-semibold uppercase tracking-wide text-ink-muted">Objectif</p>
+                      <p class="mt-1 text-sm text-ink">{{ s.prochaineReunionObjectif }}</p>
                     </div>
                   }
-                </div>
+                </app-card>
+              }
+
+              @if (s.derniereReunion) {
+                <app-card padding="md">
+                  <div class="flex items-start gap-3">
+                    <span class="flex size-9 shrink-0 items-center justify-center rounded-button bg-surface-subtle text-ink-muted">
+                      <app-icon name="calendar" class="size-4" />
+                    </span>
+                    <div class="min-w-0">
+                      <p class="text-xs font-semibold uppercase tracking-wide text-ink-muted">Dernière réunion</p>
+                      <p class="mt-0.5 text-sm font-semibold text-ink">{{ s.derniereReunion | date:'dd/MM/yyyy à HH:mm' }}</p>
+                    </div>
+                  </div>
+                  <div class="mt-4 flex flex-col gap-3 border-t border-line pt-4">
+                    @if (s.derniereReunionObjectif) {
+                      <div>
+                        <p class="text-xs font-semibold uppercase tracking-wide text-ink-muted">Objectif</p>
+                        <p class="mt-1 text-sm text-ink">{{ s.derniereReunionObjectif }}</p>
+                      </div>
+                    }
+                    @if (s.derniereReunionCompteRendu) {
+                      <div>
+                        <p class="text-xs font-semibold uppercase tracking-wide text-ink-muted">Compte rendu</p>
+                        <p class="mt-1 whitespace-pre-wrap text-sm text-ink">{{ s.derniereReunionCompteRendu }}</p>
+                      </div>
+                    }
+                    @if (s.derniereReunionDecisions) {
+                      <div>
+                        <p class="text-xs font-semibold uppercase tracking-wide text-ink-muted">Décisions</p>
+                        <p class="mt-1 whitespace-pre-wrap text-sm text-ink">{{ s.derniereReunionDecisions }}</p>
+                      </div>
+                    }
+                  </div>
+                </app-card>
               }
             </div>
-          </app-card>
+          } @else {
+            <app-empty-state icon="calendar" title="Aucune réunion" description="Aucune réunion enregistrée pour ce projet." />
+          }
         } @else {
-          <app-card padding="md">
-            <p class="text-sm text-ink-muted text-center">Aucune réunion enregistrée</p>
-          </app-card>
+          <app-empty-state icon="calendar" title="Aucune réunion" description="Aucune réunion enregistrée pour ce projet." />
         }
-      </div>
+      </section>
     }
 
-    <!-- Cohorte -->
-    @if (suivi(); as s) {
-      @if (s.nomCohorte) {
+    <!-- Tuile de chiffre clé (synthèse) -->
+    <ng-template #tuile let-icone="icone" let-libelle="libelle" let-valeur="valeur" let-alerte="alerte">
+      <div class="flex flex-col gap-3">
+        <span
+          class="flex size-9 items-center justify-center rounded-button"
+          [class]="alerte ? 'bg-danger/10 text-danger' : 'bg-accent-soft text-accent'"
+        >
+          <app-icon [name]="icone" class="size-4" />
+        </span>
         <div>
-          <div class="flex items-center justify-between mb-3">
-            <h2 class="text-xs font-bold uppercase tracking-wider text-ink-muted">Cohorte</h2>
-          </div>
-
-          <app-card padding="md">
-            <div class="flex items-center gap-2">
-              <app-icon name="users" class="size-4 text-accent" />
-              <p class="text-sm font-bold text-ink">{{ s.nomCohorte }}</p>
-            </div>
-          </app-card>
+          <p class="text-2xl font-bold tracking-tight" [class]="alerte ? 'text-danger' : 'text-ink'">{{ valeur }}</p>
+          <p class="text-xs text-ink-muted">{{ libelle }}</p>
         </div>
-      }
-    }
-
-    <!-- Frise historique -->
-    <div>
-      <div class="flex items-center justify-between mb-3">
-        <h2 class="text-xs font-bold uppercase tracking-wider text-ink-muted">Historique de parcours</h2>
-        @if (!loadingHistorique() && historique().length > 0) {
-          <span class="text-xs font-semibold text-ink-muted">{{ historique().length }} phase(s)</span>
-        }
       </div>
-
-      @if (loadingHistorique()) {
-        <p class="text-xs text-ink-muted animate-pulse">Chargement de l'historique...</p>
-      } @else if (historique().length === 0) {
-        <p class="text-xs text-ink-muted italic">Aucun historique de parcours enregistré.</p>
-      } @else {
-        <app-card padding="none" class=" overflow-hidden ">
-          <div class="overflow-x-auto p-4 sm:p-5 custom-scrollbar">
-            <ol class="flex items-start min-w-max sm:min-w-0">
-              @for (part of historiqueInverse(); track part.id; let i = $index; let last = $last) {
-                <li
-                  class="relative flex-1 pr-6 last:pr-0 min-w-[200px]"
-                  [attr.aria-current]="part.active ? 'step' : null"
-                >
-                  <!-- Ligne de connexion horizontale centrée sur la pastille -->
-                  @if (!last) {
-                    <div class="absolute left-3.5 top-3.5 h-0.5 w-full bg-line/80 z-0">
-                      @if (!part.active) {
-                        <div class="absolute inset-0 bg-emerald-500"></div>
-                      }
-                    </div>
-                  }
-
-                  <!-- Pastille numérotée (1, 2, 3...) de gauche à droite -->
-                  <div class="relative z-10 flex size-7 items-center justify-center">
-                    @if (!part.active) {
-                      <span class="flex size-7 items-center justify-center rounded-full bg-emerald-500 text-white text-xs font-bold shadow-2xs">
-                        {{ i + 1 }}
-                      </span>
-                    } @else {
-                      <span class="absolute size-7 rounded-full bg-accent/20 motion-reduce:hidden animate-pulse"></span>
-                      <span class="relative flex size-7 items-center justify-center rounded-full border-2 border-accent bg-surface text-accent text-xs font-bold shadow-2xs">
-                        {{ i + 1 }}
-                      </span>
-                    }
-                  </div>
-
-                  <!-- Contenu de l'étape -->
-                  <div class="mt-3 flex flex-col gap-1">
-                    <div class="flex items-center gap-1.5">
-                      <span class="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-surface-muted text-ink-muted border border-line/60">
-                        Phase {{ i + 1 }}
-                      </span>
-                      <p class="text-[10px] font-bold uppercase tracking-wider text-ink-muted truncate">
-                        {{ part.nomCohorte }}
-                      </p>
-                    </div>
-                    
-                    <p class="text-xs font-bold text-ink leading-tight">
-                      {{ part.nomPhase }}
-                    </p>
-
-                    <p class="text-[11px] text-ink-muted">
-                      {{ part.dateEntree | date:'dd/MM/yyyy' }}
-                      @if (part.dateSortie) { → {{ part.dateSortie | date:'dd/MM/yyyy' }} }
-                    </p>
-
-                    @if (part.motifSortie) {
-                      <p class="text-[11px] font-medium text-ink">
-                        Motif : {{ part.motifSortie }}
-                      </p>
-                    }
-
-                    @if (part.raison) {
-                      <p class="text-[11px] text-ink-muted italic bg-surface-muted/50 p-2 rounded-lg border border-line/40 mt-1">
-                        « {{ part.raison }} »
-                      </p>
-                    }
-
-                    <div class="mt-2">
-                      @if (part.active) {
-                        <app-badge status="info" size="sm" class="w-fit font-bold">En cours</app-badge>
-                      } @else {
-                        <app-badge status="success" size="sm" class="w-fit font-bold">Terminée</app-badge>
-                      }
-                    </div>
-                  </div>
-                </li>
-              }
-            </ol>
-          </div>
-        </app-card>
-      }
-    </div>
-
-    <!-- Missions -->
-    <div>
-      <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Missions</h2>
-      @if (missionsLoading()) {
-        <p class="text-sm text-gray-400 animate-pulse">Chargement des missions du projet...</p>
-      } @else if (missionsError()) {
-        <div class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
-          {{ missionsError() }}
-        </div>
-      } @else if (missions().length === 0) {
-        <div class="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-500">
-          Aucune mission assignée à ce projet. Les missions créées depuis une étape apparaissent ici lorsqu’elles sont correctement rattachées au bon projet.
-        </div>
-      } @else {
-        <div class="rounded-2xl border border-gray-200 dark:border-white/10 overflow-hidden">
-          <table class="w-full text-sm">
-            <tbody class="divide-y divide-gray-100 dark:divide-white/5">
-              @for (m of missions(); track m.id) {
-                <tr class="hover:bg-gray-50 dark:hover:bg-white/5 align-top">
-                  <td class="px-4 py-3">
-                    <div class="flex flex-col gap-2">
-                      <div class="flex items-center gap-2">
-                        @if (estEnRetard(m)) {
-                          <app-icon name="warning" class="size-4 text-rose-600" />
-                        }
-                        <a [routerLink]="['/incubateur/missions', m.id]" class="font-medium text-gray-900 dark:text-white hover:text-indigo-500">{{ m.titre }}</a>
-                      </div>
-                      @if (m.description) {
-                        <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{{ m.description }}</p>
-                      }
-                      <div class="flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400">
-                        <span class="rounded-full border border-gray-200 px-2 py-0.5">{{ getMissionSourceLabel(m) }}</span>
-                        <span>Livrables: {{ m.nombreLivrablesDeposes ?? 0 }}/{{ m.nombreLivrablesAttendus ?? 0 }}</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td class="px-4 py-3 text-xs text-gray-400 align-top">{{ m.dateEcheance ?? '—' }}</td>
-                  <td class="px-4 py-3 align-top">
-                    @if (m.priorite) {
-                      <app-badge [status]="badgePriorite(m.priorite)" size="sm">{{ m.priorite }}</app-badge>
-                    }
-                  </td>
-                  <td class="px-4 py-3 text-right align-top">
-                    <app-badge [status]="badgeStatut(m.statut)" size="sm">{{ m.statut }}</app-badge>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
-    </div>
+    </ng-template>
   }
 
   @if (!loading() && !projet()) {
@@ -541,17 +576,19 @@ interface Promotion409 {
 <!-- Modale archivage -->
 @if (showArchiveModal()) {
   <app-modal title="Archiver le projet" maxWidth="md" (close)="showArchiveModal.set(false)">
-    <p class="text-sm text-gray-600 dark:text-gray-300">
-      Archiver <strong>{{ projet()?.nom }}</strong> ? Il sera masqué des listes principales.
+    <p class="text-sm text-ink-muted">
+      Archiver <strong class="text-ink">{{ projet()?.nom }}</strong> ? Il sera masqué des listes principales.
     </p>
     <div class="mt-4 flex justify-end gap-3">
       <app-button variant="ghost" (click)="showArchiveModal.set(false)">Annuler</app-button>
-      <app-button variant="primary" (click)="confirmerArchivage()">Archiver</app-button>
+      <app-button variant="primary" [disabled]="isArchiving()" (click)="confirmerArchivage()">
+        {{ isArchiving() ? 'Archivage...' : 'Archiver' }}
+      </app-button>
     </div>
   </app-modal>
 }
 
-<!-- Modale de promotion (remplacement du panneau latéral) -->
+<!-- Modale de promotion -->
 @if (promotionOuverte()) {
   <app-modal
     title="Promouvoir ce projet"
@@ -559,54 +596,66 @@ interface Promotion409 {
     maxWidth="md"
     (close)="promotionOuverte.set(false)"
   >
-    <div class="space-y-5">
-      <div>
-        <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Cohorte cible *</p>
+    <div class="flex flex-col gap-5">
+      <fieldset>
+        <legend class="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-muted">Cohorte cible *</legend>
         @if (loadingEligibles()) {
-          <p class="text-sm text-gray-400">Chargement...</p>
+          <p class="text-sm text-ink-muted">Chargement...</p>
         } @else if (cohortesEligibles().length === 0) {
-          <p class="text-sm text-gray-400 italic">Aucune cohorte éligible.</p>
+          <p class="text-sm italic text-ink-muted">Aucune cohorte éligible.</p>
         } @else {
-          <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
+          <div class="flex max-h-60 flex-col gap-2 overflow-y-auto pr-1">
             @for (c of cohortesEligibles(); track c.id) {
-              <label class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors"
-                [class]="cohorteCibleId() === c.id ? 'border-indigo-400 bg-indigo-50 dark:bg-indigo-500/10' : 'border-gray-200 dark:border-white/10'">
-                <input type="radio" [value]="c.id" [checked]="cohorteCibleId() === c.id" (change)="cohorteCibleId.set(c.id)" class="text-indigo-600"/>
+              <label
+                class="flex cursor-pointer items-center gap-3 rounded-card border p-3 transition-colors focus-within:ring-2 focus-within:ring-accent"
+                [class]="cohorteCibleId() === c.id ? 'border-accent bg-accent-soft' : 'border-line hover:border-line-strong'"
+              >
+                <input type="radio" name="cohorte-cible" [value]="c.id" [checked]="cohorteCibleId() === c.id"
+                  (change)="cohorteCibleId.set(c.id)" class="size-4 accent-accent" />
                 <div>
-                  <p class="text-sm font-medium text-gray-900 dark:text-white">{{ c.nom }}</p>
-                  <p class="text-xs text-gray-500">Phase : {{ c.phase?.nom ?? '—' }}</p>
+                  <p class="text-sm font-medium text-ink">{{ c.nom }}</p>
+                  <p class="text-xs text-ink-muted">Phase : {{ c.phase?.nom ?? '—' }}</p>
                 </div>
               </label>
             }
           </div>
         }
-      </div>
+      </fieldset>
 
-      <div>
-        <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Raison</label>
-        <textarea [(ngModel)]="raisonPromotion" rows="2" placeholder="Raison optionnelle..."
-          class="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"></textarea>
-      </div>
+      <app-form-field label="Raison">
+        <textarea
+          [(ngModel)]="raisonPromotion"
+          rows="2"
+          placeholder="Raison optionnelle..."
+          class="w-full resize-none rounded-input border border-input-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus-visible:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        ></textarea>
+      </app-form-field>
 
       @if (promotion409()) {
-        <div class="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-500/10 p-4 space-y-3">
-          <p class="text-sm font-semibold text-amber-800 dark:text-amber-300 flex items-center gap-2">
-            <app-icon name="alert-circle" class="w-4 h-4"/>Missions non validées
+        <div role="alert" class="flex flex-col gap-3 rounded-card border border-warning/40 bg-warning/10 p-4">
+          <p class="flex items-center gap-2 text-sm font-semibold text-ink">
+            <app-icon name="alert-circle" class="size-4 text-warning" />Missions non validées
           </p>
-          <ul class="space-y-1">
+          <ul class="flex flex-col gap-1">
             @for (m of promotion409()!.missionsNonValidees; track m.titre) {
-              <li class="text-xs text-amber-700 dark:text-amber-400">• {{ m.titre }} — {{ m.statut }}</li>
+              <li class="flex items-center gap-1.5 text-xs text-ink">
+                <span class="size-1.5 shrink-0 rounded-pill bg-warning" aria-hidden="true"></span>
+                {{ m.titre }} — {{ m.statut }}
+              </li>
             }
           </ul>
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" [(ngModel)]="forcerPromotion" class="rounded text-amber-500"/>
-            <span class="text-sm text-amber-800 dark:text-amber-300 font-medium">Promouvoir quand même</span>
+          <label class="flex cursor-pointer items-center gap-2">
+            <input type="checkbox" [(ngModel)]="forcerPromotion" class="size-4 rounded border-input-border accent-accent" />
+            <span class="text-sm font-medium text-ink">Promouvoir quand même</span>
           </label>
+          @if (forcerPromotion) {
+            <p class="text-xs text-ink-muted">Une raison est obligatoire ci-dessus.</p>
+          }
         </div>
       }
     </div>
 
-    <div class="mt-6 flex justify-end gap-3 border-t border-gray-200 dark:border-white/10 pt-4">
+    <div class="mt-6 flex justify-end gap-3 border-t border-line pt-4">
       <app-button variant="secondary" size="sm" (click)="promotionOuverte.set(false)">Annuler</app-button>
       <app-button variant="primary" size="sm" [disabled]="!cohorteCibleId() || promotionEnCours()" (click)="lancerPromotion()">
         {{ promotionEnCours() ? 'Promotion...' : 'Promouvoir' }}
@@ -634,6 +683,10 @@ export class ProjetDetail implements OnInit {
   readonly suivi = signal<SuiviProjetDTO | undefined>(undefined);
   readonly loadingSuivi = signal(false);
 
+  // Navigation (onglets + filtre des missions)
+  readonly ongletActif = signal<OngletProjet>('apercu');
+  readonly filtreMissions = signal<FiltreMissions>('TOUTES');
+
   // Progression étapes
   readonly feuilleRoute = signal<FeuilleRouteProjet | null>(null);
   readonly loadingEtapes = signal(false);
@@ -651,6 +704,44 @@ export class ProjetDetail implements OnInit {
   readonly livrablesRefuses = computed(() => this.suivi()?.livrablesRefuses ?? 0);
   readonly livrablesTotal = computed(() => this.suivi()?.livrablesTotal ?? 0);
   readonly livrablesAttendusTotal = computed(() => this.suivi()?.livrablesAttendusTotal ?? 0);
+
+  // Anneau d'avancement : valeur du suivi, sinon ratio missions validées / total
+  readonly rayon = ANNEAU_RAYON;
+  readonly circonference = ANNEAU_CIRCONFERENCE;
+  readonly avancement = computed(() => {
+    const pourcentage = this.suivi()?.pourcentageAvancement;
+    if (pourcentage !== undefined && pourcentage !== null) return pourcentage;
+    const p = this.projet();
+    const total = p?.nombreMissionsTotal ?? 0;
+    return total > 0 ? Math.round(((p?.nombreMissionsValidees ?? 0) / total) * 100) : 0;
+  });
+  readonly anneauDecalage = computed(() => {
+    const valeur = Math.min(100, Math.max(0, this.avancement()));
+    return ANNEAU_CIRCONFERENCE * (1 - valeur / 100);
+  });
+
+  readonly optionsOnglets = computed<TabOption[]>(() => [
+    { label: "Vue d'ensemble", value: 'apercu' },
+    { label: 'Missions', value: 'missions', count: this.missions().length },
+    { label: 'Parcours', value: 'parcours' },
+    { label: 'Réunions', value: 'reunions' },
+  ]);
+
+  readonly missionsFiltrees = computed(() => {
+    const filtre = this.filtreMissions();
+    return this.missions().filter(m => this.correspondAuFiltre(m, filtre));
+  });
+
+  readonly optionsFiltreMissions = computed<TabOption[]>(() => {
+    const liste = this.missions();
+    const compter = (f: FiltreMissions) => liste.filter(m => this.correspondAuFiltre(m, f)).length;
+    return [
+      { label: 'Toutes', value: 'TOUTES', count: liste.length },
+      { label: 'En retard', value: 'EN_RETARD', count: compter('EN_RETARD') },
+      { label: 'À évaluer', value: 'A_EVALUER', count: compter('A_EVALUER') },
+      { label: 'Validées', value: 'VALIDEES', count: compter('VALIDEES') },
+    ];
+  });
 
   readonly cohortesEligibles = signal<Cohorte[]>([]);
   readonly loading = signal(true);
@@ -684,6 +775,10 @@ export class ProjetDetail implements OnInit {
     if (p.nomPhase) parts.push(`Phase : ${p.nomPhase}`);
     else if (p.nomCohorte) parts.push(`Cohorte : ${p.nomCohorte}`);
     return parts.join(' · ');
+  }
+
+  initiales(nom: string | undefined | null): string {
+    return nom ? nom.substring(0, 2).toUpperCase() : 'PR';
   }
 
   ngOnInit(): void {
@@ -720,6 +815,32 @@ export class ProjetDetail implements OnInit {
     });
   }
 
+  // --- NAVIGATION ---
+
+  onOngletChange(value: string): void {
+    this.ongletActif.set(value as OngletProjet);
+  }
+
+  onFiltreMissionsChange(value: string): void {
+    this.filtreMissions.set(value as FiltreMissions);
+  }
+
+  allerAuxMissions(): void {
+    this.ongletActif.set('missions');
+    this.filtreMissions.set(this.missionsEnRetard() > 0 ? 'EN_RETARD' : 'A_EVALUER');
+  }
+
+  private correspondAuFiltre(m: Mission, filtre: FiltreMissions): boolean {
+    switch (filtre) {
+      case 'EN_RETARD': return this.estEnRetard(m);
+      case 'A_EVALUER': return m.statut === 'SOUMIS';
+      case 'VALIDEES': return m.statut === 'VALIDE';
+      default: return true;
+    }
+  }
+
+  // --- PROMOTION / ARCHIVAGE ---
+
   ouvrirPromotion(): void {
     const p = this.projet(); if (!p) return;
     this.promotion409.set(null); this.cohorteCibleId.set(''); this.raisonPromotion = ''; this.forcerPromotion = false;
@@ -749,6 +870,8 @@ export class ProjetDetail implements OnInit {
     this.projetService.restaurerProjet(p.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: () => this.projet.update(x => x ? { ...x, archive: false } : x), error: () => alert('Erreur restauration.') });
   }
 
+  // --- LIBELLÉS ET VARIANTES DE BADGES ---
+
   badgePriorite(priorite?: string): 'success' | 'warning' | 'neutral' | 'danger' {
     switch (priorite) {
       case 'URGENTE':
@@ -763,8 +886,29 @@ export class ProjetDetail implements OnInit {
     }
   }
 
+  libellePriorite(priorite?: string): string {
+    const labels: Record<string, string> = { URGENTE: 'Urgente', HAUTE: 'Haute', MOYENNE: 'Moyenne', BASSE: 'Basse' };
+    return priorite ? labels[priorite] ?? priorite : '';
+  }
+
   badgeStatut(statut: string): 'success' | 'warning' | 'neutral' | 'danger' {
     const m: Record<string, 'success' | 'warning' | 'neutral' | 'danger'> = { VALIDE: 'success', EN_COURS: 'warning', A_FAIRE: 'neutral', A_REVOIR: 'danger', SOUMIS: 'warning' };
+    return m[statut] ?? 'neutral';
+  }
+
+  libelleStatutMission(statut: string): string {
+    const labels: Record<string, string> = {
+      A_FAIRE: 'À faire',
+      EN_COURS: 'En cours',
+      SOUMIS: 'Soumise',
+      VALIDE: 'Validée',
+      A_REVOIR: 'À revoir',
+    };
+    return labels[statut] ?? statut;
+  }
+
+  badgeStatutProgression(statut: string): StatutBadge {
+    const m: Record<string, StatutBadge> = { EN_COURS: 'info', EN_PAUSE: 'warning', TERMINE: 'success', ABANDONNE: 'danger' };
     return m[statut] ?? 'neutral';
   }
 
@@ -778,6 +922,12 @@ export class ProjetDetail implements OnInit {
     if (m.statut === 'VALIDE') return false;
     if (!m.dateEcheance) return false;
     return new Date(m.dateEcheance) < new Date();
+  }
+
+  joursDeRetard(m: Mission): number {
+    if (!m.dateEcheance) return 0;
+    const ecart = new Date().getTime() - new Date(m.dateEcheance).getTime();
+    return Math.max(0, Math.floor(ecart / 86_400_000));
   }
 
   formatStatutProgression(statut: string | undefined): string {
@@ -812,7 +962,6 @@ export class ProjetDetail implements OnInit {
       .subscribe({
         next: (route) => {
           this.feuilleRoute.set(route);
-          console.log('Feuille de route chargée :', route);
           this.loadingEtapes.set(false);
         },
         error: () => {

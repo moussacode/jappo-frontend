@@ -1,17 +1,17 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { InviterEntrepreneur } from './inviter-entrepreneur';
+import { InviterEntrepreneurModalComponent } from './inviter-entrepreneur';
 
 describe('InviterEntrepreneur', () => {
-  let component: InviterEntrepreneur;
-  let fixture: ComponentFixture<InviterEntrepreneur>;
+  let component: InviterEntrepreneurModalComponent;
+  let fixture: ComponentFixture<InviterEntrepreneurModalComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [InviterEntrepreneur],
+      imports: [InviterEntrepreneurModalComponent],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(InviterEntrepreneur);
+    fixture = TestBed.createComponent(InviterEntrepreneurModalComponent);
     component = fixture.componentInstance;
     await fixture.whenStable();
   });

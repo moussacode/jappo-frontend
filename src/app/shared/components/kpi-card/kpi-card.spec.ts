@@ -1,17 +1,19 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { KpiCard } from './kpi-card';
+import { KpiCardComponent } from './kpi-card';
 
 describe('KpiCard', () => {
-  let component: KpiCard;
-  let fixture: ComponentFixture<KpiCard>;
+  let component: KpiCardComponent;
+  let fixture: ComponentFixture<KpiCardComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [KpiCard],
+      imports: [KpiCardComponent],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(KpiCard);
+    fixture = TestBed.createComponent(KpiCardComponent);
+    fixture.componentRef.setInput('label', 'Startups');
+    fixture.componentRef.setInput('value', 12);
     component = fixture.componentInstance;
     await fixture.whenStable();
   });

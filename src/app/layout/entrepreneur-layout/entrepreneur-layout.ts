@@ -16,11 +16,11 @@ import { TranslatePipe } from '../../shared/pipes/translate.pipe';
     TranslatePipe,
   ],
   template: `
-    <div class="flex h-screen flex-col">
-      <div class="flex flex-1 overflow-hidden">
+    <div class="flex h-dvh min-h-0 flex-col">
+      <div class="flex min-h-0 flex-1 overflow-hidden">
         <app-sidebar [navItems]="navItems" />
 
-        <main class="flex-1 overflow-y-auto bg-surface-muted">
+        <main class="min-h-0 min-w-0 flex-1 overflow-y-auto bg-surface-muted">
           <router-outlet />
         </main>
       </div>

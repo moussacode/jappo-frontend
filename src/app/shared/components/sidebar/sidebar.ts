@@ -100,7 +100,7 @@ export interface NavItem {
     }
 
     <aside
-      class="fixed inset-y-0 left-0 z-40 flex w-[260px] shrink-0 flex-col bg-surface p-3 shadow-2xl transition-transform duration-300 ease-in-out select-none overflow-visible sm:p-4 md:static md:inset-auto md:z-auto md:translate-x-0 md:shadow-none"
+      class="fixed inset-y-0 left-0 z-40 flex h-dvh w-[260px] shrink-0 flex-col bg-surface p-3 shadow-2xl transition-transform duration-300 ease-in-out select-none overflow-visible sm:p-4 md:static md:inset-auto md:z-auto md:h-full md:min-h-0 md:translate-x-0 md:shadow-none"
       [class.translate-x-0]="mobileOpen()"
       [class.-translate-x-full]="!mobileOpen()"
       [class.md:w-[260px]]="!collapsed()"
@@ -706,6 +706,19 @@ export interface NavItem {
 
       }
   `,
+  styles: [`
+    :host {
+      display: block;
+      flex: 0 0 auto;
+      min-height: 0;
+    }
+
+    @media (min-width: 768px) {
+      :host {
+        height: 100%;
+      }
+    }
+  `],
 })
 export class Sidebar {
 

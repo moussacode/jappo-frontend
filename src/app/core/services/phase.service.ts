@@ -41,4 +41,8 @@ export class PhaseService {
   archivePhase(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
+
+  restaurerPhase(id: string): Observable<void> {
+    return this.http.patch<void>(`${this.apiUrl}/${id}/restaurer`, {});
+  }
 }

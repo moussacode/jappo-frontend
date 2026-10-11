@@ -17,6 +17,7 @@ interface InvitationInfo {
   logoStructure?: string;
   compteExiste?: boolean;
   role?: string;
+  structureId?: string;
 }
 
 @Component({
@@ -236,12 +237,22 @@ export class AcceptInvitationComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
-          // Aiguillage propre et sécurisé selon le rôle
-          const activeRole = this.structureContext.activeRole() ||
-            this.authService.memberships()[0]?.role ||
-            info?.role;
+          const invitedMembership = info?.structureId
+            ? this.structureContext.memberships().find(
+                (membership) => membership.structure.id === info.structureId
+              )
+            : undefined;
+          if (invitedMembership) {
+            this.structureContext.setActiveStructure(invitedMembership);
+          }
 
-          if (activeRole === 'COACH' || activeRole === 'ADMIN_STRUCTURE') {
+          const invitedRole = info?.role ||
+            invitedMembership?.role ||
+            this.structureContext.activeRole() ||
+            this.authService.memberships()[0]?.role ||
+            undefined;
+
+          if (invitedRole === 'COACH' || invitedRole === 'ADMIN_STRUCTURE') {
             this.router.navigate(['/incubateur/dashboard']);
           } else {
             this.router.navigate(['/onboarding/projet']);

@@ -9,19 +9,32 @@ import { EntrepreneurService, EntrepreneurResponse } from '../../../../core/serv
 import { ProjetService } from '../../../../core/services/projet.service';
 import { MissionService } from '../../../../core/services/mission.service';
 import { LivrableService } from '../../../../core/services/livrable.service';
+import { ProgressionService } from '../../../../core/services/progression.service';
 
 import { Projet, Mission, Livrable } from '../../../../core/models';
+import { FeuilleRouteProjet } from '../../../../core/models/parcours.model';
 import { Icon } from '../../../../shared/components/icon/icon';
 import { BadgeComponent, BadgeStatus } from '../../../../shared/components/badge/badge';
 import { FormsModule } from '@angular/forms';
 import { NouveauProjetModal } from '../../projets/nouveau-projet-modal/nouveau-projet-modal';
+import { LoadingState } from '../../../../shared/components/loading-state/loading-state';
+import { ParcoursProgressComponent } from '../../../../shared/components/parcours-progress/parcours-progress.component';
 
 type Onglet = 'progression' | 'documents' | 'missions';
 
 @Component({
   selector: 'app-entrepreneur-detail',
   standalone: true,
-  imports: [RouterLink, Icon, BadgeComponent, DatePipe, FormsModule, NouveauProjetModal],
+  imports: [
+    RouterLink,
+    Icon,
+    BadgeComponent,
+    DatePipe,
+    FormsModule,
+    NouveauProjetModal,
+    LoadingState,
+    ParcoursProgressComponent,
+  ],
   template: `
     <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
       
@@ -245,20 +258,44 @@ type Onglet = 'progression' | 'documents' | 'missions';
 
           <!-- CONTENU DES ONGLETS -->
           @if (ongletActif() === 'progression') {
-            <div class="rounded-2xl border border-line bg-surface p-6 shadow-xs flex flex-col gap-5">
-              <h2 class="text-sm font-bold text-ink">Diagnostic & Détails du projet</h2>
+            <div class="flex flex-col gap-5">
               @if (projet(); as p) {
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div class="flex flex-col gap-1 rounded-xl border border-line bg-surface-muted/30 p-4">
-                    <span class="text-[11px] font-semibold text-ink-muted uppercase tracking-wider">Secteur</span>
-                    <span class="text-sm font-bold text-ink">{{ p.secteur || 'Non renseigné' }}</span>
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div class="rounded-xl border border-line bg-surface p-4">
+                    <p class="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Secteur</p>
+                    <p class="mt-1 text-sm font-bold text-ink">{{ p.secteur || 'Non renseigné' }}</p>
                   </div>
-                  <div class="flex flex-col gap-1 rounded-xl border border-line bg-surface-muted/30 p-4">
-                    <span class="text-[11px] font-semibold text-ink-muted uppercase tracking-wider">Statut</span>
-                    <span class="text-sm font-bold text-ink">{{ p.statut || 'En cours' }}</span>
+                  <div class="rounded-xl border border-line bg-surface p-4">
+                    <p class="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Statut du projet</p>
+                    <p class="mt-1 text-sm font-bold text-ink">{{ p.statut || 'En cours' }}</p>
                   </div>
                 </div>
-              } @if (!isLoading() && !projet()) {
+
+                <section class="flex flex-col gap-3" aria-label="Parcours de progression">
+                  <div>
+                    <h2 class="text-base font-bold text-ink">Le chemin de progression</h2>
+                    <p class="mt-1 text-xs leading-relaxed text-ink-muted">
+                      Suivez les phases, les étapes et les missions déjà réalisées par cet entrepreneur.
+                    </p>
+                  </div>
+                  @if (chargementFeuilleRoute()) {
+                    <app-loading-state message="Chargement du chemin de progression..." />
+                  } @else if (erreurFeuilleRoute()) {
+                    <div class="flex flex-col gap-3 rounded-2xl border border-warning/40 bg-warning/10 p-5 sm:flex-row sm:items-center sm:justify-between">
+                      <p class="text-sm text-ink">{{ erreurFeuilleRoute() }}</p>
+                      <button
+                        type="button"
+                        (click)="chargerFeuilleRoute(p.id)"
+                        class="shrink-0 rounded-xl border border-line bg-surface px-4 py-2 text-xs font-semibold text-ink hover:border-accent/40"
+                      >
+                        Réessayer
+                      </button>
+                    </div>
+                  } @else {
+                    <app-parcours-progress [feuilleRoute]="feuilleRoute()" />
+                  }
+                </section>
+              } @else if (!isLoading()) {
                 <div class="rounded-xl border border-dashed border-line bg-surface-muted/30 p-8 text-center flex flex-col items-center gap-3">
                   <div class="flex size-12 items-center justify-center rounded-full bg-accent-soft text-accent">
                     <app-icon name="briefcase" class="size-6" />
@@ -390,6 +427,7 @@ export class EntrepreneurDetail implements OnInit {
   private readonly projetService = inject(ProjetService);
   private readonly missionService = inject(MissionService);
   private readonly livrableService = inject(LivrableService);
+  private readonly progressionService = inject(ProgressionService);
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly entrepreneurId = this.route.snapshot.paramMap.get('id') ?? '';
@@ -401,6 +439,9 @@ export class EntrepreneurDetail implements OnInit {
   protected readonly emailCopie = signal<boolean>(false);
   protected readonly entrepreneur = signal<EntrepreneurResponse | undefined>(undefined);
   protected readonly projet = signal<Projet | undefined>(undefined);
+  protected readonly feuilleRoute = signal<FeuilleRouteProjet | null>(null);
+  protected readonly chargementFeuilleRoute = signal(false);
+  protected readonly erreurFeuilleRoute = signal<string | null>(null);
   protected readonly missions = signal<Mission[]>([]);
   protected readonly livrables = signal<Livrable[]>([]);
   protected readonly ongletActif = signal<Onglet>('progression');
@@ -450,6 +491,7 @@ export class EntrepreneurDetail implements OnInit {
           this.isLoading.set(false);
 
           if (!p?.id) return;
+          this.chargerFeuilleRoute(p.id);
 
           forkJoin({
             missions: this.missionService.getByProjet(p.id).pipe(catchError(() => of([]))),
@@ -466,6 +508,27 @@ export class EntrepreneurDetail implements OnInit {
       });
   }
 
+  protected chargerFeuilleRoute(projetId: string): void {
+      this.chargementFeuilleRoute.set(true);
+      this.erreurFeuilleRoute.set(null);
+
+      this.progressionService
+        .getFeuilleRouteProjet(projetId)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (route) => {
+            this.feuilleRoute.set(route);
+            this.chargementFeuilleRoute.set(false);
+          },
+          error: (error) => {
+            console.error('Erreur chargement du parcours de progression:', error);
+            this.erreurFeuilleRoute.set(
+              error?.error?.message ?? 'Impossible de charger le parcours pour le moment.',
+            );
+            this.chargementFeuilleRoute.set(false);
+          },
+        });
+  }
 
 
   protected ouvrirModalNouveauProjet(): void {

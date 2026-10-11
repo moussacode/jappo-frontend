@@ -10,11 +10,11 @@ import {
   selector: 'app-super-admin-layout',
   imports: [RouterOutlet, Sidebar],
   template: `
-    <div class="flex flex-col h-screen">
-      <div class="flex flex-1 overflow-hidden">
+    <div class="flex h-dvh min-h-0 flex-col">
+      <div class="flex min-h-0 flex-1 overflow-hidden">
         <app-sidebar [navItems]="navItems" />
 
-        <main class="flex-1 overflow-y-auto bg-neutral-25">
+        <main class="min-h-0 min-w-0 flex-1 overflow-y-auto bg-neutral-25">
           <router-outlet />
         </main>
       </div>

@@ -1,6 +1,6 @@
 import { Injectable, inject, signal, DestroyRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { environment } from './../../environments/environment';
 import {
@@ -30,6 +30,8 @@ export class LivrableService {
    */
   private readonly _livrables = signal<LivrableResponse[]>([]);
   readonly livrables = this._livrables.asReadonly();
+  private readonly _validationEvents = new Subject<string>();
+  readonly validationEvents = this._validationEvents.asObservable();
 
   /**
    * Mission active dont on surveille les livrables.
@@ -137,6 +139,10 @@ export class LivrableService {
       if (!existeDansMission && !apartientMissionActive) {
         // Livrable d'une autre mission, inutile de rafraîchir
         return;
+      }
+
+      if (type === 'LIVRABLE_VALIDE') {
+        this._validationEvents.next(livrableId);
       }
 
       this.refreshLivrable(livrableId);

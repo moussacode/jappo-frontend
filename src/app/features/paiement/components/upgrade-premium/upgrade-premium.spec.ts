@@ -1,17 +1,17 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { UpgradePremium } from './upgrade-premium';
+import { UpgradePremiumButton } from './upgrade-premium';
 
 describe('UpgradePremium', () => {
-  let component: UpgradePremium;
-  let fixture: ComponentFixture<UpgradePremium>;
+  let component: UpgradePremiumButton;
+  let fixture: ComponentFixture<UpgradePremiumButton>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [UpgradePremium],
+      imports: [UpgradePremiumButton],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(UpgradePremium);
+    fixture = TestBed.createComponent(UpgradePremiumButton);
     component = fixture.componentInstance;
     await fixture.whenStable();
   });

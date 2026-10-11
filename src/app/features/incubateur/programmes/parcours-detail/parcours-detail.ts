@@ -35,6 +35,8 @@ interface Confirmation {
   action: () => void;
 }
 
+type FiltreArchive = 'ACTIVES' | 'ARCHIVEES' | 'TOUTES';
+
 @Component({
   selector: 'app-parcours-detail',
   standalone: true,
@@ -127,6 +129,33 @@ interface Confirmation {
           }
         </div>
 
+        <div class="flex flex-wrap gap-4">
+          <label class="flex items-center gap-2 text-xs font-medium text-ink-muted">
+            Phases
+            <select
+              [value]="filtrePhases()"
+              (change)="filtrePhases.set($any($event.target).value)"
+              class="rounded-lg border border-line bg-surface px-2.5 py-2 text-xs text-ink focus:border-accent focus:outline-none"
+            >
+              <option value="ACTIVES">Actives</option>
+              <option value="ARCHIVEES">Archivées</option>
+              <option value="TOUTES">Toutes</option>
+            </select>
+          </label>
+          <label class="flex items-center gap-2 text-xs font-medium text-ink-muted">
+            Étapes
+            <select
+              [value]="filtreEtapes()"
+              (change)="filtreEtapes.set($any($event.target).value)"
+              class="rounded-lg border border-line bg-surface px-2.5 py-2 text-xs text-ink focus:border-accent focus:outline-none"
+            >
+              <option value="ACTIVES">Actives</option>
+              <option value="ARCHIVEES">Archivées</option>
+              <option value="TOUTES">Toutes</option>
+            </select>
+          </label>
+        </div>
+
         @if (phases().length === 0) {
           <app-empty-state iconName="layers" title="Aucune phase" description="Ce parcours ne contient encore aucune phase.">
             @if (isAdmin()) {
@@ -153,6 +182,9 @@ interface Confirmation {
                     <app-icon name="chevron-down" class="size-4 shrink-0 text-ink-muted transition-transform duration-200" [class.-rotate-90]="!phasesOuvertes().has(phase.id)" />
                     <span class="shrink-0 text-[11px] font-semibold uppercase tracking-wider text-accent">Phase {{ i + 1 }}</span>
                     <span class="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{{ phase.nom }}</span>
+                    @if (phase.archive) {
+                      <app-badge status="warning" size="sm">Archivée</app-badge>
+                    }
                   </button>
 
                   @if ((nbParcoursParPhase().get(phase.id) ?? 1) > 1) {
@@ -163,25 +195,33 @@ interface Confirmation {
                   <span class="hidden shrink-0 text-xs text-ink-muted sm:block">{{ (etapesParPhase().get(phase.id) ?? []).length }} étapes</span>
 
                   @if (isAdmin()) {
-                    <button type="button" class="${ICON_BTN}" [disabled]="premier || enCours()" (click)="deplacerPhase(i, -1)" title="Monter" aria-label="Monter la phase">
-                      <app-icon name="chevron-up" class="size-4" />
-                    </button>
-                    <button type="button" class="${ICON_BTN}" [disabled]="dernier || enCours()" (click)="deplacerPhase(i, 1)" title="Descendre" aria-label="Descendre la phase">
-                      <app-icon name="chevron-down" class="size-4" />
-                    </button>
+                    @if (!phase.archive) {
+                      <button type="button" class="${ICON_BTN}" [disabled]="premier || enCours()" (click)="deplacerPhase(i, -1)" title="Monter" aria-label="Monter la phase">
+                        <app-icon name="chevron-up" class="size-4" />
+                      </button>
+                      <button type="button" class="${ICON_BTN}" [disabled]="dernier || enCours()" (click)="deplacerPhase(i, 1)" title="Descendre" aria-label="Descendre la phase">
+                        <app-icon name="chevron-down" class="size-4" />
+                      </button>
+                    }
                     <div class="relative">
                       <button type="button" class="${ICON_BTN} text-lg leading-none" (click)="menuPhaseId.set(menuPhaseId() === phase.id ? null : phase.id)" aria-label="Actions de la phase">⋯</button>
                       @if (menuPhaseId() === phase.id) {
                         <div class="absolute right-0 top-8 z-20 w-52 overflow-hidden rounded-xl border border-line bg-surface py-1 shadow-lg">
-                          <button type="button" (click)="ouvrirEditionPhase(phase)" class="${MENU_ITEM}">
-                            <app-icon name="edit-2" class="size-4 text-ink-muted" /> Modifier
-                          </button>
-                          <button type="button" (click)="demanderRetraitPhase(phase)" class="${MENU_ITEM}">
-                            <app-icon name="arrow-left" class="size-4 text-ink-muted" /> Retirer du parcours
-                          </button>
-                          <button type="button" (click)="demanderArchivagePhase(phase)" class="${MENU_ITEM}">
-                            <app-icon name="archive" class="size-4 text-ink-muted" /> Archiver la phase
-                          </button>
+                          @if (phase.archive) {
+                            <button type="button" (click)="demanderRestaurationPhase(phase)" class="${MENU_ITEM}">
+                              <app-icon name="rotate-ccw" class="size-4 text-ink-muted" /> Restaurer la phase
+                            </button>
+                          } @else {
+                            <button type="button" (click)="ouvrirEditionPhase(phase)" class="${MENU_ITEM}">
+                              <app-icon name="edit-2" class="size-4 text-ink-muted" /> Modifier
+                            </button>
+                            <button type="button" (click)="demanderRetraitPhase(phase)" class="${MENU_ITEM}">
+                              <app-icon name="arrow-left" class="size-4 text-ink-muted" /> Retirer du parcours
+                            </button>
+                            <button type="button" (click)="demanderArchivagePhase(phase)" class="${MENU_ITEM}">
+                              <app-icon name="archive" class="size-4 text-ink-muted" /> Archiver la phase
+                            </button>
+                          }
                         </div>
                       }
                     </div>
@@ -219,7 +259,7 @@ interface Confirmation {
                     } @else {
                       <ol class="ml-3 flex flex-col border-l-2 border-line">
                         @for (etape of etapes; track etape.id; let n = $index) {
-                          <li class="relative flex items-center gap-3 py-1.5 pl-5">
+                            <li class="relative flex items-center gap-3 py-1.5 pl-5" [class.opacity-60]="etape.archive">
                             <span class="absolute -left-3.25 flex size-6 items-center justify-center rounded-full border-2 border-line bg-surface text-[11px] font-semibold text-ink-muted">{{ n + 1 }}</span>
                             <div class="min-w-0 flex-1">
                               <a
@@ -236,7 +276,14 @@ interface Confirmation {
                             <app-badge [status]="etape.obligatoire ? 'info' : 'neutral'" size="sm">
                               {{ etape.obligatoire ? 'Obligatoire' : 'Facultative' }}
                             </app-badge>
-                            @if (isAdmin()) {
+                            @if (etape.archive) {
+                              <app-badge status="warning" size="sm">Archivée</app-badge>
+                            }
+                            @if (isAdmin() && etape.archive) {
+                              <button type="button" class="${ICON_BTN}" (click)="demanderRestaurationEtape(etape)" title="Restaurer" aria-label="Restaurer l'étape">
+                                <app-icon name="rotate-ccw" class="size-4" />
+                              </button>
+                            } @else if (isAdmin() && !phase.archive) {
                               <button type="button" class="${ICON_BTN}" (click)="ouvrirEditionEtape(etape)" title="Modifier" aria-label="Modifier l'étape">
                                 <app-icon name="edit-2" class="size-4" />
                               </button>
@@ -249,7 +296,7 @@ interface Confirmation {
                       </ol>
                     }
 
-                    @if (isAdmin()) {
+                    @if (isAdmin() && !phase.archive) {
                       <div class="mt-2 flex flex-wrap gap-2">
                         <button type="button" (click)="ouvrirCreationCohortePhase(phase)" class="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-accent hover:bg-accent/10 transition-colors cursor-pointer">
                           <app-icon name="plus" class="size-3.5" /> Créer une cohorte
@@ -513,6 +560,8 @@ export class ParcoursDetailComponent implements OnInit {
   readonly menuParcours = signal(false);
   readonly menuPhaseId = signal<string | null>(null);
   readonly confirmation = signal<Confirmation | null>(null);
+  readonly filtrePhases = signal<FiltreArchive>('ACTIVES');
+  readonly filtreEtapes = signal<FiltreArchive>('ACTIVES');
 
   // Modals
   readonly modalPhase = signal(false);
@@ -553,14 +602,16 @@ export class ParcoursDetailComponent implements OnInit {
 
   readonly phases = computed<ParcoursPhase[]>(() =>
     [...(this.parcours()?.phases ?? [])]
-      .filter(p => !p.archive)
+      .filter(p => this.filtrePhases() === 'TOUTES'
+        || (this.filtrePhases() === 'ARCHIVEES' ? p.archive : !p.archive))
       .sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0)),
   );
 
   readonly etapesParPhase = computed(() => {
     const map = new Map<string, Etape[]>();
     for (const e of this.toutesEtapes()) {
-      if (e.archive) continue;
+      if (this.filtreEtapes() === 'ARCHIVEES' && !e.archive) continue;
+      if (this.filtreEtapes() === 'ACTIVES' && e.archive) continue;
       const liste = map.get(e.phaseId) ?? [];
       liste.push(e);
       map.set(e.phaseId, liste);
@@ -911,6 +962,19 @@ export class ParcoursDetailComponent implements OnInit {
     });
   }
 
+  demanderRestaurationPhase(phase: Phase): void {
+    this.confirmer({
+      titre: 'Restaurer cette phase ?',
+      message: `« ${phase.nom} » redeviendra active et sera visible dans les parcours qui la référencent.`,
+      label: 'Restaurer',
+      action: () =>
+        this.phaseService.restaurerPhase(phase.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+          next: () => this.recharger(),
+          error: () => this.erreurAction('Impossible de restaurer la phase.'),
+        }),
+    });
+  }
+
   // --- Étapes ---
   ouvrirCreationEtape(phase: Phase): void {
     this.preparerModal();
@@ -984,6 +1048,19 @@ export class ParcoursDetailComponent implements OnInit {
         this.etapeService.archiverEtape(etape.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: () => this.recharger(),
           error: () => this.erreurAction("Impossible d'archiver l'étape."),
+        }),
+    });
+  }
+
+  demanderRestaurationEtape(etape: Etape): void {
+    this.confirmer({
+      titre: 'Restaurer cette étape ?',
+      message: `« ${etape.nom} » redeviendra visible dans sa phase.`,
+      label: 'Restaurer',
+      action: () =>
+        this.etapeService.restaurerEtape(etape.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+          next: () => this.recharger(),
+          error: () => this.erreurAction("Impossible de restaurer l'étape."),
         }),
     });
   }

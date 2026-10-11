@@ -1,7 +1,7 @@
 import { Component, inject, signal, computed, OnInit, DestroyRef } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DatePipe } from '@angular/common';
-import { Router } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
@@ -12,16 +12,18 @@ import { EtapeService } from '../../../../core/services/etape.service';
 import { Programme, Etape } from '../../../../core/models/parcours.model';
 import { Parcours } from '../../../../core/models/cohorte.model';
 import { StructureContextService } from '../../../../core/services/structure-context.service';
-import { INPUT_CLASS } from '../constants';
 
 import { Icon } from '../../../../shared/components/icon/icon';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state';
+import { LoadingState } from '../../../../shared/components/loading-state/loading-state';
 import { BadgeComponent } from '../../../../shared/components/badge/badge';
 import { TabFilterComponent, TabOption } from '../../../../shared/components/tab-filter/tab-filter.component';
 import { ModalComponent } from '../../../../shared/components/modal/modal.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { CardComponent } from '../../../../shared/components/card/card.component';
+import { FormFieldComponent } from '../../../../shared/components/input/form-field.component';
+import { InputComponent } from '../../../../shared/components/input/input.component';
 
 type FiltreStatut = 'ACTIFS' | 'ARCHIVES' | 'TOUS';
 
@@ -38,15 +40,19 @@ interface ProgrammeStats {
   standalone: true,
   imports: [
     ReactiveFormsModule,
+    RouterLink,
     DatePipe,
     Icon,
     ButtonComponent,
     EmptyStateComponent,
+    LoadingState,
     BadgeComponent,
     TabFilterComponent,
     ModalComponent,
     PageHeaderComponent,
     CardComponent,
+    FormFieldComponent,
+    InputComponent,
   ],
   host: { '(document:keydown.escape)': 'menuOuvertId.set(null)' },
   template: `
@@ -58,14 +64,14 @@ interface ProgrammeStats {
       >
         @if (isAdmin()) {
           <app-button size="sm" (click)="ouvrirEditeur(null)">
-            <app-icon name="plus" class="size-4" />
-            <span>Nouveau programme</span>
+            <app-icon name="plus" class="mr-1.5 size-4" />
+            Nouveau programme
           </app-button>
         }
       </app-page-header>
 
       @if (erreurAction()) {
-        <div class="flex items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-xs text-rose-600" role="alert">
+        <div class="flex items-center gap-2 rounded-card border border-danger/40 bg-danger/10 p-3 text-xs text-danger" role="alert">
           <app-icon name="warning" class="size-4 shrink-0" />
           <span>{{ erreurAction() }}</span>
         </div>
@@ -80,20 +86,19 @@ interface ProgrammeStats {
         />
         <div class="relative w-full sm:w-72">
           <input
-            type="text"
+            type="search"
             [value]="recherche()"
             (input)="recherche.set($any($event.target).value)"
+            aria-label="Rechercher un programme"
             placeholder="Rechercher un programme..."
-            class="${INPUT_CLASS} pr-9"
+            class="w-full rounded-input border border-input-border bg-surface py-2.5 pl-3 pr-9 text-sm text-ink placeholder:text-ink-faint focus-visible:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           />
           <app-icon name="search" class="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-ink-muted" />
         </div>
       </div>
 
       @if (loading()) {
-        <div class="flex items-center justify-center py-16">
-          <div class="h-8 w-8 animate-spin rounded-full border-4 border-accent border-t-transparent"></div>
-        </div>
+        <app-loading-state message="Chargement des programmes..." />
       } @else if (programmesFiltres().length === 0) {
         <app-empty-state
           iconName="folder"
@@ -102,7 +107,7 @@ interface ProgrammeStats {
         >
           @if (isAdmin() && !recherche()) {
             <app-button size="sm" (click)="ouvrirEditeur(null)">
-              <app-icon name="plus" class="size-4" />
+              <app-icon name="plus" class="mr-1.5 size-4" />
               Créer un programme
             </app-button>
           }
@@ -110,55 +115,59 @@ interface ProgrammeStats {
       } @else {
         <!-- Fond invisible : ferme le menu ⋯ au clic extérieur -->
         @if (menuOuvertId()) {
-          <div class="fixed inset-0 z-10" (click)="menuOuvertId.set(null)"></div>
+          <div class="fixed inset-0 z-10" aria-hidden="true" (click)="menuOuvertId.set(null)"></div>
         }
 
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <ul class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           @for (programme of programmesFiltres(); track programme.id) {
             @let s = stats().get(programme.id);
-            <div
-              class="group relative h-full cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 rounded-2xl"
-              role="link"
-              tabindex="0"
-              (click)="ouvrirDetail(programme.id)"
-              (keydown.enter)="ouvrirDetail(programme.id)"
-            >
+            <li class="group relative h-full">
               <app-card padding="md" [hoverable]="true" class="flex h-full flex-col gap-4">
 
                 <!-- En-tête -->
                 <div class="flex items-start justify-between gap-3">
                   <div class="min-w-0 flex-1">
-                    <h3 class="truncate text-base font-semibold text-ink group-hover:text-accent transition-colors">{{ programme.nom }}</h3>
+                    <!-- Lien étiré : toute la carte reste cliquable, sans interactif imbriqué -->
+                    <h2 class="truncate text-base font-semibold text-ink transition-colors group-hover:text-accent">
+                      <a
+                        [routerLink]="['/incubateur/programmes', programme.id]"
+                        class="rounded-input after:absolute after:inset-0 after:rounded-card focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-accent"
+                      >{{ programme.nom }}</a>
+                    </h2>
                     @if (programme.description) {
                       <p class="mt-1 line-clamp-2 text-sm text-ink-muted">{{ programme.description }}</p>
                     }
                   </div>
-                  <div class="flex shrink-0 items-center gap-1.5">
+                  <div class="relative z-20 flex shrink-0 items-center gap-1.5">
                     <app-badge [status]="programme.archive ? 'warning' : 'success'" size="sm">
                       {{ programme.archive ? 'Archivé' : 'Actif' }}
                     </app-badge>
 
                     @if (isAdmin()) {
-                      <div class="relative" (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()">
+                      <div class="relative">
                         <button
                           type="button"
                           (click)="toggleMenu(programme.id)"
-                          class="flex size-7 items-center justify-center rounded-lg text-lg leading-none text-ink-muted hover:bg-surface-muted hover:text-ink transition-colors cursor-pointer"
+                          class="flex size-8 cursor-pointer items-center justify-center rounded-button text-lg leading-none text-ink-muted transition-colors hover:bg-surface-subtle hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                           aria-label="Actions du programme"
+                          aria-haspopup="menu"
                           [attr.aria-expanded]="menuOuvertId() === programme.id"
-                        >⋯</button>
+                        ><span aria-hidden="true">⋯</span></button>
 
                         @if (menuOuvertId() === programme.id) {
-                          <div class="absolute right-0 top-8 z-20 w-44 overflow-hidden rounded-xl border border-line bg-surface py-1 shadow-lg">
-                            <button type="button" (click)="ouvrirEditeur(programme)" class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink hover:bg-surface-muted cursor-pointer">
+                          <div role="menu" class="absolute right-0 top-9 z-20 w-44 overflow-hidden rounded-card border border-line bg-surface py-1 shadow-subtle">
+                            <button type="button" role="menuitem" (click)="ouvrirEditeur(programme)"
+                              class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-sm text-ink transition-colors hover:bg-surface-subtle focus-visible:bg-surface-subtle focus-visible:outline-none">
                               <app-icon name="edit-2" class="size-4 text-ink-muted" /> Modifier
                             </button>
                             @if (programme.archive) {
-                              <button type="button" (click)="restaurer(programme)" class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink hover:bg-surface-muted cursor-pointer">
+                              <button type="button" role="menuitem" (click)="restaurer(programme)"
+                                class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-sm text-ink transition-colors hover:bg-surface-subtle focus-visible:bg-surface-subtle focus-visible:outline-none">
                                 <app-icon name="rotate-ccw" class="size-4 text-ink-muted" /> Restaurer
                               </button>
                             } @else {
-                              <button type="button" (click)="demanderArchivage(programme)" class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink hover:bg-surface-muted cursor-pointer">
+                              <button type="button" role="menuitem" (click)="demanderArchivage(programme)"
+                                class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-sm text-ink transition-colors hover:bg-surface-subtle focus-visible:bg-surface-subtle focus-visible:outline-none">
                                 <app-icon name="archive" class="size-4 text-ink-muted" /> Archiver
                               </button>
                             }
@@ -170,10 +179,10 @@ interface ProgrammeStats {
                 </div>
 
                 <!-- Chiffres clés -->
-                <div class="grid grid-cols-3 gap-2 rounded-xl border border-line bg-surface-muted/40 p-3 text-center">
+                <div class="grid grid-cols-3 gap-2 rounded-card border border-line bg-surface-muted p-3 mt-4 mb-4 text-center">
                   <div>
                     <p class="text-lg font-semibold text-ink">{{ s ? s.parcours : programme.parcoursIds.length }}</p>
-                    <p class="text-[11px] text-ink-muted">{{ (s ? s.parcours : programme.parcoursIds.length) > 1 ? 'Parcours' : 'Parcours' }}</p>
+                    <p class="text-[11px] text-ink-muted">Parcours</p>
                   </div>
                   <div>
                     <p class="text-lg font-semibold text-ink">{{ s?.detail ? s!.phases : '—' }}</p>
@@ -186,21 +195,21 @@ interface ProgrammeStats {
                 </div>
 
                 <!-- Pied -->
-                <div class="mt-auto flex items-center justify-between gap-2 text-xs text-ink-muted">
+                <div class="mt-auto flex flex-wrap items-center justify-between gap-2 text-xs text-ink-muted">
                   <span class="flex items-center gap-1.5">
                     <app-icon name="calendar" class="size-3.5" />
                     Modifié le {{ (programme.dateModification || programme.dateCreation) | date:'dd/MM/yyyy' }}
                   </span>
                   @if (s?.detail && s!.parcoursSansPhase > 0) {
-                    <span class="text-amber-600">
+                    <app-badge status="warning" size="sm">
                       {{ s!.parcoursSansPhase }} parcours sans phase
-                    </span>
+                    </app-badge>
                   }
                 </div>
               </app-card>
-            </div>
+            </li>
           }
-        </div>
+        </ul>
       }
 
       <!-- Modal création / édition -->
@@ -212,22 +221,25 @@ interface ProgrammeStats {
         >
           <form [formGroup]="form" (ngSubmit)="soumettre()" class="flex flex-col gap-4">
             @if (erreurModal()) {
-              <div class="flex items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-xs text-rose-600" role="alert">
+              <div class="flex items-center gap-2 rounded-card border border-danger/40 bg-danger/10 p-3 text-xs text-danger" role="alert">
                 <app-icon name="warning" class="size-4 shrink-0" />
                 <span>{{ erreurModal() }}</span>
               </div>
             }
-            <div>
-              <label class="mb-1.5 block text-sm font-medium text-ink">Nom *</label>
-              <input type="text" formControlName="nom" placeholder="Ex : Pré-incubation" class="${INPUT_CLASS}" />
-              @if (form.controls.nom.invalid && form.controls.nom.touched) {
-                <p class="mt-1 text-xs text-rose-600">Le nom est obligatoire</p>
-              }
-            </div>
-            <div>
-              <label class="mb-1.5 block text-sm font-medium text-ink">Description</label>
-              <textarea formControlName="description" rows="3" placeholder="À quoi sert ce programme ?" class="${INPUT_CLASS}"></textarea>
-            </div>
+
+            <app-form-field label="Nom" [required]="true" [error]="erreurNom()">
+              <app-input formControlName="nom" placeholder="Ex : Pré-incubation" />
+            </app-form-field>
+
+            <app-form-field label="Description">
+              <textarea
+                formControlName="description"
+                rows="3"
+                placeholder="À quoi sert ce programme ?"
+                class="w-full resize-none rounded-input border border-input-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus-visible:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              ></textarea>
+            </app-form-field>
+
             <div class="flex justify-end gap-2 pt-2">
               <app-button type="button" variant="ghost" (click)="fermerModal()">Annuler</app-button>
               <app-button type="submit" [disabled]="form.invalid || enCours()">
@@ -261,7 +273,6 @@ export class ProgrammesListComponent implements OnInit {
   private readonly parcoursService = inject(ParcoursService);
   private readonly etapeService = inject(EtapeService);
   private readonly structureCtx = inject(StructureContextService);
-  private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly programmes = signal<Programme[]>([]);
@@ -346,12 +357,21 @@ export class ProgrammesListComponent implements OnInit {
 
   ngOnInit(): void {
     this.charger();
-
-    
   }
-onFiltreChange(value: string): void {
-  this.filtreStatut.set(value as FiltreStatut);
-}
+
+  onFiltreChange(value: string): void {
+    this.filtreStatut.set(value as FiltreStatut);
+  }
+
+  /** Message d'erreur du champ « nom » (affiché une fois le champ touché). */
+  erreurNom(): string {
+    const nom = this.form.controls.nom;
+    if (!nom.touched) return '';
+    if (nom.hasError('required')) return 'Le nom est obligatoire';
+    if (nom.hasError('maxlength')) return '150 caractères maximum';
+    return '';
+  }
+
   charger(): void {
     this.loading.set(true);
     forkJoin({
@@ -377,10 +397,6 @@ onFiltreChange(value: string): void {
 
   toggleMenu(id: string): void {
     this.menuOuvertId.set(this.menuOuvertId() === id ? null : id);
-  }
-
-  ouvrirDetail(id: string): void {
-    this.router.navigate(['/incubateur/programmes', id]);
   }
 
   ouvrirEditeur(programme: Programme | null): void {

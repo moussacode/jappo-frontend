@@ -31,13 +31,17 @@ import { Icon } from '../../../../shared/components/icon/icon';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 import { BadgeComponent } from '../../../../shared/components/badge/badge';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state';
 import { CardComponent } from '../../../../shared/components/card/card.component';
+import { FormFieldComponent } from '../../../../shared/components/input/form-field.component';
 
 import { ModalComponent } from '../../../../shared/components/modal/modal.component';
 import { LoadingState } from '../../../../shared/components/loading-state/loading-state';
+import { ErrorState } from '../../../../shared/components/error-state/error-state';
 
 type OngletId = 'projets' | 'missions' | 'ressources' | 'reunions';
+type BadgeVariant = 'primary' | 'warning' | 'success' | 'danger' | 'info' | 'neutral' | 'purple' | 'pink';
 
 interface MissionNonValidee { titre: string; statut: string; }
 interface Promotion409 {
@@ -67,63 +71,73 @@ interface LigneSuivi {
   standalone: true,
   imports: [
     RouterLink, FormsModule, DatePipe,
-    Icon, ButtonComponent, BadgeComponent, PageHeaderComponent,
-    EmptyStateComponent, CardComponent, ModalComponent,
-    LoadingState
+    Icon, ButtonComponent, BadgeComponent, PageHeaderComponent, BreadcrumbComponent,
+    EmptyStateComponent, CardComponent, ModalComponent, FormFieldComponent,
+    LoadingState, ErrorState
 ],
   template: `
 <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
 
   <!-- Chargement -->
   @if (chargement()) {
-    <app-loading-state message="Chargement de la cohorte..." />
+    <app-loading-state title="Chargement de la cohorte..." />
+  }
+
+  <!-- Cohorte introuvable / erreur de chargement -->
+  @if (!chargement() && !cohorte()) {
+    <app-empty-state
+      iconName="users"
+      title="Cohorte introuvable"
+      description="Cette cohorte n'existe pas ou n'a pas pu être chargée."
+    >
+      <a routerLink="/incubateur/cohortes"
+         class="text-sm font-medium text-accent hover:text-accent-strong hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-input">
+        Retour aux cohortes
+      </a>
+    </app-empty-state>
   }
 
   @if (!chargement() && cohorte()) {
 
     <!-- En-tête -->
-    <div class="flex flex-col sm:flex-row sm:items-start gap-4">
-      <div class="flex-1 min-w-0">
-        <!-- Breadcrumb -->
-        <nav class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 mb-2">
-          <a routerLink="/incubateur/cohortes" class="hover:text-indigo-500">Cohortes</a>
-          <app-icon name="chevron-right" class="w-3 h-3" />
-          <span class="text-gray-400">{{ cohorte()!.nom }}</span>
-        </nav>
-        <h1 class="text-xl font-bold text-gray-900 dark:text-white truncate">{{ cohorte()!.nom }}</h1>
-        <div class="flex items-center gap-2 mt-1 flex-wrap">
-          <span class="text-sm text-indigo-600 dark:text-indigo-400 font-medium">
-            {{ cohorte()!.phase?.nom ?? 'Phase inconnue' }}
-          </span>
-          <span class="text-sm text-gray-500 dark:text-gray-400">{{ projets().length }} projet(s)</span>
-          @if (cohorte()?.coachs && cohorte()!.coachs!.length > 0) {
-            <span class="text-gray-400">·</span>
-            <span class="text-sm text-indigo-600 dark:text-indigo-400 font-medium">
-              Coach{{ cohorte()!.coachs!.length > 1 ? 's' : '' }} : {{ getCoachNames() }}
-            </span>
-          }
-        </div>
-      </div>
-      <div class="flex items-center gap-2 flex-shrink-0">
+    <header class="flex flex-col gap-3">
+      <app-breadcrumb [items]="[{ label: 'Cohortes', url: '/incubateur/cohortes' }, { label: cohorte()!.nom }]" />
+
+      <app-page-header [title]="cohorte()!.nom">
         @if (isAdmin()) {
           <app-button variant="secondary" size="sm" (click)="ouvrirInvitation()">
-            <app-icon name="plus" class="w-4 h-4 mr-1" />
+            <app-icon name="plus" class="mr-1 h-4 w-4" />
             Inviter des entrepreneurs
           </app-button>
         }
+      </app-page-header>
+
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-ink-muted">
+        <app-badge status="primary">{{ cohorte()!.phase?.nom ?? 'Phase inconnue' }}</app-badge>
+        <span>{{ projets().length }} projet(s)</span>
+        @if (cohorte()?.coachs && cohorte()!.coachs!.length > 0) {
+          <span aria-hidden="true" class="text-ink-faint">·</span>
+          <span>
+            Coach{{ cohorte()!.coachs!.length > 1 ? 's' : '' }} :
+            <span class="font-medium text-ink">{{ getCoachNames() }}</span>
+          </span>
+        }
       </div>
-    </div>
+    </header>
 
     <!-- Onglets -->
-    <div class="border-b border-gray-200 dark:border-white/10">
-      <nav class="flex gap-1 -mb-px">
+    <div class="border-b border-line">
+      <nav class="-mb-px flex gap-1 overflow-x-auto" role="tablist" aria-label="Sections de la cohorte">
         @for (onglet of onglets; track onglet.id) {
           <button
+            type="button"
+            role="tab"
+            [attr.aria-selected]="ongletActif() === onglet.id"
             (click)="changerOnglet(onglet.id)"
-            class="px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap"
+            class="whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             [class]="ongletActif() === onglet.id
-              ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'"
+              ? 'border-accent text-accent'
+              : 'border-transparent text-ink-muted hover:border-line-strong hover:text-ink'"
           >
             {{ onglet.label }}
           </button>
@@ -133,98 +147,101 @@ interface LigneSuivi {
 
     <!-- ─── ONGLET PROJETS ─── -->
     @if (ongletActif() === 'projets') {
-      <div class="flex flex-col gap-4">
+      <section class="flex flex-col gap-4" aria-label="Projets de la cohorte">
 
         @if (chargementProjets()) {
-          <app-loading-state message="Chargement des projets..." />
+          <app-loading-state title="Chargement des projets..." />
         } @else if (projets().length === 0) {
           <app-empty-state
-            icon="users"
+            iconName="users"
             title="Aucun projet dans cette cohorte"
             description="Invitez des entrepreneurs pour créer des projets."
           />
         } @else {
-          <!-- Tableau projets -->
-          <div class="rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 overflow-hidden">
-            <table class="w-full text-sm">
-              <thead class="bg-gray-50 dark:bg-white/5 border-b border-gray-200 dark:border-white/10">
-                <tr>
-                  <th class="w-10 px-4 py-3">
-                    <input type="checkbox"
-                      [checked]="tousSelectionnes()"
-                      (change)="toggleTousSelectionnes($event)"
-                      class="rounded border-gray-300 text-indigo-600" />
-                  </th>
-                  <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Projet</th>
-                  <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400 hidden sm:table-cell">Entrepreneur</th>
-                  <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400 hidden md:table-cell">Score</th>
-                  <th class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Missions</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-100 dark:divide-white/5">
-                @for (p of projets(); track p.id) {
-                  <tr class="hover:bg-gray-50 dark:hover:bg-white/5">
-                    <td class="px-4 py-3">
-                      <input type="checkbox"
-                        [checked]="selectionnes().has(p.id)"
-                        (change)="toggleSelection(p.id)"
-                        class="rounded border-gray-300 text-indigo-600" />
-                    </td>
-                    <td class="px-4 py-3">
-                      <a [routerLink]="['/incubateur/projets', p.id]" class="font-medium text-gray-900 dark:text-white hover:text-indigo-500">
-                        {{ p.nom }}
-                      </a>
-                    </td>
-                    <td class="px-4 py-3 text-gray-500 dark:text-gray-400 hidden sm:table-cell">{{ p.nomEntrepreneur ?? '—' }}</td>
-                    <td class="px-4 py-3 hidden md:table-cell">
-                      <span class="text-gray-700 dark:text-gray-300 font-mono text-xs">{{ p.scoreMaturite ?? '—' }}</span>
-                    </td>
-                    <td class="px-4 py-3">
-                      @if ((p.nombreMissionsTotal ?? 0) > 0) {
-                        <span class="text-xs" [class]="
-                          p.nombreMissionsValidees === p.nombreMissionsTotal
-                            ? 'text-green-600 dark:text-green-400 font-semibold'
-                            : 'text-gray-600 dark:text-gray-400'
-                        ">
-                          {{ p.nombreMissionsValidees ?? 0 }}/{{ p.nombreMissionsTotal }}
-                        </span>
-                      } @else {
-                        <span class="text-xs text-gray-400">—</span>
-                      }
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Bouton promouvoir -->
+          <!-- Barre de sélection / promotion -->
           @if (isAdminOrCoach() && selectionnes().size > 0) {
-            <div class="flex justify-end">
-              <app-button variant="primary" (click)="ouvrirPromotion()">
-                <!-- <app-icon name="arrow-up-circle" class="w-4 h-4 mr-1" /> -->
+            <div class="flex flex-wrap items-center justify-between gap-3 rounded-card border border-accent/30 bg-accent-soft px-4 py-3">
+              <p class="text-sm font-medium text-ink">{{ selectionnes().size }} projet(s) sélectionné(s)</p>
+              <app-button variant="primary" size="sm" (click)="ouvrirPromotion()">
                 Promouvoir la sélection ({{ selectionnes().size }})
               </app-button>
             </div>
           }
+
+          <!-- Tableau projets -->
+          <app-card padding="none">
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="border-b border-line bg-surface-subtle">
+                  <tr>
+                    <th scope="col" class="w-10 px-4 py-3">
+                      <input type="checkbox"
+                        aria-label="Sélectionner tous les projets"
+                        [checked]="tousSelectionnes()"
+                        (change)="toggleTousSelectionnes($event)"
+                        class="size-4 rounded border-input-border accent-accent" />
+                    </th>
+                    <th scope="col" class="px-4 py-3 text-left font-medium text-ink-muted">Projet</th>
+                    <th scope="col" class="hidden px-4 py-3 text-left font-medium text-ink-muted sm:table-cell">Entrepreneur</th>
+                    <th scope="col" class="hidden px-4 py-3 text-left font-medium text-ink-muted md:table-cell">Score</th>
+                    <th scope="col" class="px-4 py-3 text-left font-medium text-ink-muted">Missions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-line">
+                  @for (p of projets(); track p.id) {
+                    <tr class="transition-colors hover:bg-surface-subtle">
+                      <td class="px-4 py-3">
+                        <input type="checkbox"
+                          [attr.aria-label]="'Sélectionner ' + p.nom"
+                          [checked]="selectionnes().has(p.id)"
+                          (change)="toggleSelection(p.id)"
+                          class="size-4 rounded border-input-border accent-accent" />
+                      </td>
+                      <td class="px-4 py-3">
+                        <a [routerLink]="['/incubateur/projets', p.id]"
+                           class="font-medium text-ink hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-input">
+                          {{ p.nom }}
+                        </a>
+                      </td>
+                      <td class="hidden px-4 py-3 text-ink-muted sm:table-cell">{{ p.nomEntrepreneur ?? '—' }}</td>
+                      <td class="hidden px-4 py-3 md:table-cell">
+                        <span class="font-mono text-xs text-ink">{{ p.scoreMaturite ?? '—' }}</span>
+                      </td>
+                      <td class="px-4 py-3">
+                        @if ((p.nombreMissionsTotal ?? 0) > 0) {
+                          @if (p.nombreMissionsValidees === p.nombreMissionsTotal) {
+                            <app-badge status="success">{{ p.nombreMissionsValidees ?? 0 }}/{{ p.nombreMissionsTotal }}</app-badge>
+                          } @else {
+                            <span class="text-xs text-ink-muted">{{ p.nombreMissionsValidees ?? 0 }}/{{ p.nombreMissionsTotal }}</span>
+                          }
+                        } @else {
+                          <span class="text-xs text-ink-faint">—</span>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </app-card>
         }
-      </div>
+      </section>
     }
 
     <!-- ─── ONGLET MISSIONS ─── -->
     @if (ongletActif() === 'missions') {
-      <div class="flex flex-col gap-4">
+      <section class="flex flex-col gap-4" aria-label="Suivi des missions">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 class="text-base font-semibold text-gray-900 dark:text-white">Suivi par phase et étape</h2>
-            <p class="text-xs text-gray-500 dark:text-gray-400">
+          <div class="min-w-0">
+            <h2 class="text-base font-semibold text-ink">Suivi par phase et étape</h2>
+            <p class="text-xs text-ink-muted">
               {{ cohorte()!.phase?.nom ?? 'Phase non définie' }} · missions et remises des projets de cette cohorte
             </p>
           </div>
-          <div class="flex items-center gap-3">
-            <label class="text-xs text-gray-500 dark:text-gray-400" for="filtre-suivi">Filtrer les entrepreneurs</label>
+          <div class="flex flex-wrap items-center gap-3">
+            <label class="text-xs text-ink-muted" for="filtre-suivi">Filtrer les entrepreneurs</label>
             <select id="filtre-suivi" [ngModel]="filtreSuivi()" (ngModelChange)="filtreSuivi.set($event)"
-              class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 dark:border-white/10 dark:bg-gray-900 dark:text-white">
+              class="rounded-input border border-input-border bg-surface px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
               <option value="TOUS">Tous les statuts</option>
               <option value="NON_SOUMIS">Non soumis</option>
               <option value="SOUMIS">Soumis / à évaluer</option>
@@ -232,81 +249,66 @@ interface LigneSuivi {
               <option value="VALIDE">Validé</option>
               <option value="EN_RETARD">En retard</option>
             </select>
-            <a [routerLink]="['/incubateur/missions']" [queryParams]="{cohorteId: cohorteId()}" class="text-sm text-indigo-500 hover:underline">
+            <a [routerLink]="['/incubateur/missions']" [queryParams]="{cohorteId: cohorteId()}"
+               class="text-sm font-medium text-accent hover:text-accent-strong hover:underline">
               Toutes les missions →
             </a>
           </div>
         </div>
+
         @if (chargementMissions()) {
-          <app-loading-state message="Chargement du suivi des missions..." />
+          <app-loading-state title="Chargement du suivi des missions..." />
         } @else if (erreurSuiviMissions()) {
-          <div role="alert" class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300">
-            {{ erreurSuiviMissions() }}
-          </div>
+          <app-error-state [description]="erreurSuiviMissions()!" (retry)="chargerMissions()" />
         } @else if (etapesSuivi().length === 0 && missionsSansEtape().length === 0) {
-          <app-empty-state icon="check-square" title="Aucune mission dans cette phase" description="Aucune mission n’est encore associée aux étapes ou à cette cohorte." />
+          <app-empty-state iconName="check-circle" title="Aucune mission dans cette phase" description="Aucune mission n’est encore associée aux étapes ou à cette cohorte." />
         } @else {
-          <section class="rounded-xl border border-indigo-200 bg-indigo-50/60 p-4 dark:border-indigo-500/20 dark:bg-indigo-500/5">
-            <div class="flex flex-wrap items-center justify-between gap-2">
+
+          <!-- Accès à la phase -->
+          <app-card variant="muted" padding="md">
+            <div class="flex flex-col gap-3">
               <div>
-                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Accès à la phase pour les projets</h3>
-                <p class="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                <h3 class="text-sm font-semibold text-ink">Accès à la phase pour les projets</h3>
+                <p class="mt-1 text-xs text-ink-muted">
                   États calculés par la progression de chaque projet ; aucun accès n’est modifié depuis cet écran.
                 </p>
               </div>
-              <div class="flex flex-wrap gap-2 text-xs">
-                <span class="rounded-full bg-blue-100 px-2 py-1 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300">
-                  {{ nombreStatutPhase('EN_COURS') }} en cours
-                </span>
-                <span class="rounded-full bg-gray-100 px-2 py-1 text-gray-700 dark:bg-white/10 dark:text-gray-300">
-                  {{ nombreStatutPhase('NON_DEMARREE') }} non démarrée
-                </span>
-                <span class="rounded-full bg-amber-100 px-2 py-1 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
-                  {{ nombreStatutPhase('A_ACTIVER') }} à activer
-                </span>
-                <span class="rounded-full bg-gray-100 px-2 py-1 text-gray-700 dark:bg-white/10 dark:text-gray-300">
-                  {{ nombreStatutPhase('VERROUILLEE') }} verrouillée
-                </span>
-                <span class="rounded-full bg-emerald-100 px-2 py-1 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
-                  {{ nombreStatutPhase('TERMINEE') }} terminée
-                </span>
-                <span class="rounded-full bg-amber-50 px-2 py-1 text-amber-800 dark:bg-amber-500/10 dark:text-amber-200">
-                  {{ nombreStatutPhase('INCOMPLETE') }} incomplète
-                </span>
-                <span class="rounded-full bg-gray-100 px-2 py-1 text-gray-700 dark:bg-white/10 dark:text-gray-300">
-                  {{ nombreStatutPhase('ARCHIVEE') }} archivée
-                </span>
+              <div class="flex flex-wrap gap-2">
+                @for (s of statutsPhase; track s.statut) {
+                  <app-badge [status]="s.variant">{{ nombreStatutPhase(s.statut) }} {{ s.label }}</app-badge>
+                }
+              </div>
+              <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                @for (projet of projets(); track projet.id) {
+                  <div class="rounded-button border border-line bg-surface px-3 py-2">
+                    <div class="flex items-center justify-between gap-2">
+                      <span class="truncate text-xs font-medium text-ink">{{ projet.nom }}</span>
+                      <app-badge [status]="varianteAcces(statutPhaseProjet(projet.id))">
+                        {{ libelleAcces(statutPhaseProjet(projet.id)) }}
+                      </app-badge>
+                    </div>
+                    @if (motifPhaseProjet(projet.id)) {
+                      <p class="mt-1 text-[11px] text-ink-muted">{{ motifPhaseProjet(projet.id) }}</p>
+                    }
+                  </div>
+                } @empty {
+                  <p class="text-xs text-ink-muted">Aucun projet actif dans cette cohorte.</p>
+                }
               </div>
             </div>
-            <div class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              @for (projet of projets(); track projet.id) {
-                <div class="rounded-lg border border-indigo-100 bg-white px-3 py-2 dark:border-white/10 dark:bg-white/5">
-                  <div class="flex items-center justify-between gap-2">
-                    <span class="truncate text-xs font-medium text-gray-800 dark:text-gray-200">{{ projet.nom }}</span>
-                    <span class="shrink-0 rounded-full px-2 py-1 text-[10px] font-semibold"
-                      [class]="classeAcces(statutPhaseProjet(projet.id))">
-                      {{ libelleAcces(statutPhaseProjet(projet.id)) }}
-                    </span>
-                  </div>
-                  @if (motifPhaseProjet(projet.id)) {
-                    <p class="mt-1 text-[10px] text-gray-500 dark:text-gray-400">{{ motifPhaseProjet(projet.id) }}</p>
-                  }
-                </div>
-              } @empty {
-                <p class="text-xs text-gray-500 dark:text-gray-400">Aucun projet actif dans cette cohorte.</p>
-              }
-            </div>
-          </section>
+          </app-card>
+
+          <!-- Étapes -->
           @for (etape of etapesSuivi(); track etape.id) {
-            <details class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/10 dark:bg-white/5" open>
-              <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-white/5">
+            <details class="overflow-hidden rounded-card border border-line bg-surface" open>
+              <summary class="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent">
                 <span class="min-w-0">
-                  <span class="block truncate text-sm font-semibold text-gray-900 dark:text-white">{{ etape.ordre }}. {{ etape.nom }}</span>
+                  <span class="block truncate text-sm font-semibold text-ink">{{ etape.ordre }}. {{ etape.nom }}</span>
                   @if (etape.description) {
-                    <span class="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">{{ etape.description }}</span>
+                    <span class="mt-0.5 block text-xs text-ink-muted">{{ etape.description }}</span>
                   }
                 </span>
-                <span class="shrink-0 text-xs text-gray-500 dark:text-gray-400">
+                <span class="shrink-0 text-xs text-ink-muted">
                   {{ nombreStatutEtape(etape.id, 'ACCESSIBLE') + nombreStatutEtape(etape.id, 'ACTIVE') }} accessible(s) ·
                   {{ nombreStatutEtape(etape.id, 'A_ACTIVER') }} à activer ·
                   {{ nombreStatutEtape(etape.id, 'VERROUILLEE') }} verrouillée(s) ·
@@ -314,100 +316,109 @@ interface LigneSuivi {
                   {{ nombreStatutEtape(etape.id, 'ARCHIVEE') }} archivée(s)
                 </span>
               </summary>
-              <div class="space-y-2 border-t border-gray-100 p-3 dark:border-white/10">
-                <details class="rounded-lg border border-gray-100 bg-gray-50/70 dark:border-white/10 dark:bg-black/10">
-                  <summary class="cursor-pointer px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300">
+
+              <div class="space-y-2 border-t border-line p-3">
+                <!-- État de l'étape par projet -->
+                <details class="rounded-button border border-line bg-surface-muted">
+                  <summary class="cursor-pointer px-3 py-2 text-xs font-medium text-ink-muted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
                     Voir l’état de l’étape par projet
                   </summary>
-                  <div class="grid gap-2 border-t border-gray-100 p-3 sm:grid-cols-2 lg:grid-cols-3 dark:border-white/10">
+                  <div class="grid gap-2 border-t border-line p-3 sm:grid-cols-2 lg:grid-cols-3">
                     @for (projet of projets(); track projet.id) {
-                      <div class="flex flex-col gap-1 rounded-lg bg-white px-3 py-2 dark:bg-white/5">
+                      <div class="flex flex-col gap-1 rounded-button border border-line bg-surface px-3 py-2">
                         <div class="flex items-center justify-between gap-2">
-                          <span class="truncate text-xs font-medium text-gray-800 dark:text-gray-200">{{ projet.nom }}</span>
-                          <span class="shrink-0 rounded-full px-2 py-1 text-[10px] font-semibold"
-                            [class]="classeAcces(statutEtapeProjet(projet.id, etape.id))">
+                          <span class="truncate text-xs font-medium text-ink">{{ projet.nom }}</span>
+                          <app-badge [status]="varianteAcces(statutEtapeProjet(projet.id, etape.id))">
                             {{ libelleAcces(statutEtapeProjet(projet.id, etape.id)) }}
-                          </span>
+                          </app-badge>
                         </div>
                         @if (motifEtapeProjet(projet.id, etape.id)) {
-                          <p class="text-[10px] text-gray-500 dark:text-gray-400">{{ motifEtapeProjet(projet.id, etape.id) }}</p>
+                          <p class="text-[11px] text-ink-muted">{{ motifEtapeProjet(projet.id, etape.id) }}</p>
                         }
                       </div>
                     } @empty {
-                      <p class="text-xs text-gray-500 dark:text-gray-400">Aucun projet actif dans cette cohorte.</p>
+                      <p class="text-xs text-ink-muted">Aucun projet actif dans cette cohorte.</p>
                     }
                   </div>
                 </details>
+
+                <!-- Missions de l'étape -->
                 @for (mission of missionsPourEtape(etape.id); track mission.id) {
-                  <details class="rounded-lg border border-gray-200 dark:border-white/10" (toggle)="chargerRemisesMission($event, mission)">
-                    <summary class="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-3 py-3">
+                  <details class="rounded-button border border-line" (toggle)="chargerRemisesMission($event, mission)">
+                    <summary class="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-3 py-3 transition-colors hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent">
                       <span class="min-w-0">
-                        <span class="block truncate text-sm font-medium text-gray-900 dark:text-white">{{ mission.titre }}</span>
-                        <span class="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">
+                        <span class="block truncate text-sm font-medium text-ink">{{ mission.titre }}</span>
+                        <span class="mt-0.5 block text-xs text-ink-muted">
                           {{ mission.suivis.length }}/{{ projets().length }} projet(s) · {{ nombreStatutMission(mission, 'SOUMIS') }} soumis ·
                           {{ nombreStatutMission(mission, 'A_CORRIGER') }} à corriger · {{ nombreStatutMission(mission, 'VALIDE') }} validé(s) ·
                           {{ nombreStatutMission(mission, 'NON_SOUMIS') }} non soumis · {{ nombreStatutMission(mission, 'EN_RETARD') }} en retard
                         </span>
                       </span>
-                      <span class="shrink-0 text-xs text-indigo-600 dark:text-indigo-400">Ouvrir le suivi</span>
+                      <span class="shrink-0 text-xs font-medium text-accent">Ouvrir le suivi</span>
                     </summary>
-                    <div class="border-t border-gray-100 p-3 dark:border-white/10">
+
+                    <div class="border-t border-line p-3">
                       @if (chargementRemises().has(mission.id)) {
-                        <app-loading-state message="Chargement des remises..." />
+                        <app-loading-state title="Chargement des remises..." />
                       } @else if (erreursRemises()[mission.id]) {
-                        <p role="alert" class="text-sm text-rose-600 dark:text-rose-300">{{ erreursRemises()[mission.id] }}</p>
+                        <p role="alert" class="text-sm text-danger">{{ erreursRemises()[mission.id] }}</p>
                       } @else {
                         <div class="space-y-2">
                           @for (ligne of lignesSuivi(mission); track ligne.projet.id) {
                             @if (afficherLigneSuivi(ligne, mission)) {
-                              <article class="rounded-lg bg-gray-50 p-3 dark:bg-black/10">
+                              <article class="rounded-button bg-surface-muted p-3">
                                 <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                   <div class="min-w-0">
-                                    <a [routerLink]="['/incubateur/projets', ligne.projet.id]" class="font-medium text-gray-900 hover:text-indigo-600 dark:text-white">
+                                    <a [routerLink]="['/incubateur/projets', ligne.projet.id]"
+                                       class="font-medium text-ink hover:text-accent">
                                       {{ ligne.projet.nom }}
                                     </a>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ ligne.projet.nomEntrepreneur || 'Entrepreneur non renseigné' }}</p>
+                                    <p class="text-xs text-ink-muted">{{ ligne.projet.nomEntrepreneur || 'Entrepreneur non renseigné' }}</p>
                                   </div>
                                   <div class="flex flex-wrap items-center gap-2 text-xs">
-                                    <span class="rounded-full px-2 py-1 font-medium"
-                                      [class]="classeStatutSuivi(ligne, mission)">
+                                    <app-badge [status]="varianteStatutSuivi(ligne, mission)">
                                       {{ libelleStatutSuivi(ligne, mission) }}
-                                    </span>
-                                    <span class="text-gray-500 dark:text-gray-400">
+                                    </app-badge>
+                                    <span class="text-ink-muted">
                                       {{ nombreRemises(ligne) }}/{{ nombreAttendus(mission) }} livrable(s)
                                     </span>
                                     @if (ligne.mission) {
-                                      <a [routerLink]="['/incubateur/missions', ligne.mission.id]" class="font-medium text-indigo-600 hover:underline dark:text-indigo-400">
+                                      <a [routerLink]="['/incubateur/missions', ligne.mission.id]"
+                                         class="font-medium text-accent hover:text-accent-strong hover:underline">
                                         Ouvrir pour corriger
                                       </a>
                                     }
                                   </div>
                                 </div>
+
                                 @if (remisesParMission()[ligne.mission?.id ?? '']?.length) {
-                                  <div class="mt-3 space-y-2 border-t border-gray-200 pt-2 dark:border-white/10">
+                                  <div class="mt-3 space-y-2 border-t border-line pt-2">
                                     @for (livrable of remisesParMission()[ligne.mission?.id ?? '']; track livrable.id) {
                                       <div class="flex flex-col gap-1 text-xs sm:flex-row sm:items-center sm:justify-between">
-                                        <span class="text-gray-700 dark:text-gray-300">
+                                        <span class="text-ink">
                                           {{ livrable.livrableAttenduId ? nomAttendu(mission, livrable.livrableAttenduId) : livrable.nom }}
-                                          <span class="text-gray-400">· {{ livrable.typePiece }} · v{{ livrable.numeroVersion ?? 1 }}</span>
+                                          <span class="text-ink-faint">· {{ livrable.typePiece }} · v{{ livrable.numeroVersion ?? 1 }}</span>
                                         </span>
                                         <span class="flex items-center gap-3">
-                                          <span [class]="classeStatutLivrable(livrable.statut)">{{ libelleStatutLivrable(livrable.statut) }}</span>
+                                          <app-badge [status]="varianteStatutLivrable(livrable.statut)">
+                                            {{ libelleStatutLivrable(livrable.statut) }}
+                                          </app-badge>
                                           @if (livrable.typePiece === 'TEMPLATE') {
-                                            <span class="text-gray-500">Réponse BMC</span>
+                                            <span class="text-ink-muted">Réponse BMC</span>
                                           } @else {
-                                            <a [href]="livrable.url" target="_blank" rel="noopener noreferrer" class="font-medium text-indigo-600 hover:underline dark:text-indigo-400">
+                                            <a [href]="livrable.url" target="_blank" rel="noopener noreferrer"
+                                               class="font-medium text-accent hover:text-accent-strong hover:underline">
                                               Consulter
                                             </a>
                                           }
                                         </span>
                                       </div>
                                       @if (livrable.typePiece === 'TEMPLATE' && attenduPourRemise(mission, livrable.livrableAttenduId); as attendu) {
-                                        <div class="space-y-2 rounded-lg bg-white p-3 dark:bg-black/10">
+                                        <div class="space-y-2 rounded-button border border-line bg-surface p-3">
                                           @for (champ of attendu.templateFields ?? []; track champ.id) {
                                             <div>
-                                              <p class="text-[10px] font-semibold text-gray-500 dark:text-gray-400">{{ champ.label }}</p>
-                                              <p class="mt-1 whitespace-pre-wrap text-xs text-gray-800 dark:text-gray-200">{{ reponseTemplate(livrable.contenu, champ.id) }}</p>
+                                              <p class="text-[11px] font-semibold text-ink-muted">{{ champ.label }}</p>
+                                              <p class="mt-1 whitespace-pre-wrap text-xs text-ink">{{ reponseTemplate(livrable.contenu, champ.id) }}</p>
                                             </div>
                                           }
                                         </div>
@@ -418,54 +429,61 @@ interface LigneSuivi {
                               </article>
                             }
                           } @empty {
-                            <p class="py-2 text-sm text-gray-500 dark:text-gray-400">Aucun entrepreneur ne correspond à ce filtre.</p>
+                            <p class="py-2 text-sm text-ink-muted">Aucun entrepreneur ne correspond à ce filtre.</p>
                           }
                         </div>
                       }
                     </div>
                   </details>
                 } @empty {
-                  <p class="py-2 text-sm text-gray-500 dark:text-gray-400">Aucune mission associée à cette étape.</p>
+                  <p class="py-2 text-sm text-ink-muted">Aucune mission associée à cette étape.</p>
                 }
               </div>
             </details>
           }
+
+          <!-- Missions sans étape -->
           @if (missionsSansEtape().length > 0) {
-            <details class="overflow-hidden rounded-xl border border-dashed border-gray-300 dark:border-white/20">
-              <summary class="cursor-pointer px-4 py-3 text-sm font-semibold text-gray-700 dark:text-gray-200">Missions sans étape ({{ missionsSansEtape().length }})</summary>
-              <div class="space-y-2 border-t border-gray-100 p-3 dark:border-white/10">
+            <details class="overflow-hidden rounded-card border border-dashed border-line-strong bg-surface">
+              <summary class="cursor-pointer px-4 py-3 text-sm font-semibold text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent">
+                Missions sans étape ({{ missionsSansEtape().length }})
+              </summary>
+              <div class="space-y-2 border-t border-line p-3">
                 @for (mission of missionsSansEtape(); track mission.id) {
-                  <details class="rounded-lg border border-gray-200 dark:border-white/10" (toggle)="chargerRemisesMission($event, mission)">
-                    <summary class="cursor-pointer px-3 py-3 text-sm font-medium text-gray-900 dark:text-white">{{ mission.titre }} · {{ mission.suivis.length }} suivi(s)</summary>
-                    <div class="p-3 text-xs text-gray-500">Ouvrez le suivi de cette mission pour consulter les remises par projet.</div>
+                  <details class="rounded-button border border-line" (toggle)="chargerRemisesMission($event, mission)">
+                    <summary class="cursor-pointer px-3 py-3 text-sm font-medium text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent">
+                      {{ mission.titre }} · {{ mission.suivis.length }} suivi(s)
+                    </summary>
+                    <div class="p-3 text-xs text-ink-muted">Ouvrez le suivi de cette mission pour consulter les remises par projet.</div>
                   </details>
                 }
               </div>
             </details>
           }
         }
-      </div>
+      </section>
     }
 
     <!-- ─── ONGLET RESSOURCES ─── -->
     @if (ongletActif() === 'ressources') {
-      <div class="flex flex-col gap-4">
+      <section class="flex flex-col gap-4" aria-label="Ressources de la cohorte">
         @if (chargementRessources()) {
-          <app-loading-state message="Chargement des ressources..." />
+          <app-loading-state title="Chargement des ressources..." />
         } @else if (ressources().length === 0) {
-          <app-empty-state icon="book-open" title="Aucune ressource" description="Aucune ressource associée à cette cohorte." />
+          <app-empty-state iconName="book-open" title="Aucune ressource" description="Aucune ressource associée à cette cohorte." />
         } @else {
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
             @for (r of ressources(); track r.id) {
               <app-card>
                 <div class="flex items-start gap-3">
-                  <div class="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center flex-shrink-0">
-                    <app-icon [name]="r.type === 'LIEN' ? 'external-link' : 'file'" class="w-4 h-4 text-indigo-500" />
+                  <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-button bg-accent-soft text-accent">
+                    <app-icon [name]="r.type === 'LIEN' ? 'external-link' : 'file'" class="h-4 w-4" />
                   </div>
                   <div class="min-w-0">
-                    <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ r.titre }}</p>
+                    <p class="truncate text-sm font-medium text-ink">{{ r.titre }}</p>
                     @if (r.url) {
-                      <a [href]="r.url" target="_blank" class="text-xs text-indigo-500 hover:underline truncate block">{{ r.url }}</a>
+                      <a [href]="r.url" target="_blank" rel="noopener noreferrer"
+                         class="block truncate text-xs text-accent hover:text-accent-strong hover:underline">{{ r.url }}</a>
                     }
                   </div>
                 </div>
@@ -473,173 +491,183 @@ interface LigneSuivi {
             }
           </div>
         }
-      </div>
+      </section>
     }
 
     <!-- ─── ONGLET RÉUNIONS ─── -->
     @if (ongletActif() === 'reunions') {
-      <div class="flex flex-col gap-4">
-        <div class="flex justify-end">
-          @if (isAdminOrCoach()) {
+      <section class="flex flex-col gap-4" aria-label="Réunions de la cohorte">
+        @if (isAdminOrCoach()) {
+          <div class="flex justify-end">
             <app-button variant="primary" size="sm" (click)="planifierReunion()">
-              <app-icon name="calendar" class="w-4 h-4 mr-1" />
+              <app-icon name="calendar" class="mr-1 h-4 w-4" />
               Planifier une réunion
             </app-button>
-          }
-        </div>
+          </div>
+        }
         @if (chargementReunions()) {
-          <app-loading-state message="Chargement des réunions..." />
+          <app-loading-state title="Chargement des réunions..." />
         } @else if (reunions().length === 0) {
-          <app-empty-state icon="calendar" title="Aucune réunion" description="Planifiez une réunion pour cette cohorte." />
+          <app-empty-state iconName="calendar" title="Aucune réunion" description="Planifiez une réunion pour cette cohorte." />
         } @else {
           <div class="grid grid-cols-1 gap-3">
             @for (r of reunions(); track r.id) {
               <app-card>
                 <div class="flex items-center justify-between gap-4">
                   <div class="min-w-0">
-                    <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ r.title }}</p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    <p class="truncate text-sm font-medium text-ink">{{ r.title }}</p>
+                    <p class="mt-0.5 text-xs text-ink-muted">
                       {{ r.scheduledAt | date:'dd/MM/yyyy HH:mm' }} · {{ r.durationMinutes }} min
                     </p>
                   </div>
-                  <a [routerLink]="['/incubateur/reunions', r.id]" class="text-xs text-indigo-500 hover:underline flex-shrink-0">Rejoindre</a>
+                  <a [routerLink]="['/incubateur/reunions', r.id]"
+                     class="shrink-0 text-xs font-medium text-accent hover:text-accent-strong hover:underline">Rejoindre</a>
                 </div>
               </app-card>
             }
           </div>
         }
-      </div>
+      </section>
     }
 
   }<!-- fin if cohorte -->
 
   <!-- ─── MODALE INVITATION ─── -->
   @if (invitationOuverte()) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div class="fixed inset-0 bg-black/40" (click)="invitationOuverte.set(false)"></div>
-      <div class="relative z-10 w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-6 space-y-4">
-        <h2 class="text-base font-semibold text-gray-900 dark:text-white">Inviter des entrepreneurs</h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400">
-          Saisissez les adresses e-mail séparées par des virgules ou une par ligne.
-        </p>
+    <app-modal
+      title="Inviter des entrepreneurs"
+      subtitle="Saisissez les adresses e-mail séparées par des virgules ou une par ligne."
+      (close)="invitationOuverte.set(false)"
+    >
+      <app-form-field label="Adresses e-mail" [required]="true">
         <textarea
+          id="emails-invitation"
           [(ngModel)]="emailsInvitation"
           rows="4"
           placeholder="fatou@example.com&#10;cheikh@example.com"
-          class="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+          class="w-full resize-none rounded-input border border-input-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         ></textarea>
-        <div class="flex justify-end gap-3">
-          <app-button variant="secondary" (click)="invitationOuverte.set(false)">Annuler</app-button>
-          <app-button variant="primary"  (click)="envoyerInvitations()">Envoyer</app-button>
-        </div>
+      </app-form-field>
+      <div class="mt-4 flex justify-end gap-3">
+        <app-button variant="secondary" (click)="invitationOuverte.set(false)">Annuler</app-button>
+        <app-button variant="primary" [disabled]="invitationEnCours()" (click)="envoyerInvitations()">Envoyer</app-button>
       </div>
-    </div>
+    </app-modal>
   }
 
   <!-- ─── PANNEAU PROMOTION ─── -->
   @if (promotionOuverte()) {
-    <div class="fixed inset-0 z-50 flex items-start justify-end">
-      <div class="fixed inset-0 bg-black/40 backdrop-blur-sm" (click)="promotionOuverte.set(false)"></div>
-      <div class="relative z-10 w-full max-w-lg h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto flex flex-col">
+    <div class="fixed inset-0 z-50 flex items-start justify-end"
+         role="dialog" aria-modal="true" aria-labelledby="promotion-titre"
+         (keydown.escape)="promotionOuverte.set(false)">
+      <div class="fixed inset-0 bg-ink/40 backdrop-blur-sm" (click)="promotionOuverte.set(false)"></div>
+      <div class="relative z-10 flex h-full w-full max-w-lg flex-col overflow-y-auto border-l border-line bg-surface shadow-subtle">
 
-        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-white/10 sticky top-0 bg-white dark:bg-gray-900">
-          <h2 class="text-base font-semibold text-gray-900 dark:text-white">Promouvoir la sélection</h2>
-          <button (click)="promotionOuverte.set(false)" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500">
-            <app-icon name="x" class="w-5 h-5" />
+        <div class="sticky top-0 flex items-center justify-between border-b border-line bg-surface px-6 py-4">
+          <h2 id="promotion-titre" class="text-base font-semibold text-ink">Promouvoir la sélection</h2>
+          <button type="button" (click)="promotionOuverte.set(false)" aria-label="Fermer"
+            class="rounded-button p-2 text-ink-muted transition-colors hover:bg-surface-subtle hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
+            <app-icon name="x" class="h-5 w-5" />
           </button>
         </div>
 
-        <div class="flex-1 px-6 py-6 space-y-6">
+        <div class="flex-1 space-y-6 px-6 py-6">
 
           <!-- Projets sélectionnés -->
           <div>
-            <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Projets à promouvoir</p>
-            <div class="space-y-1">
+            <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-muted">Projets à promouvoir</p>
+            <ul class="space-y-1">
               @for (id of selectionnes(); track id) {
                 @if (projetParId(id); as p) {
-                  <div class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                    <app-icon name="check" class="w-4 h-4 text-indigo-500 flex-shrink-0" />
+                  <li class="flex items-center gap-2 text-sm text-ink">
+                    <app-icon name="check" class="h-4 w-4 shrink-0 text-accent" />
                     {{ p.nom }}
-                  </div>
+                  </li>
                 }
               }
-            </div>
+            </ul>
           </div>
 
           <!-- Cohorte cible -->
-          <div>
-            <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Cohorte cible *</p>
+          <fieldset>
+            <legend class="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-muted">Cohorte cible *</legend>
             @if (chargementEligibles()) {
-              <p class="text-sm text-gray-400">Chargement...</p>
+              <p class="text-sm text-ink-muted">Chargement...</p>
             } @else if (cohortesEligibles().length === 0) {
-              <p class="text-sm text-gray-400 italic">Aucune cohorte éligible (phase d'ordre supérieur).</p>
-              <p class="text-xs text-indigo-500 mt-1 cursor-pointer hover:underline" routerLink="/incubateur/cohortes">+ Créer une nouvelle cohorte</p>
+              <p class="text-sm italic text-ink-muted">Aucune cohorte éligible (phase d'ordre supérieur).</p>
+              <a routerLink="/incubateur/cohortes"
+                 class="mt-1 inline-block text-xs font-medium text-accent hover:text-accent-strong hover:underline">
+                + Créer une nouvelle cohorte
+              </a>
             } @else {
               <div class="space-y-2">
                 @for (c of cohortesEligibles(); track c.id) {
-                  <label class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors"
+                  <label class="flex cursor-pointer items-center gap-3 rounded-card border p-3 transition-colors focus-within:ring-2 focus-within:ring-accent"
                     [class]="cohorteCibleId() === c.id
-                      ? 'border-indigo-400 bg-indigo-50 dark:bg-indigo-500/10'
-                      : 'border-gray-200 dark:border-white/10 hover:border-indigo-300'">
-                    <input type="radio" [value]="c.id" [checked]="cohorteCibleId() === c.id" (change)="cohorteCibleId.set(c.id)" class="text-indigo-600" />
+                      ? 'border-accent bg-accent-soft'
+                      : 'border-line hover:border-line-strong'">
+                    <input type="radio" name="cohorte-cible" [value]="c.id" [checked]="cohorteCibleId() === c.id"
+                      (change)="cohorteCibleId.set(c.id)" class="size-4 accent-accent" />
                     <div>
-                      <p class="text-sm font-medium text-gray-900 dark:text-white">{{ c.nom }}</p>
-                      <p class="text-xs text-gray-500 dark:text-gray-400">Phase : {{ c.phase?.nom ?? '—' }} (ordre {{ c.phase?.ordre ?? '?' }})</p>
+                      <p class="text-sm font-medium text-ink">{{ c.nom }}</p>
+                      <p class="text-xs text-ink-muted">Phase : {{ c.phase?.nom ?? '—' }} (ordre {{ c.phase?.ordre ?? '?' }})</p>
                     </div>
                   </label>
                 }
               </div>
             }
-          </div>
+          </fieldset>
 
           <!-- Raison -->
-          <div>
-            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-              Raison {{ forcer() ? '*' : '' }}
-            </label>
+          <app-form-field label="Raison" [required]="forcer()">
             <textarea
+              id="raison-promotion"
               [(ngModel)]="raisonPromotion"
               rows="2"
               placeholder="Raison de la promotion..."
-              class="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+              class="w-full resize-none rounded-input border border-input-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             ></textarea>
-          </div>
+          </app-form-field>
 
           <!-- Erreur 409 : missions non validées -->
           @if (promotion409()) {
-            <div class="rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-500/20 dark:bg-amber-500/10 p-4 space-y-3">
+            <div role="alert" class="space-y-3 rounded-card border border-warning/40 bg-warning/10 p-4">
               <div class="flex items-center gap-2">
-                <app-icon name="alert-circle" class="w-5 h-5 text-amber-500 flex-shrink-0" />
-                <p class="text-sm font-semibold text-amber-800 dark:text-amber-300">Missions non validées</p>
+                <app-icon name="alert-circle" class="h-5 w-5 shrink-0 text-warning" />
+                <p class="text-sm font-semibold text-ink">Missions non validées</p>
               </div>
               <ul class="space-y-1">
                 @for (m of promotion409()!.missionsNonValidees; track m.titre) {
-                  <li class="text-xs text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
-                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0"></span>
+                  <li class="flex items-center gap-1.5 text-xs text-ink">
+                    <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-warning" aria-hidden="true"></span>
                     {{ m.titre }} — {{ m.statut }}
                   </li>
                 }
               </ul>
-              <label class="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" [(ngModel)]="forcerPromotion" class="rounded text-amber-500" />
-                <span class="text-sm font-medium text-amber-800 dark:text-amber-300">Promouvoir quand même</span>
+              <label class="flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  [ngModel]="forcerPromotion()"
+                  (ngModelChange)="forcerPromotion.set($event)"
+                  class="size-4 rounded border-input-border accent-accent"
+                />
+                <span class="text-sm font-medium text-ink">Promouvoir quand même</span>
               </label>
-              @if (forcerPromotion) {
-                <p class="text-xs text-amber-600 dark:text-amber-400">Une raison est obligatoire ci-dessus.</p>
+              @if (forcerPromotion()) {
+                <p class="text-xs text-ink-muted">Une raison est obligatoire ci-dessus.</p>
               }
             </div>
           }
 
           <!-- Résultats -->
           @if (resultatsPromotion().length > 0) {
-            <div class="space-y-2">
-              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Résultats</p>
+            <div class="space-y-2" aria-live="polite">
+              <p class="text-xs font-semibold uppercase tracking-wide text-ink-muted">Résultats</p>
               @for (r of resultatsPromotion(); track r.projetId) {
-                <div class="flex items-center gap-2 text-sm p-2 rounded-lg"
-                  [class]="r.succes ? 'bg-green-50 dark:bg-green-500/10 text-green-800 dark:text-green-300' : 'bg-red-50 dark:bg-red-500/10 text-red-800 dark:text-red-300'">
-                  <!-- <app-icon [name]="r.succes ? 'check-circle' : 'x-circle'" class="w-4 h-4 flex-shrink-0" /> -->
-                  <span class="font-medium">{{ r.nomProjet }}</span>
-                  <span class="text-xs ml-auto">{{ r.message }}</span>
+                <div class="flex items-center gap-2 rounded-button border border-line bg-surface-muted p-2 text-sm">
+                  <app-badge [status]="r.succes ? 'success' : 'danger'">{{ r.succes ? 'Promu' : 'Échec' }}</app-badge>
+                  <span class="font-medium text-ink">{{ r.nomProjet }}</span>
+                  <span class="ml-auto text-xs text-ink-muted">{{ r.message }}</span>
                 </div>
               }
             </div>
@@ -647,16 +675,14 @@ interface LigneSuivi {
 
         </div>
 
-        <div class="px-6 py-4 border-t border-gray-200 dark:border-white/10 flex justify-end gap-3 sticky bottom-0 bg-white dark:bg-gray-900">
+        <div class="sticky bottom-0 flex justify-end gap-3 border-t border-line bg-surface px-6 py-4">
           <app-button variant="secondary" (click)="promotionOuverte.set(false)">Annuler</app-button>
           <app-button
             variant="primary"
-           
-            [disabled]="!cohorteCibleId() || (forcerPromotion && !raisonPromotion.trim())"
+            [disabled]="!cohorteCibleId() || (forcerPromotion() && !raisonPromotion.trim()) || promotionEnCours()"
             (click)="lancerPromotion()"
           >
-            <!-- <app-icon name="arrow-left" class="w-4 h-4 mr-1" /> -->
-            {{ forcer() ? 'Forcer la promotion' : 'Promouvoir' }}
+            {{ forcerPromotion() ? 'Forcer la promotion' : 'Promouvoir' }}
           </app-button>
         </div>
 
@@ -722,8 +748,8 @@ export class CohorteDetail implements OnInit {
   readonly cohorteCibleId = signal<string>('');
   raisonPromotion = '';
   readonly promotion409 = signal<Promotion409 | null>(null);
-  readonly forcerPromotion = false;
-  forcer = computed(() => this.promotion409() !== null && (this as any).forcerPromotion);
+  readonly forcerPromotion = signal(false);
+  readonly forcer = computed(() => this.promotion409() !== null && this.forcerPromotion());
   readonly resultatsPromotion = signal<PromotionGroupeeResultat[]>([]);
 
   readonly onglets = [
@@ -731,6 +757,17 @@ export class CohorteDetail implements OnInit {
     { id: 'missions' as OngletId, label: 'Missions' },
     { id: 'ressources' as OngletId, label: 'Ressources' },
     { id: 'reunions' as OngletId, label: 'Réunions' },
+  ];
+
+  /** Résumé des états de phase (ordre d'affichage conservé). */
+  readonly statutsPhase: { statut: StatutFeuilleRoute; label: string; variant: BadgeVariant }[] = [
+    { statut: 'EN_COURS', label: 'en cours', variant: 'info' },
+    { statut: 'NON_DEMARREE', label: 'non démarrée', variant: 'neutral' },
+    { statut: 'A_ACTIVER', label: 'à activer', variant: 'warning' },
+    { statut: 'VERROUILLEE', label: 'verrouillée', variant: 'neutral' },
+    { statut: 'TERMINEE', label: 'terminée', variant: 'success' },
+    { statut: 'INCOMPLETE', label: 'incomplète', variant: 'warning' },
+    { statut: 'ARCHIVEE', label: 'archivée', variant: 'neutral' },
   ];
 
   ngOnInit(): void {
@@ -869,20 +906,12 @@ export class CohorteDetail implements OnInit {
     return statut ? labels[statut] ?? statut : 'État indisponible';
   }
 
-  classeAcces(statut: StatutFeuilleRoute | undefined): string {
-    if (statut === 'ACTIVE' || statut === 'ACCESSIBLE' || statut === 'EN_COURS') {
-      return 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300';
-    }
-    if (statut === 'VALIDEE' || statut === 'TERMINEE') {
-      return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300';
-    }
-    if (statut === 'A_ACTIVER') {
-      return 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300';
-    }
-    if (statut === 'ARCHIVEE' || statut === 'VERROUILLEE' || statut === 'INCOMPLETE') {
-      return 'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-300';
-    }
-    return 'bg-gray-100 text-gray-500 dark:bg-white/5 dark:text-gray-400';
+  /** Remplace l'ancien classeAcces() : variante du badge partagé (couleur + libellé). */
+  varianteAcces(statut: StatutFeuilleRoute | undefined): BadgeVariant {
+    if (statut === 'ACTIVE' || statut === 'ACCESSIBLE' || statut === 'EN_COURS') return 'info';
+    if (statut === 'VALIDEE' || statut === 'TERMINEE') return 'success';
+    if (statut === 'A_ACTIVER') return 'warning';
+    return 'neutral';
   }
 
   chargerRessources(): void {
@@ -1070,16 +1099,17 @@ export class CohorteDetail implements OnInit {
     return labels[this.statutSuivi(ligne, mission)];
   }
 
-  classeStatutSuivi(ligne: LigneSuivi, mission: MissionPourSuivi): string {
-    const classes: Record<FiltreSuivi, string> = {
-      TOUS: '',
-      NON_SOUMIS: 'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-300',
-      SOUMIS: 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300',
-      A_CORRIGER: 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300',
-      VALIDE: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
-      EN_RETARD: 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300',
+  /** Remplace l'ancien classeStatutSuivi() : variante du badge partagé. */
+  varianteStatutSuivi(ligne: LigneSuivi, mission: MissionPourSuivi): BadgeVariant {
+    const variantes: Record<FiltreSuivi, BadgeVariant> = {
+      TOUS: 'neutral',
+      NON_SOUMIS: 'neutral',
+      SOUMIS: 'info',
+      A_CORRIGER: 'warning',
+      VALIDE: 'success',
+      EN_RETARD: 'danger',
     };
-    return classes[this.statutSuivi(ligne, mission)];
+    return variantes[this.statutSuivi(ligne, mission)];
   }
 
   libelleStatutLivrable(statut: LivrableResponse['statut']): string {
@@ -1092,10 +1122,11 @@ export class CohorteDetail implements OnInit {
     return labels[statut];
   }
 
-  classeStatutLivrable(statut: LivrableResponse['statut']): string {
-    if (statut === 'VALIDE') return 'font-medium text-emerald-700 dark:text-emerald-300';
-    if (statut === 'A_CORRIGER' || statut === 'REJETE') return 'font-medium text-amber-700 dark:text-amber-300';
-    return 'font-medium text-blue-700 dark:text-blue-300';
+  /** Remplace l'ancien classeStatutLivrable() : variante du badge partagé. */
+  varianteStatutLivrable(statut: LivrableResponse['statut']): BadgeVariant {
+    if (statut === 'VALIDE') return 'success';
+    if (statut === 'A_CORRIGER' || statut === 'REJETE') return 'warning';
+    return 'info';
   }
 
   private statutSuivi(ligne: LigneSuivi, mission: MissionPourSuivi): FiltreSuivi {
@@ -1162,6 +1193,7 @@ export class CohorteDetail implements OnInit {
   ouvrirPromotion(): void {
     this.promotion409.set(null);
     this.resultatsPromotion.set([]);
+    this.forcerPromotion.set(false);
     this.raisonPromotion = '';
     this.cohorteCibleId.set('');
     // Charger cohortes éligibles depuis le 1er projet sélectionné
@@ -1179,7 +1211,7 @@ export class CohorteDetail implements OnInit {
 
   lancerPromotion(): void {
     if (!this.cohorteCibleId()) return;
-    const forcer = (this as any).forcerPromotion as boolean;
+    const forcer = this.forcerPromotion();
     if (forcer && !this.raisonPromotion.trim()) { alert('Une raison est obligatoire pour forcer la promotion.'); return; }
 
     this.promotionEnCours.set(true);

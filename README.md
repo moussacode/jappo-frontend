@@ -2,6 +2,12 @@
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.19.
 
+## Design system
+
+Before creating or redesigning a screen, read [DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md)
+for the visual tokens, reusable components, application layouts, active page
+routes, and page-by-page redesign workflow.
+
 ## Development server
 
 To start a local development server, run:

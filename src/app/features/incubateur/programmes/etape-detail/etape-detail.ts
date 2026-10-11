@@ -48,6 +48,7 @@ import {
 import { ModalComponent } from '../../../../shared/components/modal/modal.component';
 import { FormFieldComponent } from '../../../../shared/components/input/form-field.component';
 import { InputComponent } from '../../../../shared/components/input/input.component';
+import { LoadingState } from '../../../../shared/components/loading-state/loading-state';
 
 @Component({
   selector: 'app-etape-detail',
@@ -63,12 +64,14 @@ import { InputComponent } from '../../../../shared/components/input/input.compon
     PageHeaderComponent,
     FormFieldComponent,
     InputComponent,
+    LoadingState
+    
   ],
   template: `
-    <div class="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
       @if (loading()) {
-        <div class="flex items-center justify-center py-16">
-          <div class="h-8 w-8 animate-spin rounded-full border-4 border-accent border-t-transparent"></div>
+        <div class="py-16">
+          <app-loading-state text="Chargement de l'étape..."></app-loading-state>
         </div>
       } @else if (error() && !etape()) {
         <app-empty-state
@@ -95,8 +98,9 @@ import { InputComponent } from '../../../../shared/components/input/input.compon
         </app-page-header>
 
         @if (flash()) {
-          <div class="rounded-xl border border-emerald-500/25 bg-emerald-500/10 p-3 text-xs font-medium text-emerald-700">
-            {{ flash() }}
+          <div class="flex items-center gap-2 rounded-xl border border-success/30 bg-success/10 p-3 text-xs font-medium text-success" role="alert">
+            <app-icon name="check-circle" class="size-4 shrink-0" />
+            <span>{{ flash() }}</span>
           </div>
         }
 
@@ -122,11 +126,11 @@ import { InputComponent } from '../../../../shared/components/input/input.compon
               </div>
 
               <div class="grid gap-4 sm:grid-cols-2">
-                <div class="rounded-xl border border-line bg-surface-muted/50 p-3">
+                <div class="rounded-xl border border-line bg-surface-subtle p-3">
                   <p class="text-[11px] uppercase tracking-wide text-ink-muted">Ordre</p>
                   <p class="mt-2 text-sm font-semibold text-ink">{{ etape.ordre }}</p>
                 </div>
-                <div class="rounded-xl border border-line bg-surface-muted/50 p-3">
+                <div class="rounded-xl border border-line bg-surface-subtle p-3">
                   <p class="text-[11px] uppercase tracking-wide text-ink-muted">Règle</p>
                   <p class="mt-2 text-sm font-semibold text-ink">
                     {{ etape.obligatoire ? 'Obligatoire' : 'Facultative' }}
@@ -134,14 +138,14 @@ import { InputComponent } from '../../../../shared/components/input/input.compon
                 </div>
               </div>
 
-              <div class="rounded-xl border border-line bg-surface-muted/50 p-3">
+              <div class="rounded-xl border border-line bg-surface-subtle p-3">
                 <p class="text-[11px] uppercase tracking-wide text-ink-muted">Description</p>
                 <p class="mt-2 text-sm leading-6 text-ink-muted">
                   {{ etape.description || 'Aucune description fournie pour cette étape.' }}
                 </p>
               </div>
 
-              <div class="rounded-xl border border-line bg-surface-muted/50 p-3">
+              <div class="rounded-xl border border-line bg-surface-subtle p-3">
                 <p class="text-[11px] uppercase tracking-wide text-ink-muted">Phase associée</p>
                 <p class="mt-2 text-sm font-semibold text-ink">
                   {{ phase()?.nom || 'Non renseignée' }}
@@ -157,12 +161,12 @@ import { InputComponent } from '../../../../shared/components/input/input.compon
                 <h2 class="mt-2 text-base font-semibold text-ink">Suivi de l’étape</h2>
               </div>
 
-              <div class="rounded-xl border border-line bg-surface-muted/50 p-3">
+              <div class="rounded-xl border border-line bg-surface-subtle p-3">
                 <p class="text-[11px] uppercase tracking-wide text-ink-muted">Nombre de missions</p>
                 <p class="mt-2 text-2xl font-bold text-ink">{{ missions().length }}</p>
               </div>
 
-              <div class="rounded-xl border border-line bg-surface-muted/50 p-3">
+              <div class="rounded-xl border border-line bg-surface-subtle p-3">
                 <p class="text-[11px] uppercase tracking-wide text-ink-muted">Statut</p>
                 <p class="mt-2 text-sm font-medium text-ink">
                   {{ etape.archive ? 'Archivée' : 'Active' }}
@@ -182,7 +186,7 @@ import { InputComponent } from '../../../../shared/components/input/input.compon
           <div class="flex items-center justify-between gap-3">
             <div>
               <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-muted">Missions</p>
-              <h2 class="mt-1 text-lg font-semibold text-ink">MissionEtape liées</h2>
+              <h2 class="mt-1 text-lg font-semibold text-ink">Missions liées</h2>
             </div>
             @if (canManageMissions()) {
               <app-button variant="secondary" size="sm" (click)="ouvrirCreationMission()">
@@ -192,8 +196,8 @@ import { InputComponent } from '../../../../shared/components/input/input.compon
           </div>
 
           @if (missionsLoading()) {
-            <div class="mt-5 flex items-center justify-center py-8">
-              <div class="h-6 w-6 animate-spin rounded-full border-3 border-accent border-t-transparent"></div>
+            <div class="mt-5 py-8">
+              <app-loading-state text="Chargement des missions..."></app-loading-state>
             </div>
           } @else if (missions().length === 0) {
             <div class="mt-5">
@@ -212,7 +216,7 @@ import { InputComponent } from '../../../../shared/components/input/input.compon
           } @else {
             <div class="mt-5 grid gap-4">
               @for (mission of missions(); track mission.id) {
-                <div class="rounded-2xl border border-line bg-surface-muted/50 p-4 sm:p-5">
+                <div class="rounded-2xl border border-line bg-surface-subtle p-4 sm:p-5">
                   <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div class="min-w-0 flex-1">
                       <div class="flex flex-wrap items-center gap-2">
@@ -325,24 +329,24 @@ import { InputComponent } from '../../../../shared/components/input/input.compon
                 <textarea
                   formControlName="description"
                   rows="4"
-                  class="w-full resize-y rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted/60 focus:border-accent focus:outline-none transition-colors"
+                  class="w-full resize-y rounded-md border border-input-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-colors"
                   placeholder="Décrivez le livrable attendu..."
                 ></textarea>
               </div>
 
               <div>
-                <label class="mb-1.5 block text-xs font-semibold text-ink">Ordre <span class="text-rose-500">*</span></label>
+                <label class="mb-1.5 block text-xs font-semibold text-ink">Ordre <span class="text-danger">*</span></label>
                 <input
                   type="number"
                   min="1"
                   formControlName="ordre"
-                  class="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink focus:border-accent focus:outline-none transition-colors"
+                  class="w-full rounded-md border border-input-border bg-surface px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-colors"
                 />
               </div>
 
               <div class="flex flex-col justify-end gap-2">
                 <label class="mb-1.5 block text-xs font-semibold text-ink">Type</label>
-                <label class="flex items-center gap-2 rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink">
+                <label class="flex items-center gap-2 rounded-md border border-input-border bg-surface px-3 py-2 text-sm text-ink cursor-pointer hover:bg-surface-subtle transition-colors">
                   <input type="checkbox" formControlName="obligatoire" class="accent-accent h-4 w-4" />
                   <span>Obligatoire</span>
                 </label>
@@ -354,7 +358,7 @@ import { InputComponent } from '../../../../shared/components/input/input.compon
                 <label class="mb-1.5 block text-xs font-semibold text-ink">Modèle de mission</label>
                 <select
                   formControlName="modeleId"
-                  class="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink focus:border-accent focus:outline-none transition-colors"
+                  class="w-full rounded-md border border-input-border bg-surface px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-colors"
                 >
                   <option value="">Aucun modèle</option>
                   @for (modele of modeles(); track modele.id) {
@@ -365,8 +369,9 @@ import { InputComponent } from '../../../../shared/components/input/input.compon
             }
 
             @if (missionFormError()) {
-              <div class="rounded-xl border border-rose-500/25 bg-rose-500/10 p-3 text-xs font-medium text-rose-600">
-                {{ missionFormError() }}
+              <div class="flex items-center gap-2 rounded-xl border border-danger/30 bg-danger/10 p-3 text-xs font-medium text-danger" role="alert">
+                <app-icon name="warning" class="size-4 shrink-0" />
+                <span>{{ missionFormError() }}</span>
               </div>
             }
 
@@ -424,7 +429,7 @@ import { InputComponent } from '../../../../shared/components/input/input.compon
                 <textarea
                   formControlName="description"
                   rows="3"
-                  class="w-full resize-y rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted/60 focus:border-accent focus:outline-none transition-colors"
+                  class="w-full resize-y rounded-md border border-input-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-colors"
                   placeholder="Précisez le contenu attendu."
                 ></textarea>
               </div>
@@ -433,7 +438,7 @@ import { InputComponent } from '../../../../shared/components/input/input.compon
                 <label class="mb-1.5 block text-xs font-semibold text-ink">Type</label>
                 <select
                   formControlName="type"
-                  class="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink focus:border-accent focus:outline-none transition-colors"
+                  class="w-full rounded-md border border-input-border bg-surface px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-colors"
                 >
                   <option value="FICHIER">Fichier</option>
                   <option value="LIEN">Lien</option>
@@ -448,12 +453,12 @@ import { InputComponent } from '../../../../shared/components/input/input.compon
                   type="number"
                   min="1"
                   formControlName="ordre"
-                  class="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink focus:border-accent focus:outline-none transition-colors"
+                  class="w-full rounded-md border border-input-border bg-surface px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-colors"
                 />
               </div>
 
               <div class="sm:col-span-2">
-                <label class="flex items-center gap-2 rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink">
+                <label class="flex items-center gap-2 rounded-md border border-input-border bg-surface px-3 py-2 text-sm text-ink cursor-pointer hover:bg-surface-subtle transition-colors">
                   <input type="checkbox" formControlName="obligatoire" class="accent-accent h-4 w-4" />
                   <span>Obligatoire</span>
                 </label>
@@ -466,7 +471,7 @@ import { InputComponent } from '../../../../shared/components/input/input.compon
                     type="text"
                     formControlName="templateType"
                     (input)="initialiserChampsBmcSiNecessaire($any($event.target).value)"
-                    class="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted/60 focus:border-accent focus:outline-none transition-colors"
+                    class="w-full rounded-md border border-input-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-colors"
                     placeholder="Ex : BMC, BUSINESS_PLAN"
                   />
                   @if (livrableForm.controls.templateType.value.trim().toUpperCase() === 'BMC') {
@@ -479,10 +484,10 @@ import { InputComponent } from '../../../../shared/components/input/input.compon
                             [value]="champ.label"
                             (input)="modifierChampTemplate(index, $any($event.target).value)"
                             maxlength="120"
-                            class="min-w-0 flex-1 rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+                            class="min-w-0 flex-1 rounded-md border border-input-border bg-surface px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                             placeholder="Nom de la rubrique"
                           />
-                          <button type="button" (click)="supprimerChampTemplate(index)" class="rounded-lg px-3 text-xs text-danger-600 hover:bg-danger-50">Retirer</button>
+                          <button type="button" (click)="supprimerChampTemplate(index)" class="rounded-lg px-3 text-xs text-danger hover:bg-danger/10 transition-colors">Retirer</button>
                         </div>
                       }
                       <button type="button" (click)="ajouterChampTemplate()" class="text-xs font-semibold text-accent hover:underline">
@@ -497,8 +502,9 @@ import { InputComponent } from '../../../../shared/components/input/input.compon
             </div>
 
             @if (livrableFormError()) {
-              <div class="rounded-xl border border-rose-500/25 bg-rose-500/10 p-3 text-xs font-medium text-rose-600">
-                {{ livrableFormError() }}
+              <div class="flex items-center gap-2 rounded-xl border border-danger/30 bg-danger/10 p-3 text-xs font-medium text-danger" role="alert">
+                <app-icon name="warning" class="size-4 shrink-0" />
+                <span>{{ livrableFormError() }}</span>
               </div>
             }
 

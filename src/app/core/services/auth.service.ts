@@ -106,6 +106,7 @@ export interface InvitationInfoResponse {
   logoStructure?: string;
   compteExiste: boolean;
   role?: string;
+  structureId?: string;
 }
 
 @Injectable({

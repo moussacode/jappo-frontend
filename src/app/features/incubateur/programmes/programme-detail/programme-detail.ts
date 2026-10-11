@@ -14,13 +14,15 @@ import { StructureContextService } from '../../../../core/services/structure-con
 import { Programme, Etape } from '../../../../core/models/parcours.model';
 import { Parcours, Phase, ParcoursPhase, CreateParcoursRequest } from '../../../../core/models/cohorte.model';
 import { INPUT_CLASS } from '../constants';
-
+import { LoadingState } from '../../../../shared/components/loading-state/loading-state';
 import { Icon } from '../../../../shared/components/icon/icon';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state';
 import { BadgeComponent } from '../../../../shared/components/badge/badge';
 import { ModalComponent } from '../../../../shared/components/modal/modal.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+
+import { CardComponent } from '../../../../shared/components/card/card.component';
 
 interface StatsParcours {
   phases: number;
@@ -40,10 +42,12 @@ interface StatsParcours {
     BadgeComponent,
     ModalComponent,
     PageHeaderComponent,
+    LoadingState,
+    CardComponent,
   ],
   host: { '(document:keydown.escape)': 'menuOuvert.set(false)' },
   template: `
-    <div class="mx-auto flex w-full max-w-5xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
 
       @if (programme(); as prog) {
         <app-page-header
@@ -61,16 +65,16 @@ interface StatsParcours {
               </app-button>
               @if (menuOuvert()) {
                 <div class="fixed inset-0 z-10" (click)="menuOuvert.set(false)"></div>
-                <div class="absolute right-0 top-10 z-20 w-44 overflow-hidden rounded-xl border border-line bg-surface py-1 shadow-lg">
-                  <button type="button" (click)="ouvrirEditionProgramme()" class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink hover:bg-surface-muted cursor-pointer">
+                <div class="absolute right-0 top-10 z-20 w-44 overflow-hidden rounded-xl border border-line bg-surface py-1 shadow-subtle">
+                  <button type="button" (click)="ouvrirEditionProgramme()" class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink hover:bg-surface-subtle cursor-pointer transition-colors">
                     <app-icon name="edit-2" class="size-4 text-ink-muted" /> Modifier
                   </button>
                   @if (prog.archive) {
-                    <button type="button" (click)="restaurerProgramme()" class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink hover:bg-surface-muted cursor-pointer">
+                    <button type="button" (click)="restaurerProgramme()" class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink hover:bg-surface-subtle cursor-pointer transition-colors">
                       <app-icon name="rotate-ccw" class="size-4 text-ink-muted" /> Restaurer
                     </button>
                   } @else {
-                    <button type="button" (click)="confirmationArchivage.set(true); menuOuvert.set(false)" class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink hover:bg-surface-muted cursor-pointer">
+                    <button type="button" (click)="confirmationArchivage.set(true); menuOuvert.set(false)" class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink hover:bg-surface-subtle cursor-pointer transition-colors">
                       <app-icon name="archive" class="size-4 text-ink-muted" /> Archiver
                     </button>
                   }
@@ -82,15 +86,15 @@ interface StatsParcours {
       }
 
       @if (erreurPage()) {
-        <div class="flex items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-xs text-rose-600" role="alert">
+        <div class="flex items-center gap-2 rounded-xl border border-danger/30 bg-danger/10 p-3 text-xs text-danger" role="alert">
           <app-icon name="warning" class="size-4 shrink-0" />
           <span>{{ erreurPage() }}</span>
         </div>
       }
 
       @if (loading()) {
-        <div class="flex items-center justify-center py-16">
-          <div class="h-8 w-8 animate-spin rounded-full border-4 border-accent border-t-transparent"></div>
+        <div class="py-16">
+          <app-loading-state text="Chargement du programme..."></app-loading-state>
         </div>
       } @else if (!programme()) {
         <app-empty-state iconName="alert-circle" title="Programme introuvable" description="Ce programme n'existe pas ou n'est plus accessible.">
@@ -99,28 +103,30 @@ interface StatsParcours {
       } @else {
 
         <!-- Barre de synthèse + actions -->
-        <div class="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div class="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-ink-muted">
-            <span><strong class="text-ink">{{ parcoursDuProgramme().length }}</strong> parcours</span>
-            <span><strong class="text-ink">{{ totaux().phases }}</strong> phases</span>
-            <span><strong class="text-ink">{{ totaux().etapes }}</strong> étapes</span>
-            <span class="flex items-center gap-1.5 text-xs">
-              <app-icon name="calendar" class="size-3.5" />
-              Modifié le {{ (programme()!.dateModification || programme()!.dateCreation) | date:'dd/MM/yyyy' }}
-            </span>
+        <app-card padding="md">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-ink-muted">
+              <span><strong class="text-ink">{{ parcoursDuProgramme().length }}</strong> parcours</span>
+              <span><strong class="text-ink">{{ totaux().phases }}</strong> phases</span>
+              <span><strong class="text-ink">{{ totaux().etapes }}</strong> étapes</span>
+              <span class="flex items-center gap-1.5 text-xs">
+                <app-icon name="calendar" class="size-3.5" />
+                Modifié le {{ (programme()!.dateModification || programme()!.dateCreation) | date:'dd/MM/yyyy' }}
+              </span>
+            </div>
+            <div class="flex items-center gap-2">
+              @if (parcoursDuProgramme().length > 0) {
+                <app-button variant="ghost" size="xs" (click)="toutDeplier()">Tout déplier</app-button>
+                <app-button variant="ghost" size="xs" (click)="toutReplier()">Tout replier</app-button>
+              }
+              @if (isAdmin()) {
+                <app-button size="sm" (click)="ouvrirCreationParcours()">
+                  <app-icon name="plus" class="size-4" /> Ajouter un parcours
+                </app-button>
+              }
+            </div>
           </div>
-          <div class="flex items-center gap-2">
-            @if (parcoursDuProgramme().length > 0) {
-              <app-button variant="ghost" size="xs" (click)="toutDeplier()">Tout déplier</app-button>
-              <app-button variant="ghost" size="xs" (click)="toutReplier()">Tout replier</app-button>
-            }
-            @if (isAdmin()) {
-              <app-button size="sm" (click)="ouvrirCreationParcours()">
-                <app-icon name="plus" class="size-4" /> Ajouter un parcours
-              </app-button>
-            }
-          </div>
-        </div>
+        </app-card>
 
         @if (parcoursDuProgramme().length === 0) {
           <app-empty-state iconName="folder" title="Aucun parcours" description="Ce programme ne contient encore aucun parcours.">
@@ -134,10 +140,10 @@ interface StatsParcours {
           <div class="flex flex-col gap-4">
             @for (parcours of parcoursDuProgramme(); track parcours.id) {
               @let sp = statsParcours().get(parcours.id);
-              <section class="overflow-hidden rounded-2xl border border-line bg-surface">
+              <app-card padding="none" class="overflow-hidden">
 
                 <!-- Parcours -->
-                <div class="flex items-center gap-2 px-4 py-3 hover:bg-surface-muted/60 transition-colors sm:px-5">
+                <div class="flex items-center gap-2 px-4 py-3 hover:bg-surface-subtle transition-colors sm:px-5">
                   <button
                     type="button"
                     (click)="toggleParcours(parcours.id)"
@@ -154,25 +160,25 @@ interface StatsParcours {
                   </button>
                   <span class="hidden shrink-0 text-xs text-ink-muted sm:block">{{ sp?.phases ?? 0 }} phases · {{ sp?.etapes ?? 0 }} étapes</span>
                   @if (isAdmin()) {
-                    <button type="button" (click)="ouvrirParcours(parcours.id)" class="shrink-0 rounded-lg px-2 py-1 text-xs text-ink-muted hover:bg-surface-muted hover:text-accent transition-colors cursor-pointer" title="Gérer ce parcours en détail">
+                    <button type="button" (click)="ouvrirParcours(parcours.id)" class="shrink-0 rounded-lg px-2 py-1 text-xs text-ink-muted hover:bg-surface-subtle hover:text-accent transition-colors cursor-pointer" title="Gérer ce parcours en détail">
                       Gérer
                     </button>
                   }
                 </div>
 
                 @if (parcoursOuverts().has(parcours.id)) {
-                  <div class="border-t border-line bg-surface-muted/30 px-3 py-3 sm:px-5">
+                  <div class="border-t border-line bg-surface-subtle px-3 py-3 sm:px-5">
                     @let phases = phasesDe(parcours);
                     @if (phases.length === 0) {
                       <p class="py-4 text-center text-sm text-ink-muted">Ce parcours ne contient encore aucune phase.</p>
                     } @else {
                       <div class="flex flex-col gap-3">
                         @for (phase of phases; track phase.id; let i = $index) {
-                          <div class="rounded-xl border border-line bg-surface">
+                          <app-card padding="none">
                             <button
                               type="button"
                               (click)="togglePhase(parcours.id + ':' + phase.id)"
-                              class="flex w-full items-center gap-3 px-4 py-2.5 text-left cursor-pointer"
+                              class="flex w-full items-center gap-3 px-4 py-2.5 text-left cursor-pointer hover:bg-surface-subtle transition-colors"
                               [attr.aria-expanded]="phasesOuvertes().has(parcours.id + ':' + phase.id)"
                             >
                               <app-icon name="chevron-down" class="size-3.5 shrink-0 text-ink-muted transition-transform duration-200" [class.-rotate-90]="!phasesOuvertes().has(parcours.id + ':' + phase.id)" />
@@ -187,7 +193,7 @@ interface StatsParcours {
                             </button>
 
                             @if (phasesOuvertes().has(parcours.id + ':' + phase.id)) {
-                              <div class="border-t border-line px-4 py-3">
+                              <div class="border-t border-line px-4 py-3 bg-surface">
                                 @if (phase.description) {
                                   <p class="mb-3 text-xs text-ink-muted">{{ phase.description }}</p>
                                 }
@@ -221,25 +227,25 @@ interface StatsParcours {
                                 }
 
                                 @if (isAdmin()) {
-                                  <button type="button" (click)="ouvrirCreationEtape(parcours, phase)" class="mt-2 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-accent hover:bg-accent/10 transition-colors cursor-pointer">
+                                  <button type="button" (click)="ouvrirCreationEtape(parcours, phase)" class="mt-2 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-accent hover:bg-accent-soft transition-colors cursor-pointer">
                                     <app-icon name="plus" class="size-3.5" /> Ajouter une étape
                                   </button>
                                 }
                               </div>
                             }
-                          </div>
+                          </app-card>
                         }
                       </div>
                     }
 
                     @if (isAdmin()) {
-                      <button type="button" (click)="ouvrirAjoutPhase(parcours)" class="mt-3 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-accent hover:bg-accent/10 transition-colors cursor-pointer">
+                      <button type="button" (click)="ouvrirAjoutPhase(parcours)" class="mt-3 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-accent hover:bg-accent-soft transition-colors cursor-pointer">
                         <app-icon name="plus" class="size-3.5" /> Ajouter une phase
                       </button>
                     }
                   </div>
                 }
-              </section>
+              </app-card>
             }
           </div>
         }
@@ -250,13 +256,13 @@ interface StatsParcours {
         <app-modal title="Nouveau parcours" maxWidth="md" (close)="fermerModals()">
           <form [formGroup]="formParcours" (ngSubmit)="creerParcours()" class="flex flex-col gap-4">
             @if (erreurModal()) {
-              <div class="rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-xs text-rose-600" role="alert">{{ erreurModal() }}</div>
+              <div class="rounded-xl border border-danger/30 bg-danger/10 p-3 text-xs text-danger" role="alert">{{ erreurModal() }}</div>
             }
             <div>
               <label class="mb-1.5 block text-sm font-medium text-ink">Nom *</label>
               <input type="text" formControlName="nom" placeholder="Ex : Idéation" class="${INPUT_CLASS}" />
               @if (formParcours.controls.nom.invalid && formParcours.controls.nom.touched) {
-                <p class="mt-1 text-xs text-rose-600">Le nom est obligatoire</p>
+                <p class="mt-1 text-xs text-danger">Le nom est obligatoire</p>
               }
             </div>
             <div>
@@ -276,7 +282,7 @@ interface StatsParcours {
         <app-modal [title]="'Ajouter une phase'" [subtitle]="cible.nom" maxWidth="md" (close)="fermerModals()">
           <div class="flex flex-col gap-4">
             @if (erreurModal()) {
-              <div class="rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-xs text-rose-600" role="alert">{{ erreurModal() }}</div>
+              <div class="rounded-xl border border-danger/30 bg-danger/10 p-3 text-xs text-danger" role="alert">{{ erreurModal() }}</div>
             }
 
             <div class="flex items-center gap-1 rounded-xl border border-line bg-surface p-1 text-xs font-semibold">
@@ -290,7 +296,7 @@ interface StatsParcours {
                   <label class="mb-1.5 block text-sm font-medium text-ink">Nom *</label>
                   <input type="text" formControlName="nom" placeholder="Ex : Comprendre le problème" class="${INPUT_CLASS}" />
                   @if (formPhase.controls.nom.invalid && formPhase.controls.nom.touched) {
-                    <p class="mt-1 text-xs text-rose-600">Le nom est obligatoire</p>
+                    <p class="mt-1 text-xs text-danger">Le nom est obligatoire</p>
                   }
                 </div>
                 <div>
@@ -306,7 +312,7 @@ interface StatsParcours {
             } @else {
               <div class="flex flex-col gap-4">
                 @if (phasesDisponibles().length === 0) {
-                  <p class="rounded-xl border border-line bg-surface-muted/40 p-4 text-center text-sm text-ink-muted">
+                  <p class="rounded-xl border border-line bg-surface-subtle p-4 text-center text-sm text-ink-muted">
                     Aucune autre phase disponible. Créez une nouvelle phase.
                   </p>
                 } @else {
@@ -319,7 +325,7 @@ interface StatsParcours {
                       }
                     </select>
                   </div>
-                  <p class="text-xs text-amber-600">Une phase existante est partagée : ses étapes seront identiques dans tous les parcours qui l'utilisent.</p>
+                  <p class="text-xs text-warning">Une phase existante est partagée : ses étapes seront identiques dans tous les parcours qui l'utilisent.</p>
                 }
                 <div class="flex justify-end gap-2">
                   <app-button type="button" variant="ghost" (click)="fermerModals()">Annuler</app-button>
@@ -336,13 +342,13 @@ interface StatsParcours {
         <app-modal title="Ajouter une étape" [subtitle]="cible.phase.nom" maxWidth="md" (close)="fermerModals()">
           <form [formGroup]="formEtape" (ngSubmit)="creerEtape()" class="flex flex-col gap-4">
             @if (erreurModal()) {
-              <div class="rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-xs text-rose-600" role="alert">{{ erreurModal() }}</div>
+              <div class="rounded-xl border border-danger/30 bg-danger/10 p-3 text-xs text-danger" role="alert">{{ erreurModal() }}</div>
             }
             <div>
               <label class="mb-1.5 block text-sm font-medium text-ink">Nom *</label>
               <input type="text" formControlName="nom" placeholder="Ex : Identifier le problème" class="${INPUT_CLASS}" />
               @if (formEtape.controls.nom.invalid && formEtape.controls.nom.touched) {
-                <p class="mt-1 text-xs text-rose-600">Le nom est obligatoire</p>
+                <p class="mt-1 text-xs text-danger">Le nom est obligatoire</p>
               }
             </div>
             <div>
@@ -367,13 +373,13 @@ interface StatsParcours {
         <app-modal title="Modifier le programme" maxWidth="md" (close)="fermerModals()">
           <form [formGroup]="formProgramme" (ngSubmit)="modifierProgramme()" class="flex flex-col gap-4">
             @if (erreurModal()) {
-              <div class="rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-xs text-rose-600" role="alert">{{ erreurModal() }}</div>
+              <div class="rounded-xl border border-danger/30 bg-danger/10 p-3 text-xs text-danger" role="alert">{{ erreurModal() }}</div>
             }
             <div>
               <label class="mb-1.5 block text-sm font-medium text-ink">Nom *</label>
               <input type="text" formControlName="nom" class="${INPUT_CLASS}" />
               @if (formProgramme.controls.nom.invalid && formProgramme.controls.nom.touched) {
-                <p class="mt-1 text-xs text-rose-600">Le nom est obligatoire</p>
+                <p class="mt-1 text-xs text-danger">Le nom est obligatoire</p>
               }
             </div>
             <div>
