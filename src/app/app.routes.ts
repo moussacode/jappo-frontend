@@ -106,6 +106,13 @@ export const routes: Routes = [
           import('./features/entrepreneur/dashboard/dashboard/dashboard').then((m) => m.Dashboard),
       },
       {
+        path: 'assistant',
+        loadComponent: () =>
+          import('./features/entrepreneur/assistant/entrepreneur-assistant-page').then(
+            (m) => m.EntrepreneurAssistantPage,
+          ),
+      },
+      {
         path: 'missions',
         loadComponent: () =>
           import('./features/entrepreneur/missions/missions-list/missions-list').then((m) => m.MissionsList),
@@ -119,6 +126,13 @@ export const routes: Routes = [
         path: 'documents',
         loadComponent: () =>
           import('./features/entrepreneur/documents/mes-documents/mes-documents').then((m) => m.MesDocuments),
+      },
+      {
+        path: 'ressources',
+        loadComponent: () =>
+          import('./features/entrepreneur/ressources/entrepreneur-ressources').then(
+            (m) => m.EntrepreneurRessources,
+          ),
       },
       {
         path: 'reunions',

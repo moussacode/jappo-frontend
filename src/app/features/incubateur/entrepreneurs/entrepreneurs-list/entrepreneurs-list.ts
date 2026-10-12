@@ -21,6 +21,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
 import { TabFilterComponent, TabOption } from '../../../../shared/components/tab-filter/tab-filter.component';
 import { ModalComponent } from '../../../../shared/components/modal/modal.component';
 import { InviterEntrepreneurModalComponent } from '../inviter-entrepreneur/inviter-entrepreneur';
+import { downloadCsv } from '../../../../core/utils/csv-export';
 
 export interface LigneEntrepreneur {
   entrepreneur: Entrepreneur;
@@ -80,14 +81,21 @@ export type FiltreStatut = 'ACTIFS' | 'EN_ATTENTE' | 'TOUS';
           (valueChange)="filtreStatut.set($event)"
         />
 
-        <div class="relative w-full sm:w-72">
-          <input
-            type="text"
-            [formControl]="searchControl"
-            placeholder="Rechercher par nom, email, projet..."
-            class="w-full rounded-xl border border-line bg-surface py-2.5 pl-9 pr-4 text-xs text-ink placeholder:text-ink-muted/60 transition-colors focus:border-accent focus:outline-none"
-          />
-          <app-icon name="search" class="absolute left-3 top-3 size-4 text-ink-muted" />
+        <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <div class="relative w-full sm:w-72">
+            <input
+              type="text"
+              [formControl]="searchControl"
+              placeholder="Rechercher par nom, email, projet..."
+              class="w-full rounded-xl border border-line bg-surface py-2.5 pl-9 pr-4 text-xs text-ink placeholder:text-ink-muted/60 transition-colors focus:border-accent focus:outline-none"
+            />
+            <app-icon name="search" class="absolute left-3 top-3 size-4 text-ink-muted" />
+          </div>
+          @if (!isLoading() && lignesFiltrees().length > 0) {
+            <app-button variant="secondary" size="sm" (click)="exporterEntrepreneurs()">
+              Exporter CSV
+            </app-button>
+          }
         </div>
       </div>
 
@@ -448,6 +456,23 @@ export class EntrepreneursList implements OnInit {
     const parts = [entrepreneur.prenom, entrepreneur.nom].filter(Boolean);
     if (parts.length > 0) return parts.join(' ');
     return entrepreneur.email.split('@')[0];
+  }
+
+  protected exporterEntrepreneurs(): void {
+    const rows = this.lignesFiltrees().map((ligne) => [
+      this.afficherNom(ligne.entrepreneur),
+      ligne.entrepreneur.email,
+      ligne.projet?.nom,
+      ligne.nomCohorte,
+      this.estMembreActif(ligne.statutInvitation) ? 'Actif' : 'En attente',
+      ligne.dateInvitation,
+    ]);
+
+    downloadCsv(
+      `entrepreneurs-${new Date().toISOString().slice(0, 10)}`,
+      ['Entrepreneur', 'E-mail', 'Projet', 'Cohorte', 'Statut', 'Date d’invitation'],
+      rows,
+    );
   }
 
   protected initiales(entrepreneur: Entrepreneur): string {

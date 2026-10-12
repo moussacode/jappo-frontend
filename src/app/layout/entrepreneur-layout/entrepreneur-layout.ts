@@ -7,6 +7,7 @@ import {
 } from '../../shared/components/sidebar/sidebar';
 
 import { TranslatePipe } from '../../shared/pipes/translate.pipe';
+import { EntrepreneurAssistantWidget } from '../../features/entrepreneur/assistant/entrepreneur-assistant-widget';
 
 @Component({
   selector: 'app-entrepreneur-layout',
@@ -14,6 +15,7 @@ import { TranslatePipe } from '../../shared/pipes/translate.pipe';
     RouterOutlet,
     Sidebar,
     TranslatePipe,
+    EntrepreneurAssistantWidget,
   ],
   template: `
     <div class="flex h-dvh min-h-0 flex-col">
@@ -23,6 +25,7 @@ import { TranslatePipe } from '../../shared/pipes/translate.pipe';
         <main class="min-h-0 min-w-0 flex-1 overflow-y-auto bg-surface-muted">
           <router-outlet />
         </main>
+        <app-entrepreneur-assistant-widget />
       </div>
     </div>
   `,
@@ -58,6 +61,16 @@ export class EntrepreneurLayout {
       label: 'entrepreneur.nav.livrables',
       path: '/entrepreneur/documents',
       icon: 'documents',
+    },
+    {
+      label: 'entrepreneur.nav.ressources',
+      path: '/entrepreneur/ressources',
+      icon: 'book-open',
+    },
+    {
+      label: 'entrepreneur.nav.assistantIa',
+      path: '/entrepreneur/assistant',
+      icon: 'ai',
     },
   ];
 }

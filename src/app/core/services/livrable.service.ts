@@ -212,6 +212,10 @@ export class LivrableService {
     return this.http.get<LivrableResponse>(`${this.apiUrl}/${id}`);
   }
 
+  getAllForExport(): Observable<LivrableResponse[]> {
+    return this.http.get<LivrableResponse[]>(`${this.apiUrl}/export`);
+  }
+
   /**
    * Soumettre un nouveau livrable pour une mission (Version 1).
    */

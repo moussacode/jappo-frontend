@@ -158,7 +158,7 @@
               <div
                 class="min-w-0 max-w-[560px] break-words [overflow-wrap:anywhere] rounded-[var(--radius-token-md)] bg-accent/10 border border-accent/20 px-3 py-2.5 sm:px-4 sm:py-3 text-sm leading-5 text-ink"
               >
-                {{ message.contenu }}
+                <span [innerHTML]="message.contenu | markdown"></span>
               </div>
             </div>
 
@@ -174,8 +174,38 @@
                 <div
                   class="break-words [overflow-wrap:anywhere] rounded-[var(--radius-token-md)] bg-surface-muted px-3 py-2.5 sm:px-4 sm:py-3 text-sm leading-5 text-ink whitespace-pre-line"
                 >
-                  {{ message.contenu }}
+                  <span [innerHTML]="message.contenu | markdown"></span>
                 </div>
+
+                @if (sourcesFor(message); as sources) {
+                  @if (sources.length > 0) {
+                    <div class="rounded-lg border border-line bg-surface px-3 py-2">
+                      <p class="mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
+                        {{ 'entrepreneurAssistant.sources' | translate }}
+                      </p>
+                      <ul class="space-y-2">
+                        @for (source of sources; track source.id) {
+                          <li>
+                            <a
+                              [href]="source.url"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              (click)="openSource($event, source)"
+                              class="block rounded-md px-2 py-1 text-xs text-accent underline hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-accent"
+                            >
+                              {{ source.title }}
+                              <span aria-hidden="true">↗</span>
+                              <span class="sr-only">{{ 'entrepreneurAssistant.openSource' | translate }}</span>
+                            </a>
+                            @if (source.snippet) {
+                              <p class="px-2 text-xs leading-5 text-ink-muted">{{ source.snippet }}</p>
+                            }
+                          </li>
+                        }
+                      </ul>
+                    </div>
+                  }
+                }
 
                 <!-- Actions IA proposées -->
                 @if (parseActions(message).length > 0) {

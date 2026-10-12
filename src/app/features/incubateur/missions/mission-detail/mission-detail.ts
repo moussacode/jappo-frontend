@@ -28,6 +28,7 @@ import {
   BMC_DEFAULT_FIELDS,
   BmcCanvasComponent,
 } from '../../../../shared/components/bmc-canvas/bmc-canvas.component';
+import { downloadCsv } from '../../../../core/utils/csv-export';
 
 interface CorrectionFormState {
   motif: string;
@@ -155,9 +156,16 @@ interface CorrectionFormState {
           <div class="flex min-w-0 flex-col gap-8 lg:col-span-2">
 
             <section class="flex flex-col gap-4" aria-label="Livrables à évaluer">
-              <div>
-                <h2 class="text-base font-semibold text-ink">Livrables à évaluer ({{ livrables().length }})</h2>
-                <p class="text-xs text-ink-muted">Chaque livrable regroupe sa version actuelle et son historique de corrections.</p>
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 class="text-base font-semibold text-ink">Livrables à évaluer ({{ livrables().length }})</h2>
+                  <p class="text-xs text-ink-muted">Chaque livrable regroupe sa version actuelle et son historique de corrections.</p>
+                </div>
+                @if (livrables().length > 0) {
+                  <app-button variant="secondary" size="sm" (click)="exporterLivrables()">
+                    Exporter CSV
+                  </app-button>
+                }
               </div>
 
               @for (l of livrablesTries(); track l.id) {
@@ -741,6 +749,87 @@ export class MissionDetail implements OnInit, OnDestroy {
     } catch {
       return {};
     }
+  }
+
+  protected exporterLivrables(): void {
+    const rows = this.livrables().flatMap((livrable) => {
+      const attendu = this.attenduPourLivrable(livrable);
+      const versions = [
+        ...(livrable.historique ?? []),
+        {
+          id: livrable.id,
+          numeroVersion: livrable.numeroVersion ?? 1,
+          nom: livrable.nom,
+          url: livrable.url,
+          contenu: livrable.contenu,
+          typePiece: livrable.typePiece,
+          statut: livrable.statut,
+          note: livrable.note,
+          commentaireCoach: livrable.commentaireCoach,
+          motifRefus: livrable.motifRefus,
+          pointsACorriger: livrable.pointsACorriger,
+          dateDepot: livrable.dateDepot,
+          dateEvaluation: livrable.dateEvaluation,
+          commentaireEntrepreneur: undefined,
+        },
+      ];
+      const uniqueVersions = [...new Map(
+        versions.map((version) => [version.numeroVersion, version]),
+      ).values()].sort((a, b) => a.numeroVersion - b.numeroVersion);
+
+      return uniqueVersions.map((version) => [
+        livrable.nomProjet,
+        attendu?.titre,
+        version.nom,
+        version.numeroVersion,
+        version.typePiece,
+        this.statutBadgeLivrable(version.statut).label,
+        version.dateDepot,
+        version.dateEvaluation,
+        version.note,
+        version.typePiece === 'TEMPLATE'
+          ? this.contenuTemplatePourExport(version.contenu, attendu)
+          : version.typePiece === 'TEXTE'
+            ? version.url
+            : '',
+        version.typePiece === 'LIEN' || version.typePiece === 'FICHIER' ? version.url : '',
+        version.commentaireEntrepreneur,
+        version.commentaireCoach ?? version.motifRefus,
+        version.pointsACorriger,
+      ]);
+    });
+
+    downloadCsv(
+      `livrables-${this.mission()?.titre ?? 'mission'}-${new Date().toISOString().slice(0, 10)}`,
+      [
+        'Projet',
+        'Livrable attendu',
+        'Nom du dépôt',
+        'Version',
+        'Type',
+        'Statut',
+        'Date de dépôt',
+        'Date d’évaluation',
+        'Note',
+        'Réponse / contenu',
+        'Lien du fichier',
+        'Note de l’entrepreneur',
+        'Commentaire du coach',
+        'Points à corriger',
+      ],
+      rows,
+    );
+  }
+
+  private contenuTemplatePourExport(
+    contenu: string | null | undefined,
+    attendu: LivrableAttenduMission | undefined,
+  ): string {
+    const reponses = this.reponsesTemplate(contenu);
+    const champs = attendu ? this.champsTemplate(attendu) : [];
+    return champs
+      .map((champ) => `${champ.label}: ${reponses[champ.id] ?? ''}`)
+      .join('\n');
   }
 
   protected reponseTemplate(contenu: string | null | undefined, champId: string): string {

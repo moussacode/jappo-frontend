@@ -155,7 +155,7 @@ type CreationMode = 'LIEN' | 'FICHIER';
                     <td class="px-5 py-3.5 text-right whitespace-nowrap">
                       <div class="flex items-center justify-end gap-1.5">
                         @if (r.url) {
-                          <app-button variant="secondary" size="xs" (click)="ouvrirUrl(r.url)" title="Ouvrir le lien">
+                          <app-button variant="secondary" size="xs" (click)="ouvrirRessource(r)" title="Ouvrir la ressource">
                             <app-icon name="external-link" class="size-3.5" />
                           </app-button>
                         }
@@ -629,8 +629,46 @@ export class RessourcesList {
     this.showDetailModal.set(true);
   }
 
+  protected ouvrirRessource(resource: Ressource): void {
+    if (resource.nomFichier || /^\/fichiers\/ressources\/[^/]+\/[^/]+$/.test(resource.url ?? '')) {
+      const preview = window.open('about:blank', '_blank');
+      if (preview) preview.opener = null;
+      this.ressourceService.getIncubatorFile(resource.id)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (file) => {
+            const fileUrl = URL.createObjectURL(file);
+            if (preview) {
+              preview.location.href = fileUrl;
+            } else {
+              const link = document.createElement('a');
+              link.href = fileUrl;
+              link.target = '_blank';
+              link.rel = 'noopener noreferrer';
+              link.click();
+            }
+            window.setTimeout(() => URL.revokeObjectURL(fileUrl), 60_000);
+          },
+          error: () => {
+            preview?.close();
+            alert('Impossible d’ouvrir ce fichier. Vérifiez votre accès et réessayez.');
+          },
+        });
+      return;
+    }
+    this.ouvrirUrl(resource.url);
+  }
+
   protected ouvrirUrl(url?: string): void {
-    if (url) window.open(url, '_blank', 'noopener');
+    if (!url) return;
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+        window.open(parsed.href, '_blank', 'noopener');
+      }
+    } catch {
+      return;
+    }
   }
 
   protected formatDate(d?: string): string {

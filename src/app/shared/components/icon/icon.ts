@@ -57,6 +57,7 @@ export type IconName =
   | 'file-text'
   | 'external-link'
   | 'upload'
+  | 'download'
   | 'archive'
   | 'rotate-ccw'
   | 'alert-circle'

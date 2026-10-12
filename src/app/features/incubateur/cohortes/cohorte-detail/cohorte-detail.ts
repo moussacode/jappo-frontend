@@ -481,8 +481,15 @@ interface LigneSuivi {
                   </div>
                   <div class="min-w-0">
                     <p class="truncate text-sm font-medium text-ink">{{ r.titre }}</p>
-                    @if (r.url) {
-                      <a [href]="r.url" target="_blank" rel="noopener noreferrer"
+                    @if (isResourceFile(r)) {
+                      <button
+                        type="button"
+                        (click)="openResourceFile(r)"
+                        [disabled]="openingResourceId() === r.id"
+                        class="block truncate text-left text-xs text-accent hover:text-accent-strong hover:underline"
+                      >{{ openingResourceId() === r.id ? 'Ouverture…' : (r.nomFichier || r.titre) }}</button>
+                    } @else if (safeResourceUrl(r.url); as resourceUrl) {
+                      <a [href]="resourceUrl" target="_blank" rel="noopener noreferrer"
                          class="block truncate text-xs text-accent hover:text-accent-strong hover:underline">{{ r.url }}</a>
                     }
                   </div>
@@ -717,6 +724,7 @@ export class CohorteDetail implements OnInit {
   readonly feuillesRouteParProjet = signal<Record<string, FeuilleRouteProjet>>({});
   readonly remisesParMission = signal<Record<string, LivrableResponse[]>>({});
   readonly ressources = signal<Ressource[]>([]);
+  protected readonly openingResourceId = signal<string | null>(null);
   readonly reunions = signal<Meeting[]>([]);
   readonly cohortesEligibles = signal<Cohorte[]>([]);
 
@@ -774,6 +782,50 @@ export class CohorteDetail implements OnInit {
     const id = this.route.snapshot.paramMap.get('id') ?? '';
     this.cohorteId.set(id);
     this.charger(id);
+  }
+
+  protected isResourceFile(resource: Ressource): boolean {
+    return Boolean(resource.nomFichier)
+      || /^\/fichiers\/ressources\/[^/]+\/[^/]+$/.test(resource.url ?? '');
+  }
+
+  protected safeResourceUrl(value?: string): string | null {
+    if (!value) return null;
+    try {
+      const url = new URL(value);
+      return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : null;
+    } catch {
+      return null;
+    }
+  }
+
+  protected openResourceFile(resource: Ressource): void {
+    const preview = window.open('about:blank', '_blank');
+    if (preview) preview.opener = null;
+    this.openingResourceId.set(resource.id);
+    this.ressourceService.getIncubatorFile(resource.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (file) => {
+          const fileUrl = URL.createObjectURL(file);
+          if (preview) {
+            preview.location.href = fileUrl;
+          } else {
+            const link = document.createElement('a');
+            link.href = fileUrl;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.click();
+          }
+          window.setTimeout(() => URL.revokeObjectURL(fileUrl), 60_000);
+          this.openingResourceId.set(null);
+        },
+        error: () => {
+          preview?.close();
+          this.openingResourceId.set(null);
+          alert('Impossible d’ouvrir ce fichier. Vérifiez votre accès et réessayez.');
+        },
+      });
   }
 
   private charger(id: string): void {

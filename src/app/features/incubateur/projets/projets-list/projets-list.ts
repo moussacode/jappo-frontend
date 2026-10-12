@@ -20,6 +20,7 @@ import { TabFilterComponent, TabOption } from '../../../../shared/components/tab
 import { EntityCardComponent } from "../../../../shared/components/entity-card/entity-card.component";
 import { ModalComponent } from '../../../../shared/components/modal/modal.component';
 import { NouveauProjetModal } from '../nouveau-projet-modal/nouveau-projet-modal';
+import { downloadCsv } from '../../../../core/utils/csv-export';
 
 export type VueMode = 'grid' | 'table';
 export type FiltreArchive = 'TOUS' | 'ACTIFS' | 'ARCHIVES';
@@ -68,6 +69,11 @@ export type FiltreArchive = 'TOUS' | 'ACTIFS' | 'ARCHIVES';
           <app-icon name="plus" class="size-4 mr-1.5" />
           <span class="hidden sm:inline">Nouveau projet</span>
         </app-button>
+        @if (!loading() && projetsFiltrees().length > 0) {
+          <app-button variant="secondary" size="sm" (click)="exporterProjets()">
+            Exporter CSV
+          </app-button>
+        }
       </app-page-header>
 
       @if (erreurAction()) {
@@ -487,6 +493,40 @@ export class ProjetsList implements OnInit {
           this.erreurAction.set(err?.error?.message ?? "Erreur lors de l'archivage du projet.");
         }
       });
+  }
+
+  protected exporterProjets(): void {
+    const rows = this.projetsFiltrees().map((projet) => [
+      projet.nom,
+      projet.secteur,
+      projet.nomEntrepreneur,
+      projet.nomCohorte || 'Hors cohorte',
+      projet.nomParcours,
+      projet.nomPhase,
+      projet.scoreMaturite,
+      projet.nombreMissionsValidees,
+      projet.nombreMissionsTotal,
+      projet.archive ? 'Archivé' : this.statutBadge(projet.statut).label,
+      projet.dateCreation,
+    ]);
+
+    downloadCsv(
+      `projets-${new Date().toISOString().slice(0, 10)}`,
+      [
+        'Projet',
+        'Secteur',
+        'Entrepreneur',
+        'Cohorte',
+        'Parcours',
+        'Phase',
+        'Maturité (%)',
+        'Missions validées',
+        'Missions totales',
+        'Statut',
+        'Date de création',
+      ],
+      rows,
+    );
   }
 
   protected statutBadge(statut: string | undefined): { status: BadgeStatus; label: string } {

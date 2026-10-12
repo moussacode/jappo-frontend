@@ -6,6 +6,7 @@ export interface ConversationContexte {
   cohorteId?: string;
   projetId?: string;
   entrepreneurId?: string;
+  missionId?: string;
 }
 
 export interface ConversationIA {
@@ -30,9 +31,17 @@ export interface MessageIA {
   dateEnvoi: string;
   model?: string;
   sourcesJson?: string;
+  sources?: AiSource[];
   actionsJson?: string;
   /** Actions IA parsées depuis actionsJson pour affichage dans l'UI */
   actions?: AiAction[];
+}
+
+export interface AiSource {
+  id: string;
+  title: string;
+  url: string;
+  snippet: string;
 }
 
 export interface AiAction {
@@ -55,6 +64,7 @@ export interface UpdateContexteRequest {
   cohorteId?: string | null;
   projetId?: string | null;
   entrepreneurId?: string | null;
+  missionId?: string | null;
 }
 
 /** Type du contexte sélectionnable dans l'interface */

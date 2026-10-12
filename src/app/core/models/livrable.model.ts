@@ -37,6 +37,7 @@ export interface LivrableSoumis {
   dateEcheanceCorrection?: string; // YYYY-MM-DD
   dateDepot?: string;             // ISO LocalDateTime
   dateEvaluation?: string;        // ISO LocalDateTime
+  dateValidation?: string;       // ISO LocalDateTime
   missionProjetId: string;
   livrableAttenduId?: string | null;
   titreMission?: string;

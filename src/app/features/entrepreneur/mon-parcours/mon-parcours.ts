@@ -18,6 +18,7 @@ import { MonParcoursService } from '../../../core/services/mon-parcours.service'
 import { ProgressionService } from '../../../core/services/progression.service';
 import { MeetingService } from '../../../core/services/meeting.service';
 import { RessourceService } from '../../../core/services/ressource.service';
+import { TranslatePipe } from '../../../shared/pipes/translate.pipe';
 
 import {
   MissionResponse,
@@ -50,6 +51,7 @@ const STATUTS_A_TRAITER = ['A_FAIRE', 'EN_COURS', 'A_REVOIR'];
     EmptyStateComponent,
     TabFilterComponent,
     ParcoursProgressComponent,
+    TranslatePipe,
   ],
   template: `
     <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
@@ -274,9 +276,23 @@ const STATUTS_A_TRAITER = ['A_FAIRE', 'EN_COURS', 'A_REVOIR'];
                 <ul class="flex flex-col gap-1">
                   @for (r of ressources().slice(0, 5); track r.id) {
                     <li>
-                      @if (r.url) {
+                      @if (isProtectedFileResource(r)) {
+                        <button
+                          type="button"
+                          (click)="openResourceFile(r)"
+                          [disabled]="openingResourceId() === r.id"
+                          class="group flex w-full items-center gap-3 rounded-button p-2 text-left transition-colors hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-60"
+                        >
+                          <span class="flex size-8 shrink-0 items-center justify-center rounded-button bg-surface-subtle text-ink-muted group-hover:bg-accent-soft group-hover:text-accent">
+                            <app-icon name="file" class="size-4" />
+                          </span>
+                          <span class="min-w-0 truncate text-sm font-medium text-ink group-hover:text-accent">
+                            {{ openingResourceId() === r.id ? ('entrepreneur.ressources.opening' | translate) : r.titre }}
+                          </span>
+                        </button>
+                      } @else if (safeExternalResourceUrl(r.url); as resourceUrl) {
                         <a
-                          [href]="r.url" target="_blank" rel="noopener noreferrer"
+                          [href]="resourceUrl" target="_blank" rel="noopener noreferrer"
                           class="group flex items-center gap-3 rounded-button p-2 transition-colors hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                         >
                           <span class="flex size-8 shrink-0 items-center justify-center rounded-button bg-surface-subtle text-ink-muted group-hover:bg-accent-soft group-hover:text-accent">
@@ -295,6 +311,11 @@ const STATUTS_A_TRAITER = ['A_FAIRE', 'EN_COURS', 'A_REVOIR'];
                     </li>
                   }
                 </ul>
+                @if (resourceFileError()) {
+                  <p class="mt-2 text-xs text-red-700" role="alert">
+                    {{ 'entrepreneur.ressources.fileError' | translate }}
+                  </p>
+                }
                 @if (ressources().length > 5) {
                   <p class="mt-2 px-2 text-xs text-ink-muted">+ {{ ressources().length - 5 }} autre(s) ressource(s)</p>
                 }
@@ -319,6 +340,8 @@ export class MonParcours implements OnInit {
   protected readonly historique = signal<ParticipationCohorteResponse[]>([]);
   protected readonly reunions = signal<Meeting[]>([]);
   protected readonly ressources = signal<Ressource[]>([]);
+  protected readonly openingResourceId = signal<string | null>(null);
+  protected readonly resourceFileError = signal(false);
 
   protected readonly chargement = signal(true);
   protected readonly chargementMissions = signal(false);
@@ -510,6 +533,52 @@ export class MonParcours implements OnInit {
               error: () => {},
             });
         }
+
+      });
+  }
+
+  protected isProtectedFileResource(resource: Ressource): boolean {
+    return Boolean(resource.nomFichier)
+      || /^\/fichiers\/ressources\/[^/]+\/[^/]+$/.test(resource.url ?? '');
+  }
+
+  protected safeExternalResourceUrl(value?: string): string | null {
+    if (!value) return null;
+    try {
+      const url = new URL(value);
+      return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : null;
+    } catch {
+      return null;
+    }
+  }
+
+  protected openResourceFile(resource: Ressource): void {
+    const preview = window.open('about:blank', '_blank');
+    if (preview) preview.opener = null;
+    this.openingResourceId.set(resource.id);
+    this.resourceFileError.set(false);
+    this.ressourceService.getEntrepreneurFile(resource.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (file) => {
+          const fileUrl = URL.createObjectURL(file);
+          if (preview) {
+            preview.location.href = fileUrl;
+          } else {
+            const link = document.createElement('a');
+            link.href = fileUrl;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.click();
+          }
+          window.setTimeout(() => URL.revokeObjectURL(fileUrl), 60_000);
+          this.openingResourceId.set(null);
+        },
+        error: () => {
+          preview?.close();
+          this.openingResourceId.set(null);
+          this.resourceFileError.set(true);
+        },
       });
   }
 

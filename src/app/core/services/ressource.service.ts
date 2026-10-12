@@ -47,6 +47,24 @@ export class RessourceService {
     return this.http.get<Ressource[]>(`${this.apiUrl}/mission/${missionId}`);
   }
 
+  getAccessibleForEntrepreneur(): Observable<Ressource[]> {
+    return this.http.get<Ressource[]>(`${environment.apiUrl}/entrepreneur/ressources`);
+  }
+
+  getEntrepreneurFile(resourceId: string): Observable<Blob> {
+    return this.http.get(
+      `${environment.apiUrl}/entrepreneur/ressources/${encodeURIComponent(resourceId)}/fichier`,
+      { responseType: 'blob' },
+    );
+  }
+
+  getIncubatorFile(resourceId: string): Observable<Blob> {
+    return this.http.get(
+      `${this.apiUrl}/${encodeURIComponent(resourceId)}/fichier`,
+      { responseType: 'blob' },
+    );
+  }
+
   /**
    * Créer une ressource (lien ou URL externe)
    * POST /api/ressources

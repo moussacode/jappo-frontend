@@ -11,7 +11,9 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule, JsonPipe, DatePipe } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 
 import { CohorteService } from '../../../../core/services/cohorte.service';
 import { ProjetService } from '../../../../core/services/projet.service';
@@ -27,6 +29,7 @@ import {
   ConversationIA,
   ContexteChip,
   MessageIA,
+  AiSource,
   TypeContexte,
 } from '../../../../core/models/conversation-ia.model';
 
@@ -37,6 +40,8 @@ import { ButtonComponent } from '../../../../shared/components/button/button.com
 import { VoiceModalComponent } from '../../../../shared/components/voice-modal/voice-modal';
 import { TranslatePipe } from '../../../../shared/pipes/translate.pipe';
 import { TranslationService } from '../../../../core/services/translation.service';
+import { MarkdownPipe } from '../../../../shared/pipes/markdown.pipe';
+import { environment } from '../../../../environments/environment';
 
 /**
  * Assistant IA — côté coach/incubateur.
@@ -55,7 +60,7 @@ import { TranslationService } from '../../../../core/services/translation.servic
 @Component({
   selector: 'app-assistant-ia',
   standalone: true,
-  imports: [CommonModule, ButtonComponent, JsonPipe, RouterLink, DatePipe, VoiceModalComponent,TranslatePipe],
+  imports: [CommonModule, ButtonComponent, JsonPipe, RouterLink, DatePipe, VoiceModalComponent, TranslatePipe, MarkdownPipe],
   templateUrl: './assistant-ia.html',
 })
 export class AssistantIa implements OnInit {
@@ -71,6 +76,7 @@ protected readonly translationService =
   private readonly voiceService         = inject(VoiceService);
   private readonly voiceModeService     = inject(VoiceModeService);
   private readonly ttsService           = inject(TtsService);
+  private readonly http                 = inject(HttpClient);
   private readonly destroyRef           = inject(DestroyRef);
 
   // ── Vue ───────────────────────────────────────────────────────────────────
@@ -177,6 +183,76 @@ if (olderItems.length) {
   protected readonly structureActive = computed(
     () => this.structureContext.activeStructureId()
   );
+
+  protected sourcesFor(message: MessageIA): AiSource[] {
+    const raw = message.sources ?? message.sourcesJson;
+    if (!raw) return [];
+    try {
+      const parsed: unknown = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      const values: unknown[] = Array.isArray(parsed)
+        ? parsed
+        : parsed && typeof parsed === 'object' && 'sources' in parsed && Array.isArray(parsed.sources)
+          ? parsed.sources
+          : parsed && typeof parsed === 'object' && 'url' in parsed
+            ? [parsed]
+            : [];
+      return values.flatMap((entry): AiSource[] => {
+        if (!entry || typeof entry !== 'object' || !('url' in entry) || typeof entry.url !== 'string') {
+          return [];
+        }
+        try {
+          let url = new URL(entry.url, environment.serverUrl || window.location.origin);
+          if (url.protocol !== 'https:' && url.protocol !== 'http:') return [];
+          const sourceId = 'id' in entry ? String(entry.id ?? url.href) : url.href;
+          const backendOrigin = new URL(environment.serverUrl || window.location.origin).origin;
+          if (url.origin === backendOrigin && /^\/fichiers\/ressources\/[^/]+\/[^/]+$/.test(url.pathname)) {
+            url = new URL(
+              `/api/conversations/${encodeURIComponent(message.conversationId)}/sources/${encodeURIComponent(sourceId)}`,
+              backendOrigin,
+            );
+          }
+          return [{
+            id: sourceId,
+            title: 'title' in entry ? String(entry.title ?? url.hostname) : url.hostname,
+            url: url.href,
+            snippet: 'snippet' in entry ? String(entry.snippet ?? '') : '',
+          }];
+        } catch {
+          return [];
+        }
+      });
+    } catch {
+      return [];
+    }
+  }
+
+  protected openSource(event: MouseEvent, source: AiSource): void {
+    const sourceUrl = new URL(source.url);
+    const backendOrigin = new URL(environment.serverUrl || window.location.origin).origin;
+    const isProtectedUpload = sourceUrl.origin === backendOrigin
+      && /^\/api\/conversations\/[^/]+\/sources\/[^/]+$/.test(sourceUrl.pathname);
+    if (!isProtectedUpload) return;
+
+    event.preventDefault();
+    const sourceWindow = window.open('about:blank', '_blank');
+    if (!sourceWindow) {
+      this.erreur.set(this.translationService.t('entrepreneurAssistant.error.source'));
+      return;
+    }
+    sourceWindow.opener = null;
+    this.erreur.set(null);
+
+    void firstValueFrom(this.http.get(sourceUrl.href, { responseType: 'blob' }))
+      .then((file) => {
+        const fileUrl = URL.createObjectURL(file);
+        sourceWindow.location.href = fileUrl;
+        window.setTimeout(() => URL.revokeObjectURL(fileUrl), 60_000);
+      })
+      .catch(() => {
+        sourceWindow.close();
+        this.erreur.set(this.translationService.t('entrepreneurAssistant.error.source'));
+      });
+  }
 
   // ── Contexte sélectionné (chips) ──────────────────────────────────────────
 

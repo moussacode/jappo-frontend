@@ -5,11 +5,31 @@
     [title]="salutation()"
     [subtitle]="'incubateur.dashboard.sousTitre' | translate:{ structure: nomStructure() }"
   >
+    <app-button
+      variant="secondary"
+      size="sm"
+      [disabled]="isExporting()"
+      (click)="exporterDonneesGlobales()"
+    >
+      <app-icon name="download" class="size-4" />
+      {{ isExporting() ? 'Préparation de l’export…' : 'Exporter toutes les données' }}
+    </app-button>
     <app-button size="sm" [fullWidthMobile]="true" (click)="showInviteModal.set(true)">
       <app-icon name="plus" class="mr-1.5 size-4" />
       {{ 'incubateur.dashboard.inviterEntrepreneurs' | translate }}
     </app-button>
   </app-page-header>
+
+  @if (exportError()) {
+    <div role="alert" class="flex flex-col gap-2 rounded-card border border-danger/40 bg-danger/10 p-3 text-sm text-danger sm:flex-row sm:items-center sm:justify-between">
+      <span>{{ exportError() }}</span>
+      <button
+        type="button"
+        (click)="exportError.set(null)"
+        class="shrink-0 rounded-input font-semibold underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
+      >Fermer</button>
+    </div>
+  }
 
   <!-- CHARGEMENT : squelette calqué sur la mise en page finale -->
   @if (isLoading()) {

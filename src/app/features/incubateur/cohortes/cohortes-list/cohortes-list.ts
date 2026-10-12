@@ -38,11 +38,21 @@ import { ModalComponent } from '../../../../shared/components/modal/modal.compon
 import { FormFieldComponent } from '../../../../shared/components/input/form-field.component';
 import { InputComponent } from '../../../../shared/components/input/input.component';
 import { TabFilterComponent } from '../../../../shared/components/tab-filter/tab-filter.component';
+import { downloadCsv } from '../../../../core/utils/csv-export';
 
 interface CohorteAffichee {
   cohorte: Cohorte;
   nbProjets: number;
   scoreMoyen: number;
+}
+
+interface DonneesCohorteActive {
+  cohorte: Cohorte;
+  projets: Projet[];
+  missions: Mission[];
+  scoreMoyen: number;
+  enRetard: Projet[];
+  aJour: number;
 }
 
 type SortField = 'nom' | 'progression';
@@ -165,6 +175,11 @@ const FILTRES_COHORTES: { value: CohorteFilter; label: string }[] = [
           <!-- ÉTAT 1 : VUE GLOBALE -->
           @else if (activeContextId() === 'GLOBAL') {
             <app-page-header title="Gestion des cohortes" subtitle="Supervisez la performance globale de l'incubateur.">
+              @if (cohortesAffichees().length > 0) {
+                <app-button variant="secondary" size="sm" (click)="exporterCohortes()">
+                  Exporter CSV
+                </app-button>
+              }
               @if (isAdmin()) {
                 <app-button size="sm" (click)="nouvelleCohorteOuverte.set(true)">
                   <app-icon name="plus" class="mr-1.5 size-4" />
@@ -346,6 +361,10 @@ const FILTRES_COHORTES: { value: CohorteFilter; label: string }[] = [
                     Coach{{ data.cohorte.coachs.length > 1 ? 's' : '' }} : {{ getCoachNames(data.cohorte.coachs) }}
                   </app-badge>
                 }
+
+                <app-button variant="secondary" size="sm" (click)="exporterPortefeuille(data)">
+                  Exporter CSV
+                </app-button>
 
                 @if (isAdmin()) {
                   <app-button variant="secondary" size="sm" (click)="ouvrirEdition()">
@@ -1366,5 +1385,60 @@ export class CohortesList {
     return coachs
       .map((c) => `${c.prenom || ''} ${c.nom || ''}`.trim() || c.email)
       .join(', ');
+  }
+
+  protected exporterCohortes(): void {
+    const rows = this.sortedCohortesAffichees().map(({ cohorte, nbProjets, scoreMoyen }) => [
+      cohorte.nom,
+      libellePhase(cohorte.phase),
+      cohorte.statut,
+      cohorte.dateDebut,
+      cohorte.dateFin,
+      nbProjets,
+      scoreMoyen,
+      this.getCoachNames(cohorte.coachs),
+    ]);
+
+    downloadCsv(
+      `cohortes-${new Date().toISOString().slice(0, 10)}`,
+      ['Cohorte', 'Phase', 'Statut', 'Date de début', 'Date de fin', 'Startups', 'Maturité moyenne (%)', 'Coachs'],
+      rows,
+    );
+  }
+
+  protected exporterPortefeuille(data: DonneesCohorteActive): void {
+    const rows = data.projets.map((projet) => [
+      projet.nom,
+      projet.nomEntrepreneur,
+      projet.secteur,
+      projet.nomParcours,
+      projet.nomPhase,
+      projet.scoreMaturite,
+      projet.nombreMissionsValidees,
+      projet.nombreMissionsTotal,
+      (projet.scoreMaturite ?? 0) <= 30
+        ? 'En retard'
+        : (projet.scoreMaturite ?? 0) > 70
+          ? 'À jour'
+          : 'En cours',
+      projet.statut,
+    ]);
+
+    downloadCsv(
+      `portefeuille-${data.cohorte.nom}-${new Date().toISOString().slice(0, 10)}`,
+      [
+        'Projet',
+        'Entrepreneur',
+        'Secteur',
+        'Parcours',
+        'Phase',
+        'Maturité (%)',
+        'Missions validées',
+        'Missions totales',
+        'Progression',
+        'Statut du projet',
+      ],
+      rows,
+    );
   }
 }

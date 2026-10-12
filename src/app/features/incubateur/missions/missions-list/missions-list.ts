@@ -26,6 +26,7 @@ import { ErrorState } from '../../../../shared/components/error-state/error-stat
 import { TabFilterComponent, TabOption } from '../../../../shared/components/tab-filter/tab-filter.component';
 import { MissionCreateModalComponent } from "../mission-create/mission-create";
 import { Icon } from '../../../../shared/components/icon/icon';
+import { downloadCsv } from '../../../../core/utils/csv-export';
 
 // Modale de création
 
@@ -155,6 +156,11 @@ interface MissionListeItem {
           />
           <div class="flex items-center justify-between gap-3 text-xs text-ink-muted sm:justify-end">
             <span>{{ missionsFiltrees().length }} mission(s)</span>
+            @if (missionsFiltrees().length > 0) {
+              <app-button variant="secondary" size="sm" (click)="exporterMissions()">
+                Exporter CSV
+              </app-button>
+            }
             @if (filtresActifs()) {
               <button type="button" (click)="reinitialiserFiltres()"
                 class="font-semibold text-accent hover:text-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
@@ -624,6 +630,46 @@ protected readonly optionsFiltreStatut =
     return mission.source === 'COHORTE'
       ? ['/incubateur/missions-cohorte', mission.id]
       : ['/incubateur/programmes/etapes', mission.etapeId ?? ''];
+  }
+
+  protected exporterMissions(): void {
+    const rows = this.missionsFiltrees().map((mission) => [
+      mission.titre,
+      mission.source === 'COHORTE' ? 'Mission de cohorte' : 'Mission de programme',
+      mission.programmeNoms.join(', '),
+      mission.phaseNom,
+      mission.etapeNom,
+      mission.cohorteNoms.join(', '),
+      mission.priorite ? this.prioriteLabel(mission.priorite) : '',
+      mission.dateEcheance,
+      mission.source === 'COHORTE' ? this.formaterStatutAgrege(mission) : 'Définie pour l’étape',
+      mission.nombreProjetsConcernes,
+      mission.nombreValides,
+      mission.nombreEnRevue,
+      mission.nombreAFaire,
+      mission.nombreEnRetard,
+    ]);
+
+    downloadCsv(
+      `missions-${new Date().toISOString().slice(0, 10)}`,
+      [
+        'Mission',
+        'Type',
+        'Programme(s)',
+        'Phase',
+        'Étape',
+        'Cohorte(s)',
+        'Priorité',
+        'Échéance',
+        'Suivi',
+        'Projets concernés',
+        'Validés',
+        'En revue',
+        'À faire',
+        'En retard',
+      ],
+      rows,
+    );
   }
 
   protected archiverMission(missionId: string, event: Event): void {
