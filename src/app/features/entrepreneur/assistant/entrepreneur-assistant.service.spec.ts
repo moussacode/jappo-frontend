@@ -1,5 +1,7 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
+import { StructureContextService } from '../../../core/services/structure-context.service';
 import { ConversationIA } from '../../../core/models/conversation-ia.model';
 import { ConversationService } from '../../../core/services/conversation.service';
 import { EntrepreneurAssistantService } from './entrepreneur-assistant.service';
@@ -28,6 +30,7 @@ describe('EntrepreneurAssistantService', () => {
     getConversation: ReturnType<typeof vi.fn>;
     createConversation: ReturnType<typeof vi.fn>;
   };
+  let iaDisponible: ReturnType<typeof signal<boolean | null>>;
 
   beforeEach(() => {
     if (typeof sessionStorage !== 'undefined') sessionStorage.clear();
@@ -36,8 +39,12 @@ describe('EntrepreneurAssistantService', () => {
       getConversation: vi.fn().mockReturnValue(of(conversation('mission-conversation', 'mission-1'))),
       createConversation: vi.fn().mockReturnValue(of(conversation('created-conversation', 'mission-2'))),
     };
+    iaDisponible = signal<boolean | null>(null);
     TestBed.configureTestingModule({
-      providers: [{ provide: ConversationService, useValue: api }],
+      providers: [
+        { provide: ConversationService, useValue: api },
+        { provide: StructureContextService, useValue: { iaDisponible, refreshUsage: vi.fn() } },
+      ],
     });
   });
 
@@ -65,5 +72,29 @@ describe('EntrepreneurAssistantService', () => {
     });
     expect(assistant.conversationId()).toBe('created-conversation');
     expect(assistant.missionId()).toBe('mission-2');
+  });
+
+  it('does not create a conversation when the incubator plan excludes the assistant', async () => {
+    iaDisponible.set(false);
+    const assistant = TestBed.inject(EntrepreneurAssistantService);
+
+    await assistant.ensureMissionConversation('mission-2');
+    await assistant.sendMessage('Bonjour');
+
+    expect(api.createConversation).not.toHaveBeenCalled();
+    expect(assistant.error()).toBeNull();
+  });
+
+  it('recognizes a plan limit by its code, not by its message', async () => {
+    api.createConversation.mockReturnValue(throwError(() => ({
+      status: 403,
+      error: { code: 'IA_ROLE_NON_AUTORISE', message: 'Non inclus', consomme: null, limite: null },
+    })));
+    const assistant = TestBed.inject(EntrepreneurAssistantService);
+
+    await assistant.ensureMissionConversation('mission-2');
+
+    expect(assistant.limitePlan()?.code).toBe('IA_ROLE_NON_AUTORISE');
+    expect(assistant.error()).toBeNull();
   });
 });

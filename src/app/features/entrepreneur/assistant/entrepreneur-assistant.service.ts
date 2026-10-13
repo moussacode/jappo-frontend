@@ -2,12 +2,17 @@ import { Injectable, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ConversationIA, MessageIA } from '../../../core/models/conversation-ia.model';
 import { ConversationService } from '../../../core/services/conversation.service';
+import { StructureContextService } from '../../../core/services/structure-context.service';
+import { AbonnementService } from '../../../core/services/abonnement.service';
+import { ErreurLimitePlan, lireErreurLimitePlan } from '../../../core/models/abonnement.model';
 
 const SELECTED_CONVERSATION_KEY = 'jappo.entrepreneur-assistant.conversation';
 
 @Injectable({ providedIn: 'root' })
 export class EntrepreneurAssistantService {
   private readonly conversationsApi = inject(ConversationService);
+  private readonly structureContext = inject(StructureContextService);
+  private readonly abonnementService = inject(AbonnementService);
   private initialized = false;
   private initialization?: Promise<void>;
 
@@ -19,6 +24,17 @@ export class EntrepreneurAssistantService {
   readonly sending = signal(false);
   readonly error = signal<string | null>(null);
 
+  /**
+   * Accès à l'IA selon le plan de l'incubateur : false = assistant visible mais désactivé,
+   * null = pas encore connu (on ne bloque rien à l'aveugle).
+   */
+  readonly iaDisponible = this.structureContext.iaDisponible;
+  /** Limite du plan renvoyée par le serveur (reconnue par son code). */
+  readonly limitePlan = signal<ErreurLimitePlan | null>(null);
+  /** Libellé d'une offre qui inclut l'assistant pour les entrepreneurs, pour le message d'indisponibilité. */
+  readonly offreAvecAssistant = signal<string | null>(null);
+  private offreAvecAssistantChargee = false;
+
   async initialize(): Promise<void> {
     if (this.initialized) return;
     if (!this.initialization) this.initialization = this.loadHistory();
@@ -29,6 +45,7 @@ export class EntrepreneurAssistantService {
     if (!missionId) return;
     this.missionId.set(missionId);
     await this.initialize();
+    if (this.iaDisponible() === false) return;
 
     const active = this.activeConversation();
     if (active?.contexte?.missionId === missionId) return;
@@ -64,8 +81,9 @@ export class EntrepreneurAssistantService {
 
   async sendMessage(content: string): Promise<void> {
     const normalized = content.trim();
-    if (!normalized || this.sending()) return;
+    if (!normalized || this.sending() || this.iaDisponible() === false) return;
     this.error.set(null);
+    this.limitePlan.set(null);
     this.sending.set(true);
     try {
       let id = this.conversationId();
@@ -76,10 +94,13 @@ export class EntrepreneurAssistantService {
       }
       const newMessages = await firstValueFrom(this.conversationsApi.sendMessage(id, normalized));
       this.messages.update((current) => [...current, ...newMessages]);
+      this.structureContext.refreshUsage();
       const updated = await firstValueFrom(this.conversationsApi.getConversation(id));
       this.upsertHistory(updated);
-    } catch {
-      this.error.set('entrepreneurAssistant.error.send');
+    } catch (err) {
+      if (!this.gererLimitePlan(err)) {
+        this.error.set('entrepreneurAssistant.error.send');
+      }
     } finally {
       this.sending.set(false);
     }
@@ -118,6 +139,7 @@ export class EntrepreneurAssistantService {
   }
 
   private async createConversation(missionId: string | null): Promise<ConversationIA | null> {
+    if (this.iaDisponible() === false) return null;
     this.error.set(null);
     this.loading.set(true);
     try {
@@ -128,8 +150,10 @@ export class EntrepreneurAssistantService {
       );
       this.setActiveConversation(conversation);
       return conversation;
-    } catch {
-      this.error.set('entrepreneurAssistant.error.create');
+    } catch (err) {
+      if (!this.gererLimitePlan(err)) {
+        this.error.set('entrepreneurAssistant.error.create');
+      }
       return null;
     } finally {
       this.loading.set(false);
@@ -166,5 +190,28 @@ export class EntrepreneurAssistantService {
     return typeof sessionStorage === 'undefined'
       ? null
       : sessionStorage.getItem(SELECTED_CONVERSATION_KEY);
+  }
+
+  /** Charge (une seule fois) le libellé d'une offre incluant l'assistant pour les entrepreneurs. */
+  chargerOffreAvecAssistant(): void {
+    if (this.offreAvecAssistantChargee) return;
+    this.offreAvecAssistantChargee = true;
+    this.abonnementService.getPlansDisponibles().subscribe({
+      next: (plans) => {
+        const plan = [...plans]
+          .sort((a, b) => a.ordre - b.ordre)
+          .find((p) => p.iaEntrepreneurActive);
+        this.offreAvecAssistant.set(plan?.libelle ?? null);
+      },
+      error: () => this.offreAvecAssistant.set(null),
+    });
+  }
+
+  private gererLimitePlan(err: unknown): boolean {
+    const limite = lireErreurLimitePlan(err);
+    if (!limite) return false;
+    this.limitePlan.set(limite);
+    this.structureContext.refreshUsage();
+    return true;
   }
 }

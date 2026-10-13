@@ -17,6 +17,7 @@ import { Icon } from '../../../../shared/components/icon/icon';
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state';
 import { BadgeComponent } from '../../../../shared/components/badge/badge';
 import { SuperAdminService } from '../../../../core/services/super-admin.service';
+import { PlanAbonnement, formaterPrix } from '../../../../core/models/abonnement.model';
 
 type DetailTab = 'membres' | 'transactions' | 'historique';
 
@@ -48,6 +49,10 @@ export class StructureDetail implements OnInit {
 
   protected readonly activeTab = signal<DetailTab>('membres');
 
+  /** Plans actifs proposés dans « Changer de plan ». */
+  protected readonly plans = signal<PlanAbonnement[]>([]);
+  protected readonly planSelectionneId = signal<string>('');
+
  protected readonly totalEncaisse = computed(() =>
   this.transactions()
     .filter(transaction => transaction.statut === 'SUCCES')
@@ -59,6 +64,10 @@ export class StructureDetail implements OnInit {
 
   ngOnInit(): void {
     this.chargerStructure();
+    this.superAdminService.getPlans().subscribe({
+      next: (plans) => this.plans.set(plans.filter(plan => plan.actif)),
+      error: () => this.plans.set([]),
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -137,37 +146,25 @@ export class StructureDetail implements OnInit {
     );
   }
 
-  protected activerPremium(): void {
+  protected changerPlan(): void {
     const structure = this.structure();
-    if (!structure) return;
+    const plan = this.plans().find(p => p.id === this.planSelectionneId());
+    if (!structure || !plan) return;
 
-    if (!window.confirm(`Activer manuellement Premium pour « ${structure.nom} » ?`)) {
+    const duree = plan.dureeJours === null ? 'sans limite de durée' : `pour ${plan.dureeJours} jours`;
+    if (!window.confirm(`Attribuer l'offre « ${plan.libelle} » à « ${structure.nom} », dès maintenant et ${duree} ?`)) {
       return;
     }
 
     this.executerAction(
-      () => this.superAdminService.activerPremium(structure.id),
-      'Abonnement Premium activé.'
-    );
-  }
-
-  protected forcerFreemium(): void {
-    const structure = this.structure();
-    if (!structure) return;
-
-    if (!window.confirm(`Forcer le passage en Freemium pour « ${structure.nom} » ?`)) {
-      return;
-    }
-
-    this.executerAction(
-      () => this.superAdminService.forcerFreemium(structure.id),
-      'Structure passée en Freemium.'
+      () => this.superAdminService.changerPlan(structure.id, plan.id),
+      `Offre ${plan.libelle} attribuée.`
     );
   }
 
   private executerAction(
     action: () => ReturnType<
-      SuperAdminService['suspendreStructure' | 'activerPremium' | 'forcerFreemium']
+      SuperAdminService['suspendreStructure' | 'changerPlan']
     >,
     successMessage: string
   ): void {
@@ -200,15 +197,13 @@ export class StructureDetail implements OnInit {
     return (p + n).toUpperCase() || 'U';
   }
 
-  protected getPlanLabel(plan?: string): string {
-    switch (plan?.toUpperCase()) {
-      case 'PREMIUM':
-        return 'Premium';
-      case 'FREEMIUM':
-        return 'Freemium';
-      default:
-        return plan ?? '—';
-    }
+  protected getPlanLabel(plan?: PlanAbonnement | null): string {
+    return plan?.libelle ?? '—';
+  }
+
+  /** Le plan par défaut en neutre, les autres en vert. */
+  protected getPlanBadgeStatus(plan?: PlanAbonnement | null): 'success' | 'neutral' {
+    return !plan || plan.estDefaut ? 'neutral' : 'success';
   }
 
   protected getStatutLabel(statut?: string): string {
@@ -241,7 +236,6 @@ export class StructureDetail implements OnInit {
       case 'ACTIVE':
       case 'ACTIF':
       case 'SUCCES':
-      case 'PREMIUM':
         return 'success';
 
       case 'SUSPENDUE':
@@ -252,7 +246,6 @@ export class StructureDetail implements OnInit {
 
       case 'EN_ATTENTE':
       case 'EN_ATTENTE_PAIEMENT':
-      case 'FREEMIUM':
         return 'neutral';
 
       default:
@@ -286,8 +279,8 @@ export class StructureDetail implements OnInit {
     }).format(value);
   }
 
-  protected formaterMontant(montant?: number | null): string {
+  protected formaterMontant(montant?: number | null, devise = 'XOF'): string {
     if (montant === null || montant === undefined) return '—';
-    return `${new Intl.NumberFormat('fr-FR').format(montant)} FCFA`;
+    return formaterPrix(montant, devise);
   }
 }

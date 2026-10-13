@@ -11,6 +11,7 @@ import { SuperAdminService } from '../../../../core/services/super-admin.service
 import {
   SuperAdminAbonnement,
 } from '../../../../core/models/super-admin.models';
+import { PlanAbonnement } from '../../../../core/models/abonnement.model';
 import { TabFilterComponent, TabOption } from '../../../../shared/components/tab-filter/tab-filter.component';
 import { BadgeComponent } from '../../../../shared/components/badge/badge';
 import { Icon } from '../../../../shared/components/icon/icon';
@@ -18,12 +19,15 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 
 
-type AbonnementFilter =
-  | 'TOUS'
-  | 'PREMIUM'
-  | 'FREEMIUM'
-  | 'ACTIF'
-  | 'EXPIRE';
+/** 'TOUS', un statut, ou « plan:<code> » pour filtrer sur le plan effectif. */
+type AbonnementFilter = string;
+
+interface RepartitionPlan {
+  code: string;
+  libelle: string;
+  estDefaut: boolean;
+  nombre: number;
+}
 
 @Component({
   selector: 'app-abonnements-list',
@@ -59,46 +63,31 @@ export class AbonnementsList implements OnInit {
       return abonnements;
     }
 
-    return abonnements.filter(abonnement => {
-      const plan = abonnement.plan?.toUpperCase();
-      const statut = abonnement.statut?.toUpperCase();
+    if (filter.startsWith('plan:')) {
+      const code = filter.slice('plan:'.length);
+      return abonnements.filter(abonnement => abonnement.planEffectif?.code === code);
+    }
 
-      switch (filter) {
-        case 'PREMIUM':
-          return plan === 'PREMIUM';
-
-        case 'FREEMIUM':
-          return plan === 'FREEMIUM';
-
-        case 'ACTIF':
-          return statut === 'ACTIF';
-
-        case 'EXPIRE':
-          return statut === 'EXPIRE';
-
-        default:
-          return true;
-      }
-    });
+    return abonnements.filter(abonnement => abonnement.statut?.toUpperCase() === filter);
   });
 
   protected readonly nombreTotal = computed(
     () => this.abonnements().length
   );
 
-  protected readonly nombrePremium = computed(() =>
-    this.abonnements().filter(
-      abonnement =>
-        abonnement.plan?.toUpperCase() === 'PREMIUM'
-    ).length
-  );
-
-  protected readonly nombreFreemium = computed(() =>
-    this.abonnements().filter(
-      abonnement =>
-        abonnement.plan?.toUpperCase() === 'FREEMIUM'
-    ).length
-  );
+  /** Nombre d'abonnements par plan effectif, dans l'ordre des plans. */
+  protected readonly repartition = computed<RepartitionPlan[]>(() => {
+    const parCode = new Map<string, RepartitionPlan & { ordre: number }>();
+    for (const abonnement of this.abonnements()) {
+      const plan = abonnement.planEffectif;
+      if (!plan) continue;
+      const entree = parCode.get(plan.code)
+        ?? { code: plan.code, libelle: plan.libelle, estDefaut: plan.estDefaut, ordre: plan.ordre, nombre: 0 };
+      entree.nombre++;
+      parCode.set(plan.code, entree);
+    }
+    return [...parCode.values()].sort((a, b) => a.ordre - b.ordre);
+  });
 
   protected readonly nombreActifs = computed(() =>
     this.abonnements().filter(
@@ -113,16 +102,11 @@ export class AbonnementsList implements OnInit {
         value: 'TOUS',
         label: 'Tous',
       },
-      {
-        value: 'PREMIUM',
-        label: 'Premium',
-        count: this.nombrePremium(),
-      },
-      {
-        value: 'FREEMIUM',
-        label: 'Freemium',
-        count: this.nombreFreemium(),
-      },
+      ...this.repartition().map(plan => ({
+        value: `plan:${plan.code}`,
+        label: plan.libelle,
+        count: plan.nombre,
+      })),
       {
         value: 'ACTIF',
         label: 'Actifs',
@@ -169,32 +153,15 @@ export class AbonnementsList implements OnInit {
     this.activeFilter.set(filter);
   }
 
-  protected getPlanLabel(plan?: string): string {
-    switch (plan?.toUpperCase()) {
-      case 'PREMIUM':
-        return 'Premium';
-
-      case 'FREEMIUM':
-        return 'Freemium';
-
-      default:
-        return plan ?? '—';
-    }
+  protected getPlanLabel(plan?: PlanAbonnement | null): string {
+    return plan?.libelle ?? '—';
   }
 
+  /** Le plan par défaut (gratuit) en neutre, les autres en vert. */
   protected getPlanBadgeStatus(
-    plan?: string
+    plan?: PlanAbonnement | null
   ): 'success' | 'danger' | 'neutral' | 'info' {
-    switch (plan?.toUpperCase()) {
-      case 'PREMIUM':
-        return 'success';
-
-      case 'FREEMIUM':
-        return 'neutral';
-
-      default:
-        return 'neutral';
-    }
+    return !plan || plan.estDefaut ? 'neutral' : 'success';
   }
 
   protected getStatutLabel(statut?: string): string {

@@ -1,6 +1,6 @@
 import { CommonModule, DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Component, EventEmitter, HostListener, Input, Output, inject } from '@angular/core';
+import { Component, EventEmitter, HostListener, Input, Output, effect, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { AiSource, MessageIA } from '../../../core/models/conversation-ia.model';
@@ -8,6 +8,7 @@ import { environment } from '../../../environments/environment';
 import { EntrepreneurAssistantService } from './entrepreneur-assistant.service';
 import { TranslatePipe } from '../../../shared/pipes/translate.pipe';
 import { MarkdownPipe } from '../../../shared/pipes/markdown.pipe';
+import { IaQuotaGauge } from '../../../shared/components/ia-quota-gauge/ia-quota-gauge';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -16,7 +17,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 @Component({
   selector: 'app-entrepreneur-assistant-panel',
   standalone: true,
-  imports: [CommonModule, DatePipe, FormsModule, TranslatePipe, MarkdownPipe],
+  imports: [CommonModule, DatePipe, FormsModule, TranslatePipe, MarkdownPipe, IaQuotaGauge],
   template: `
     <section
       class="flex min-h-0 flex-col overflow-hidden bg-surface text-ink"
@@ -41,7 +42,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
           <button
             type="button"
             (click)="assistant.startNewConversation()"
-            class="rounded-lg border border-line px-3 py-1.5 text-xs font-medium hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-accent"
+            [disabled]="assistant.iaDisponible() === false"
+            class="rounded-lg border border-line px-3 py-1.5 text-xs font-medium hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50"
           >{{ 'entrepreneurAssistant.newConversation' | translate }}</button>
           @if (mode === 'widget') {
             <button
@@ -174,7 +176,35 @@ function isRecord(value: unknown): value is Record<string, unknown> {
           @if (assistant.error(); as errorKey) {
             <p class="mx-4 mb-2 rounded-lg bg-danger-50 px-3 py-2 text-xs text-danger-700" role="alert">{{ errorKey | translate }}</p>
           }
+          @if (assistant.limitePlan(); as limite) {
+            <div class="mx-4 mb-2 rounded-lg border border-line bg-surface-muted px-3 py-2 text-xs text-ink" role="alert">
+              <p>{{ limite.message }}</p>
+              <p class="mt-1 text-ink-muted">{{ 'entrepreneurAssistant.conversationsLisibles' | translate }}</p>
+            </div>
+          }
+          @if (assistant.iaDisponible() === false) {
+            <!-- Plan de l'incubateur sans assistant pour les entrepreneurs : visible mais désactivé -->
+            <div class="border-t border-line p-3 sm:p-4" role="status">
+              <div class="flex items-start gap-3 rounded-2xl border border-dashed border-line bg-surface-muted px-4 py-3">
+                <span class="mt-0.5 text-lg text-ink-muted" aria-hidden="true">✦</span>
+                <div class="min-w-0">
+                  <p class="text-sm font-semibold text-ink">{{ 'entrepreneurAssistant.indisponibleTitre' | translate }}</p>
+                  <p class="mt-1 text-xs text-ink-muted">
+                    @if (assistant.offreAvecAssistant(); as offre) {
+                      {{ 'entrepreneurAssistant.indisponibleAvecOffre' | translate: { offre: offre } }}
+                    } @else {
+                      {{ 'entrepreneurAssistant.indisponible' | translate }}
+                    }
+                  </p>
+                  @if (assistant.history().length > 0) {
+                    <p class="mt-1 text-xs text-ink-muted">{{ 'entrepreneurAssistant.conversationsLisibles' | translate }}</p>
+                  }
+                </div>
+              </div>
+            </div>
+          } @else {
           <form (ngSubmit)="send()" class="border-t border-line p-3 sm:p-4">
+            <app-ia-quota-gauge class="mb-2 block px-1" />
             <label class="sr-only" for="entrepreneur-assistant-input">{{ 'entrepreneurAssistant.inputLabel' | translate }}</label>
             <div class="flex items-end gap-2 rounded-2xl border border-line bg-surface px-3 py-2 focus-within:border-accent">
               <textarea
@@ -195,6 +225,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
             </div>
             <p class="mt-2 text-center text-[10px] text-ink-muted">{{ 'entrepreneurAssistant.disclaimer' | translate }}</p>
           </form>
+          }
         </div>
       </div>
     </section>
@@ -207,6 +238,15 @@ export class EntrepreneurAssistantPanel {
   protected readonly assistant = inject(EntrepreneurAssistantService);
   private readonly http = inject(HttpClient);
   protected draft = '';
+
+  constructor() {
+    // Nom de l'offre à citer dans le message d'indisponibilité (aucun nom de plan en dur).
+    effect(() => {
+      if (this.assistant.iaDisponible() === false) {
+        this.assistant.chargerOffreAvecAssistant();
+      }
+    });
+  }
 
   protected sourcesFor(message: MessageIA): AiSource[] {
     const raw = message.sources ?? message.sourcesJson;

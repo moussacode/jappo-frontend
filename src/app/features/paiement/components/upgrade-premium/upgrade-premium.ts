@@ -1,9 +1,11 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, input, signal } from '@angular/core';
 
 import { StructureContextService } from '../../../../core/services/structure-context.service';
 import { PaiementService } from '../../../../core/services/paiement.service';
+import { PlanAbonnement } from '../../../../core/models/abonnement.model';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 
+/** Lance le paiement PayDunya du plan choisi (le prix est fixé par le serveur). */
 @Component({
   selector: 'app-upgrade-premium',
   standalone: true,
@@ -16,21 +18,22 @@ export class UpgradePremiumButton {
   private readonly paiementService = inject(PaiementService);
   private readonly structureContext = inject(StructureContextService);
 
+  readonly plan = input<PlanAbonnement | null>(null);
+  readonly disabled = input(false);
+
   readonly chargement = signal(false);
   readonly erreur = signal('');
 
-  passerPremium(): void {
+  payer(): void {
 
-    if (this.chargement()) {
+    const plan = this.plan();
+
+    if (this.chargement() || !plan) {
       return;
     }
 
-    const activeMembership =
-      this.structureContext.activeMembership();
-
     const structureId =
-      activeMembership?.structure?.id ??
-      localStorage.getItem('jappo_active_structure_id');
+      this.structureContext.activeStructureId();
 
     if (!structureId) {
       this.erreur.set(
@@ -43,16 +46,10 @@ export class UpgradePremiumButton {
     this.chargement.set(true);
 
     this.paiementService
-      .initierUpgradePremium(structureId)
+      .initierPaiement(structureId, plan.id)
       .subscribe({
 
         next: (response) => {
-
-          console.log(
-            'Redirection PayDunya :',
-            response.redirectUrl
-          );
-
           window.location.href = response.redirectUrl;
         },
 

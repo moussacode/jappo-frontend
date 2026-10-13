@@ -336,17 +336,25 @@
         {{ erreur() }}
       </p>
 
-      @if (erreur()?.includes('Premium')) {
-        <p class="mt-1 text-xs text-ink-muted">
-          Passez au plan Premium pour accéder à l'Assistant IA.
-        </p>
+      @if (limitePlan(); as limite) {
+        @if (limite.code === 'IA_QUOTA_EPUISE') {
+          <p class="mt-1 text-xs text-ink-muted">
+            Les conversations existantes restent consultables.
+          </p>
+        }
 
-        <a
-          routerLink="/upgrade"
-          class="mt-2 inline-flex items-center text-xs font-semibold text-accent hover:underline"
-        >
-          Découvrir Premium
-        </a>
+        @if (estAdminStructure()) {
+          <a
+            routerLink="/upgrade"
+            class="mt-2 inline-flex items-center text-xs font-semibold text-accent hover:underline"
+          >
+            Voir les offres
+          </a>
+        } @else {
+          <p class="mt-1 text-xs text-ink-muted">
+            Contactez l'administrateur de votre structure pour changer d'offre.
+          </p>
+        }
       }
     </div>
   </div>
@@ -413,6 +421,9 @@
             <span>Transcription en cours…</span>
           </div>
         }
+
+        <!-- Consommation IA du mois (pot commun de la structure) -->
+        <app-ia-quota-gauge class="mb-2 block px-1" />
 
         <!-- Boîte de saisie -->
         <div class="relative rounded-2xl border border-line bg-surface shadow-sm transition-all duration-200 focus-within:border-accent/50 focus-within:shadow-md">

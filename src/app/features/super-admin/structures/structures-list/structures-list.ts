@@ -41,10 +41,20 @@ export class StructuresList implements OnInit {
   // Options calculées pour le TabFilter des Plans
   protected readonly optionsFiltrePlan = computed<TabOption<string>[]>(() => {
     const all = this.structures();
+    // Un onglet par plan effectif rencontré, dans l'ordre des plans.
+    const plans = new Map<string, { label: string; ordre: number; count: number }>();
+    for (const structure of all) {
+      const plan = structure.planEffectif;
+      if (!plan) continue;
+      const entree = plans.get(plan.code) ?? { label: plan.libelle, ordre: plan.ordre, count: 0 };
+      entree.count++;
+      plans.set(plan.code, entree);
+    }
     return [
       { value: 'TOUS', label: 'Tous les plans', count: all.length },
-      { value: 'PREMIUM', label: 'Premium', count: all.filter(s => s.plan === 'PREMIUM').length },
-      { value: 'FREEMIUM', label: 'Freemium', count: all.filter(s => s.plan === 'FREEMIUM').length },
+      ...[...plans.entries()]
+        .sort(([, a], [, b]) => a.ordre - b.ordre)
+        .map(([code, plan]) => ({ value: code, label: plan.label, count: plan.count })),
     ];
   });
 
@@ -60,7 +70,7 @@ export class StructuresList implements OnInit {
         structure.nom.toLowerCase().includes(recherche) ||
         structure.slug.toLowerCase().includes(recherche);
 
-      const correspondPlan = plan === 'TOUS' || structure.plan === plan;
+      const correspondPlan = plan === 'TOUS' || structure.planEffectif?.code === plan;
       const correspondStatut = statut === 'TOUS' || structure.statutStructure === statut;
 
       return correspondRecherche && correspondPlan && correspondStatut;

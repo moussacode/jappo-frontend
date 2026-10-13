@@ -1,7 +1,7 @@
 <div
   class="flex min-h-screen items-center justify-center bg-surface px-4 py-6 font-sans sm:px-6 lg:px-8"
 >
-  <div class="mx-auto w-full max-w-4xl">
+  <div class="mx-auto w-full max-w-5xl">
 
     <!-- Retour -->
     <div class="mb-4">
@@ -17,221 +17,145 @@
       </a>
     </div>
 
-    <!-- Conteneur principal -->
-    <div
-      class="relative grid overflow-hidden rounded-card-lg border border-line bg-surface shadow-subtle lg:grid-cols-12"
-    >
-
-      
+    <div class="relative grid overflow-hidden rounded-card-lg border border-line bg-surface shadow-subtle lg:grid-cols-12">
 
       <!-- ====================================================== -->
-      <!-- COLONNE GAUCHE : Comparatif avec Limites (7 colonnes) -->
+      <!-- COLONNE GAUCHE : offres disponibles                    -->
       <!-- ====================================================== -->
-      <section
-        class="flex flex-col justify-between border-b border-line bg-surface p-6 lg:col-span-7 lg:border-b-0 lg:border-r lg:p-8"
-      >
+      <section class="flex flex-col justify-between border-b border-line bg-surface p-6 lg:col-span-7 lg:border-b-0 lg:border-r lg:p-8">
 
         <div>
-
-          <!-- En-tête -->
           <div class="mb-5 flex items-start justify-between gap-4">
             <div>
-              <p
-                class="mb-1 text-[11px] font-bold uppercase tracking-wider text-ink-muted"
-              >
+              <p class="mb-1 text-[11px] font-bold uppercase tracking-wider text-ink-muted">
                 Évolution de votre abonnement
               </p>
-
-              <h1
-                class="text-2xl font-bold tracking-tight text-ink sm:text-3xl"
-              >
-                Passez à JAPPO Premium
+              <h1 class="text-2xl font-bold tracking-tight text-ink sm:text-3xl">
+                Choisissez l'offre de votre structure
               </h1>
-
-              <p
-                class="mt-1.5 max-w-md text-xs leading-relaxed text-ink-muted"
-              >
-                Affranchissez-vous des restrictions du plan gratuit pour accompagner vos incubés sans limites.
-              </p>
+              @if (planActuel(); as actuel) {
+                <p class="mt-1.5 max-w-md text-xs leading-relaxed text-ink-muted">
+                  Offre actuelle : <strong class="font-semibold text-ink">{{ actuel.libelle }}</strong>.
+                </p>
+              }
             </div>
-
-            <div
-              class="flex size-10 shrink-0 items-center justify-center rounded-card border border-line bg-surface-muted text-ink"
-            >
-              <app-icon
-                name="sparkles"
-                class="size-4"
-              />
+            <div class="flex size-10 shrink-0 items-center justify-center rounded-card border border-line bg-surface-muted text-ink">
+              <app-icon name="sparkles" class="size-4" />
             </div>
           </div>
 
-          <!-- Tableau comparatif (Free vs Premium avec limites) -->
-          <div class="overflow-hidden rounded-card border border-line bg-surface-muted/20">
-
-            <!-- En-têtes du tableau -->
-            <div
-              class="grid grid-cols-12 gap-3 border-b border-line bg-surface-muted px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-ink-muted"
-            >
-              <div class="col-span-6">Fonctionnalités</div>
-              <div class="col-span-3 text-center">Free</div>
-              <div class="col-span-3 text-center text-accent">Premium</div>
+          @if (chargement()) {
+            <div class="flex items-center gap-2 py-10 text-xs text-ink-muted" role="status">
+              <app-icon name="loader" class="size-4 animate-spin" />
+              Chargement des offres…
             </div>
-
-            <!-- Ligne 1 : Cohortes -->
-            <div class="grid grid-cols-12 items-center gap-3 border-b border-line/60 px-4 py-3 text-xs">
-              <div class="col-span-6 font-medium text-ink">Cohortes actives</div>
-              <div class="col-span-3 text-center text-ink-muted font-semibold text-[11px]">1 max</div>
-              <div class="col-span-3 text-center font-bold text-accent">Illimité</div>
+          } @else if (erreur()) {
+            <p class="rounded-card border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs text-red-600" role="alert">{{ erreur() }}</p>
+          } @else {
+            <div class="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Offres disponibles">
+              @for (plan of plans(); track plan.id) {
+                <button
+                  type="button"
+                  role="radio"
+                  [attr.aria-checked]="planChoisi()?.id === plan.id"
+                  [disabled]="plan.prix === 0"
+                  (click)="choisir(plan)"
+                  class="flex flex-col rounded-card border p-4 text-left transition-colors enabled:hover:border-line-strong disabled:cursor-default"
+                  [class.border-accent]="planChoisi()?.id === plan.id"
+                  [class.bg-accent-soft]="planChoisi()?.id === plan.id"
+                  [class.border-line]="planChoisi()?.id !== plan.id"
+                >
+                  <div class="flex items-start justify-between gap-2">
+                    <p class="text-sm font-bold text-ink">{{ plan.libelle }}</p>
+                    @if (planActuel()?.id === plan.id) {
+                      <span class="shrink-0 rounded-md bg-surface-muted px-1.5 py-0.5 text-[10px] font-semibold text-ink-muted">Actuelle</span>
+                    }
+                  </div>
+                  <p class="mt-1 text-lg font-extrabold text-ink">
+                    {{ plan.prix === 0 ? 'Gratuit' : prix(plan.prix, plan.devise) }}
+                  </p>
+                  <p class="text-[10px] text-ink-muted">{{ duree(plan.dureeJours) }}</p>
+                  @if (plan.description) {
+                    <p class="mt-2 text-[11px] leading-relaxed text-ink-muted">{{ plan.description }}</p>
+                  }
+                  <ul class="mt-3 space-y-1.5 text-[11px] text-ink">
+                    @for (avantage of avantages(plan); track avantage) {
+                      <li class="flex items-start gap-1.5">
+                        <app-icon name="check" class="mt-px size-3.5 shrink-0 text-accent" />
+                        <span>{{ avantage }}</span>
+                      </li>
+                    }
+                  </ul>
+                </button>
+              } @empty {
+                <p class="text-xs text-ink-muted">Aucune offre n'est proposée pour le moment.</p>
+              }
             </div>
-
-            <!-- Ligne 2 : Porteurs de projets -->
-            <!-- <div class="grid grid-cols-12 items-center gap-3 border-b border-line/60 px-4 py-3 text-xs">
-              <div class="col-span-6 font-medium text-ink">Porteurs de projets</div>
-              <div class="col-span-3 text-center text-ink-muted font-semibold text-[11px]">5 max</div>
-              <div class="col-span-3 text-center font-bold text-accent">Illimité</div>
-            </div> -->
-
-           
-
-            <!-- Ligne  : Jappo Intelligence -->
-            <div class="grid grid-cols-12 items-center gap-3 px-4 py-3 text-xs">
-              <div class="col-span-6 font-medium text-ink">Jappo Intelligence (IA)</div>
-              <div class="col-span-3 text-center text-ink-faint">—</div>
-              <div class="col-span-3 text-center font-bold text-accent">Inclus</div>
-            </div>
-            <!-- <div class="grid grid-cols-12 items-center gap-3 px-4 py-3 text-xs">
-              <div class="col-span-6 font-medium text-ink">Reunion</div>
-              <div class="col-span-3 text-center text-ink-faint">—</div>
-              <div class="col-span-3 text-center font-bold text-accent">Inclus</div>
-            </div> -->
-
-          </div>
-
-          <!-- Note explicative courte -->
-          <p class="mt-3 text-[11px] text-ink-muted leading-snug">
-            * Votre structure bénéficie d'une licence valable 12 mois sans aucun prélèvement automatique à l'issue.
-          </p>
-
+          }
         </div>
 
-        <!-- Sécurité -->
-        <div
-          class="mt-4 flex items-center justify-between border-t border-line pt-3"
-        >
-          <div
-            class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-ink-muted"
-          >
-            <app-icon
-              name="lock"
-              class="size-3.5 text-accent"
-            />
+        <div class="mt-5 flex items-center justify-between border-t border-line pt-3">
+          <div class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-ink-muted">
+            <app-icon name="lock" class="size-3.5 text-accent" />
             Paiement sécurisé via PayDunya
           </div>
-
-          <span class="text-[10px] text-ink-faint">
-            Sans engagement auto
-          </span>
+          <span class="text-[10px] text-ink-faint">Sans prélèvement automatique</span>
         </div>
-
       </section>
 
       <!-- ====================================================== -->
-      <!-- COLONNE DROITE : Résumé & Paiement (5 colonnes) -->
+      <!-- COLONNE DROITE : résumé et paiement                    -->
       <!-- ====================================================== -->
-      <section
-        class="flex flex-col justify-between bg-surface-muted/30 p-6 lg:col-span-5 lg:p-8"
-      >
+      <section class="flex flex-col justify-between bg-surface-muted/30 p-6 lg:col-span-5 lg:p-8">
 
         <div>
-
-          <!-- Résumé -->
           <div class="mb-4 border-b border-line pb-3">
-            <p
-              class="text-[11px] font-bold uppercase tracking-wider text-ink-muted"
-            >
-              Résumé de la commande
-            </p>
-
-            <p class="mt-0.5 text-xs font-bold text-ink">
-              JAPPO Premium (12 mois)
-            </p>
+            <p class="text-[11px] font-bold uppercase tracking-wider text-ink-muted">Résumé de la commande</p>
+            @if (planChoisi(); as plan) {
+              <p class="mt-0.5 text-xs font-bold text-ink">JAPPO {{ plan.libelle }} ({{ duree(plan.dureeJours) }})</p>
+            }
           </div>
 
-          <!-- Offre -->
-          <div
-            class="mb-4 rounded-card border border-line bg-surface p-3.5"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div>
-                <p class="text-xs font-bold text-ink">
-                  Licence structurelle
-                </p>
-
-                <p
-                  class="mt-0.5 text-[10px] leading-relaxed text-ink-muted"
-                >
-                  Accès complet pour toute votre équipe et vos incubés.
-                </p>
-              </div>
-
-              <div class="shrink-0 text-right">
-                <p class="text-sm font-extrabold text-ink">
-                  90 000 FCFA
-                </p>
-
-                <p class="text-[10px] text-ink-muted">
-                  / an
-                </p>
+          @if (planChoisi(); as plan) {
+            <div class="mb-4 rounded-card border border-line bg-surface p-3.5">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <p class="text-xs font-bold text-ink">Licence structurelle</p>
+                  <p class="mt-0.5 text-[10px] leading-relaxed text-ink-muted">Pour toute votre équipe et vos incubés.</p>
+                </div>
+                <p class="shrink-0 text-sm font-extrabold text-ink">{{ prix(plan.prix, plan.devise) }}</p>
               </div>
             </div>
-          </div>
 
-          <!-- Détails -->
-          <div class="mb-4 space-y-2 text-[11px] text-ink-muted">
-            <div class="flex items-center gap-2">
-              <span class="text-ink font-bold">✓</span>
-              <span>Activation immédiate après validation</span>
+            <div class="border-t border-line pt-3">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-ink-muted">Total à régler</span>
+                <span class="text-base font-extrabold text-ink">{{ prix(plan.prix, plan.devise) }}</span>
+              </div>
+              <p class="mt-1 text-[10px] leading-tight text-ink-faint">
+                Paiement unique via PayDunya, activation immédiate après validation.
+              </p>
             </div>
-            <div class="flex items-center gap-2">
-              <span class="text-ink font-bold">✓</span>
-              <span>Support technique prioritaire inclus</span>
-            </div>
-          </div>
-
-          <!-- Total -->
-          <div class="border-t border-line pt-3">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-medium text-ink-muted">
-                Total à régler
-              </span>
-
-              <span class="text-base font-extrabold text-ink">
-                90 000 FCFA
-              </span>
-            </div>
-
-            <p class="mt-1 text-[10px] leading-tight text-ink-faint">
-              Paiement unique via PayDunya. Aucun abonnement caché.
-            </p>
-          </div>
-
+          } @else if (!chargement()) {
+            <p class="text-xs text-ink-muted">Aucune offre payante n'est disponible.</p>
+          }
         </div>
 
-        <!-- CTA -->
         <div class="mt-5 border-t border-line pt-4">
+          @if (!estAdmin()) {
+            <p class="mb-2 text-center text-[11px] text-ink-muted">
+              Seul un administrateur de la structure peut changer d'offre.
+            </p>
+          }
 
-          <app-upgrade-premium />
+          <app-upgrade-premium [plan]="planChoisi()" [disabled]="!estAdmin()" />
 
-          <p
-            class="mt-2.5 text-center text-[10px] leading-tight text-ink-muted"
-          >
+          <p class="mt-2.5 text-center text-[10px] leading-tight text-ink-muted">
             Redirection sécurisée vers <strong class="font-semibold text-ink">PayDunya</strong>.
           </p>
-
         </div>
 
       </section>
-
     </div>
   </div>
 </div>

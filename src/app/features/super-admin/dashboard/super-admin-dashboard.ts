@@ -117,37 +117,23 @@ import { ButtonComponent } from '../../../shared/components/button/button.compon
             </div>
           </div>
 
-          <!-- Structures Premium -->
-          <div class="flex flex-col justify-between rounded-2xl border border-line bg-surface p-4 sm:p-5 shadow-xs">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-xs font-bold uppercase tracking-wider text-ink-muted">Structures Premium</p>
-                <p class="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{{ data.structuresPremium }}</p>
+          <!-- Une carte par plan (plans configurés par le SUPER_ADMIN) -->
+          @for (plan of data.repartitionPlans; track plan.planId; let premier = $first) {
+            <div class="flex flex-col justify-between rounded-2xl border border-line bg-surface p-4 sm:p-5 shadow-xs">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-xs font-bold uppercase tracking-wider text-ink-muted">Structures {{ plan.libelle }}</p>
+                  <p class="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{{ plan.nombreStructures }}</p>
+                </div>
+                <div class="flex size-10 items-center justify-center rounded-xl border border-line bg-surface-muted text-ink">
+                  <app-icon [name]="premier ? 'file' : 'sparkles'" class="size-5" />
+                </div>
               </div>
-              <div class="flex size-10 items-center justify-center rounded-xl border border-accent/20 bg-accent/10 text-accent">
-                <app-icon name="sparkles" class="size-5" />
-              </div>
-            </div>
-            <div class="mt-4 border-t border-line/60 pt-3">
-              <span class="text-xs font-bold text-accent">Abonnements actifs</span>
-            </div>
-          </div>
-
-          <!-- Structures Freemium -->
-          <div class="flex flex-col justify-between rounded-2xl border border-line bg-surface p-4 sm:p-5 shadow-xs">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-xs font-bold uppercase tracking-wider text-ink-muted">Structures Freemium</p>
-                <p class="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{{ data.structuresFreemium }}</p>
-              </div>
-              <div class="flex size-10 items-center justify-center rounded-xl border border-line bg-surface-muted text-ink">
-                <app-icon name="file" class="size-5" />
+              <div class="mt-4 border-t border-line/60 pt-3">
+                <span class="text-xs text-ink-muted font-medium">Plan effectif</span>
               </div>
             </div>
-            <div class="mt-4 border-t border-line/60 pt-3">
-              <span class="text-xs text-ink-muted font-medium">Formule de base</span>
-            </div>
-          </div>
+          }
 
           <!-- Revenus encaissés -->
           <div class="flex flex-col justify-between rounded-2xl border border-line bg-surface p-4 sm:p-5 shadow-xs">
@@ -525,15 +511,12 @@ import { ButtonComponent } from '../../../shared/components/button/button.compon
 
             <div class="p-5 sm:p-6">
               <div class="grid grid-cols-2 gap-4">
-                <div class="rounded-xl border border-line bg-surface-muted/30 p-4">
-                  <p class="text-xs font-semibold text-ink-muted">Premium</p>
-                  <p class="mt-1 text-xl font-extrabold text-ink">{{ data.structuresPremium }}</p>
-                </div>
-
-                <div class="rounded-xl border border-line bg-surface-muted/30 p-4">
-                  <p class="text-xs font-semibold text-ink-muted">Freemium</p>
-                  <p class="mt-1 text-xl font-extrabold text-ink">{{ data.structuresFreemium }}</p>
-                </div>
+                @for (plan of data.repartitionPlans; track plan.planId) {
+                  <div class="rounded-xl border border-line bg-surface-muted/30 p-4">
+                    <p class="text-xs font-semibold text-ink-muted">{{ plan.libelle }}</p>
+                    <p class="mt-1 text-xl font-extrabold text-ink">{{ plan.nombreStructures }}</p>
+                  </div>
+                }
               </div>
 
               <div class="mt-6 pt-4 border-t border-line/60 flex items-center justify-between text-xs text-ink-muted">

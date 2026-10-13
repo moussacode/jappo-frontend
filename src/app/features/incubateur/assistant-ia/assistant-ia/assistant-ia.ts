@@ -42,6 +42,8 @@ import { TranslatePipe } from '../../../../shared/pipes/translate.pipe';
 import { TranslationService } from '../../../../core/services/translation.service';
 import { MarkdownPipe } from '../../../../shared/pipes/markdown.pipe';
 import { environment } from '../../../../environments/environment';
+import { ErreurLimitePlan, lireErreurLimitePlan } from '../../../../core/models/abonnement.model';
+import { IaQuotaGauge } from '../../../../shared/components/ia-quota-gauge/ia-quota-gauge';
 
 /**
  * Assistant IA — côté coach/incubateur.
@@ -60,7 +62,7 @@ import { environment } from '../../../../environments/environment';
 @Component({
   selector: 'app-assistant-ia',
   standalone: true,
-  imports: [CommonModule, ButtonComponent, JsonPipe, RouterLink, DatePipe, VoiceModalComponent, TranslatePipe, MarkdownPipe],
+  imports: [CommonModule, ButtonComponent, JsonPipe, RouterLink, DatePipe, VoiceModalComponent, TranslatePipe, MarkdownPipe, IaQuotaGauge],
   templateUrl: './assistant-ia.html',
 })
 export class AssistantIa implements OnInit {
@@ -94,6 +96,9 @@ protected readonly translationService =
 
   /** Erreur à afficher à l'utilisateur (structure manquante, réseau...) */
   protected readonly erreur = signal<string | null>(null);
+  /** Limite du plan atteinte (reconnue par son code, pas par le message). */
+  protected readonly limitePlan = signal<ErreurLimitePlan | null>(null);
+  protected readonly estAdminStructure = computed(() => this.structureContext.activeRole() === 'ADMIN_STRUCTURE');
 
   // ── Sidebar historique ────────────────────────────────────────────────────
 
@@ -400,6 +405,7 @@ if (olderItems.length) {
     this.contextChips.set([]);
     this.saisie.set('');
     this.erreur.set(null);
+    this.limitePlan.set(null);
   }
 
   /** Charger une conversation si on n'a que son ID (après création) */
@@ -489,6 +495,7 @@ if (olderItems.length) {
     }
 
     this.erreur.set(null);
+    this.limitePlan.set(null);
     this.saisie.set('');
     this.resetTextarea();
 
@@ -525,6 +532,10 @@ if (olderItems.length) {
   this.messages.update((msgs) => msgs.filter((m) => m.id !== tempId));
   this.envoiEnCours.set(false);
 
+  if (this.afficherLimitePlan(err)) {
+    return;
+  }
+
   if (err?.status === 400 && err?.error?.message) {
     this.erreur.set(err.error.message);
     return;
@@ -557,6 +568,7 @@ if (olderItems.length) {
           ]);
           this.envoiEnCours.set(false);
           this.scrollToBottom();
+          this.structureContext.refreshUsage();
           // Rafraîchir la conversation dans la sidebar (titre auto-généré après 1er message)
           this.conversationService.getConversation(convId)
             .pipe(takeUntilDestroyed(this.destroyRef))
@@ -565,11 +577,24 @@ if (olderItems.length) {
               error: () => {},
             });
         },
-        error: () => {
+        error: (err) => {
           this.messages.update((msgs) => msgs.filter((m) => m.id !== tempId));
           this.envoiEnCours.set(false);
+          this.afficherLimitePlan(err);
         },
       });
+  }
+
+  /** Affiche une limite du plan (accès IA ou quota) ; renvoie false si ce n'en est pas une. */
+  private afficherLimitePlan(err: unknown): boolean {
+    const limite = lireErreurLimitePlan(err);
+    if (!limite) {
+      return false;
+    }
+    this.limitePlan.set(limite);
+    this.erreur.set(limite.message);
+    this.structureContext.refreshUsage();
+    return true;
   }
 
   // ── Gestion du contexte ───────────────────────────────────────────────────

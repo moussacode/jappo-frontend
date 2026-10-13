@@ -175,11 +175,9 @@
 
                   <!-- Plan -->
                   <td class="px-4 py-4">
-                    @if (structure.plan === 'PREMIUM') {
-                      <app-badge status="info" size="sm">Premium</app-badge>
-                    } @else {
-                      <app-badge status="neutral" size="sm">Freemium</app-badge>
-                    }
+                    <app-badge [status]="structure.planEffectif.estDefaut ? 'neutral' : 'info'" size="sm">
+                      {{ structure.planEffectif.libelle }}
+                    </app-badge>
                   </td>
 
                   <!-- Statut -->

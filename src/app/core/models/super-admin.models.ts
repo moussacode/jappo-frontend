@@ -1,3 +1,5 @@
+import { PlanAbonnement } from './abonnement.model';
+
 
 export interface RevenuMensuelResponse {
   mois: string;
@@ -16,8 +18,8 @@ export enum StatutStructure {
 
 export interface SuperAdminDashboardData {
   totalStructures: number;
-  structuresPremium: number;
-  structuresFreemium: number;
+  /** Nombre de structures par plan effectif (plans configurés par le SUPER_ADMIN). */
+  repartitionPlans: RepartitionPlan[];
   revenuTotal: number;
   revenuMois: number;
   transactionsEchecRecentes: number;
@@ -33,7 +35,7 @@ export interface SuperAdminStructureList {
   id: string;
   nom: string;
   slug: string;
-  plan: string;
+  planEffectif: PlanAbonnement;
   statutStructure: StatutStructure;
   statutAbonnement: string;
   dateCreation: string;
@@ -62,7 +64,8 @@ export interface SuperAdminStructureProprietaire {
 
 export interface SuperAdminStructureAbonnement {
   id: string;
-  plan: string;
+  plan: PlanAbonnement;
+  planEffectif: PlanAbonnement;
   statut: string;
   dateDebut: string | null;
   dateFin: string | null;
@@ -94,7 +97,7 @@ export interface SuperAdminStructureDetail {
 
 export interface SuperAdminHistoriqueAbonnement {
   id: string;
-  plan: string;
+  plan: PlanAbonnement;
   statut: string;
   dateDebut: string | null;
   dateFin: string | null;
@@ -114,7 +117,7 @@ export interface SuperAdminTransaction {
   telephoneClient: string | null;
   refCommand: string;
   tokenPaiement: string | null;
-  planVise: string;
+  planVise: PlanAbonnement;
   dateCreation: string;
   dateConfirmation: string | null;
   payloadIpnBrut: string | null;
@@ -125,10 +128,18 @@ export interface SuperAdminAbonnement {
   id: string;
   structureId: string;
   structureNom: string;
-  plan: string;
+  plan: PlanAbonnement;
+  planEffectif: PlanAbonnement;
   statut: string;
   dateDebut: string | null;
   dateFin: string | null;
   renouvellementAuto: boolean;
   dateCreation: string;
+}
+
+export interface RepartitionPlan {
+  planId: string;
+  code: string;
+  libelle: string;
+  nombreStructures: number;
 }

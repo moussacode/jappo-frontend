@@ -221,8 +221,8 @@
   "sidebar.espacesDeTravail": "Espaces de travail ({{count}})",
   "sidebar.menu": "Menu",
   "sidebar.aide": "Aide",
-  "sidebar.planPremium": "Plan Premium",
-  "sidebar.passerPremium": "Passer à Premium",
+  "sidebar.offre": "Offre",
+  "sidebar.changerOffre": "Changer d'offre",
 
 
 
@@ -357,6 +357,10 @@
 "entrepreneurAssistant.send": "Envoyer le message",
 "entrepreneurAssistant.thinking": "L’assistant prépare une réponse…",
 "entrepreneurAssistant.disclaimer": "Les réponses de l’assistant peuvent nécessiter une vérification.",
+"entrepreneurAssistant.indisponibleTitre": "Assistant IA non inclus",
+"entrepreneurAssistant.indisponibleAvecOffre": "Disponible avec l’offre {{offre}} de votre incubateur.",
+"entrepreneurAssistant.indisponible": "Disponible avec une offre supérieure de votre incubateur.",
+"entrepreneurAssistant.conversationsLisibles": "Vos conversations existantes restent consultables.",
 "entrepreneurAssistant.error.load": "Impossible de charger cette conversation.",
 "entrepreneurAssistant.error.send": "Le message n’a pas pu être envoyé. Réessayez.",
 "entrepreneurAssistant.error.create": "Impossible de créer une conversation pour le moment.",

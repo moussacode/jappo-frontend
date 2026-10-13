@@ -44,5 +44,10 @@ export class SuperAdminLayout {
       path: '/super-admin/abonnements',
       icon: 'book-open',
     },
+    {
+      label: 'Plans',
+      path: '/super-admin/plans',
+      icon: 'sparkles',
+    },
   ];
 }

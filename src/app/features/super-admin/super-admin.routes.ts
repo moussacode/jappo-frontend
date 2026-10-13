@@ -38,6 +38,12 @@ export const SUPER_ADMIN_ROUTES: Routes = [
             .then(m => m.AbonnementsList),
       },
       {
+        path: 'plans',
+        loadComponent: () =>
+          import('./plans/plans-list/plans-list')
+            .then(m => m.PlansList),
+      },
+      {
         path: '',
         pathMatch: 'full',
         redirectTo: 'dashboard',

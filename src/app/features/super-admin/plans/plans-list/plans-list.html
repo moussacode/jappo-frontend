@@ -1,0 +1,185 @@
+<div class="min-h-full bg-surface-muted">
+  <div class="mx-auto max-w-7xl space-y-6 p-6">
+
+    <!-- Header -->
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <div class="mb-1 flex items-center gap-2 text-xs text-ink-muted">
+          <span>Super Admin</span>
+          <app-icon name="chevron-right" class="h-3.5 w-3.5" />
+          <span class="text-ink">Plans</span>
+        </div>
+        <h1 class="text-2xl font-bold tracking-tight text-ink">Plans d'abonnement</h1>
+        <p class="mt-1 text-sm text-ink-muted">
+          Prix, durée, limites et accès à l'IA de chaque offre. Un plan utilisé ne peut pas être supprimé : désactivez-le.
+        </p>
+      </div>
+
+      <div class="flex gap-2">
+        <app-button variant="secondary" size="sm" (click)="charger()">Actualiser</app-button>
+        <app-button variant="primary" size="sm" (click)="ouvrirCreation()">
+          <app-icon name="plus" class="size-4" />
+          Nouveau plan
+        </app-button>
+      </div>
+    </div>
+
+    @if (error(); as message) {
+      <div class="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700" role="alert">
+        <app-icon name="alert-circle" class="mt-0.5 h-5 w-5 shrink-0" />
+        <p>{{ message }}</p>
+      </div>
+    }
+    @if (actionError(); as message) {
+      <div class="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700" role="alert">
+        <app-icon name="alert-circle" class="mt-0.5 h-5 w-5 shrink-0" />
+        <p class="flex-1">{{ message }}</p>
+        <button type="button" class="text-xs font-semibold hover:underline" (click)="actionError.set(null)">Fermer</button>
+      </div>
+    }
+
+    @if (loading()) {
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        @for (item of [1, 2, 3]; track item) {
+          <div class="h-56 animate-pulse rounded-2xl border border-line bg-surface"></div>
+        }
+      </div>
+    } @else {
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        @for (plan of plans(); track plan.id) {
+          <article class="flex flex-col rounded-2xl border border-line bg-surface p-5 shadow-xs" [class.opacity-60]="!plan.actif">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <h2 class="truncate text-base font-bold text-ink">{{ plan.libelle }}</h2>
+                <p class="font-mono text-[11px] text-ink-muted">{{ plan.code }}</p>
+              </div>
+              <div class="flex shrink-0 flex-wrap justify-end gap-1">
+                @if (plan.estDefaut) {
+                  <app-badge status="info" size="sm">Par défaut</app-badge>
+                }
+                <app-badge [status]="plan.actif ? 'success' : 'neutral'" size="sm">
+                  {{ plan.actif ? 'Actif' : 'Désactivé' }}
+                </app-badge>
+              </div>
+            </div>
+
+            <p class="mt-3 text-xl font-extrabold text-ink">
+              {{ plan.prix === 0 ? 'Gratuit' : prix(plan.prix, plan.devise) }}
+              <span class="text-xs font-medium text-ink-muted">· {{ duree(plan.dureeJours) }}</span>
+            </p>
+            @if (plan.description) {
+              <p class="mt-1 text-xs text-ink-muted">{{ plan.description }}</p>
+            }
+
+            <ul class="mt-3 flex-1 space-y-1.5 text-xs text-ink">
+              @for (avantage of avantages(plan); track avantage) {
+                <li class="flex items-start gap-1.5">
+                  <app-icon name="check" class="mt-px size-3.5 shrink-0 text-accent" />
+                  <span>{{ avantage }}</span>
+                </li>
+              }
+            </ul>
+
+            <div class="mt-4 flex flex-wrap gap-2 border-t border-line pt-3">
+              <app-button variant="secondary" size="xs" [disabled]="enCours()" (click)="ouvrirModification(plan)">Modifier</app-button>
+              @if (!plan.estDefaut) {
+                <app-button variant="secondary" size="xs" [disabled]="enCours()" (click)="basculerActivation(plan)">
+                  {{ plan.actif ? 'Désactiver' : 'Activer' }}
+                </app-button>
+                <app-button variant="ghost" size="xs" [disabled]="enCours()" (click)="supprimer(plan)">Supprimer</app-button>
+              }
+            </div>
+          </article>
+        } @empty {
+          <p class="text-sm text-ink-muted">Aucun plan configuré.</p>
+        }
+      </div>
+    }
+  </div>
+</div>
+
+@if (edition(); as plan) {
+  <app-modal
+    [title]="plan === 'nouveau' ? 'Nouveau plan' : 'Modifier « ' + plan.libelle + ' »'"
+    subtitle="Champs vides = illimité (limites) ou sans fin (durée)."
+    maxWidth="2xl"
+    (close)="fermer()"
+  >
+    <form [formGroup]="form" (ngSubmit)="enregistrer()" class="space-y-5" novalidate>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <label class="flex flex-col gap-1 text-xs font-medium text-ink">
+          Code (stable, non modifiable)
+          <input formControlName="code" class="rounded-[var(--radius-button)] border border-line bg-surface px-3 py-2 font-mono text-sm uppercase disabled:opacity-60" placeholder="EX. PRO_ANNUEL" />
+          @if (invalide('code')) { <span class="text-[11px] text-red-600">Majuscules, chiffres ou _ (2 à 50 caractères).</span> }
+        </label>
+        <label class="flex flex-col gap-1 text-xs font-medium text-ink">
+          Libellé
+          <input formControlName="libelle" class="rounded-[var(--radius-button)] border border-line bg-surface px-3 py-2 text-sm" />
+          @if (invalide('libelle')) { <span class="text-[11px] text-red-600">Libellé obligatoire.</span> }
+        </label>
+        <label class="flex flex-col gap-1 text-xs font-medium text-ink sm:col-span-2">
+          Description
+          <textarea formControlName="description" rows="2" class="rounded-[var(--radius-button)] border border-line bg-surface px-3 py-2 text-sm"></textarea>
+        </label>
+      </div>
+
+      <fieldset class="grid gap-4 sm:grid-cols-4">
+        <legend class="mb-2 text-xs font-bold uppercase tracking-wider text-ink-muted">Tarif</legend>
+        <label class="flex flex-col gap-1 text-xs font-medium text-ink sm:col-span-2">
+          Prix
+          <input type="number" min="0" formControlName="prix" class="rounded-[var(--radius-button)] border border-line bg-surface px-3 py-2 text-sm" />
+        </label>
+        <label class="flex flex-col gap-1 text-xs font-medium text-ink">
+          Devise
+          <input formControlName="devise" maxlength="3" class="rounded-[var(--radius-button)] border border-line bg-surface px-3 py-2 text-sm uppercase" />
+        </label>
+        <label class="flex flex-col gap-1 text-xs font-medium text-ink">
+          Durée (jours)
+          <input formControlName="dureeJours" inputmode="numeric" placeholder="Sans fin" class="rounded-[var(--radius-button)] border border-line bg-surface px-3 py-2 text-sm" />
+          @if (invalide('dureeJours')) { <span class="text-[11px] text-red-600">Nombre entier ≥ 1.</span> }
+        </label>
+      </fieldset>
+
+      <fieldset class="grid gap-4 sm:grid-cols-2">
+        <legend class="mb-2 text-xs font-bold uppercase tracking-wider text-ink-muted">Limites et IA</legend>
+        <label class="flex flex-col gap-1 text-xs font-medium text-ink">
+          Cohortes planifiées ou en cours (max)
+          <input formControlName="maxCohortes" inputmode="numeric" placeholder="Illimité" class="rounded-[var(--radius-button)] border border-line bg-surface px-3 py-2 text-sm" />
+        </label>
+        <label class="flex flex-col gap-1 text-xs font-medium text-ink">
+          Tokens IA par mois (pot de la structure)
+          <input formControlName="iaTokensMensuels" inputmode="numeric" placeholder="Illimité" class="rounded-[var(--radius-button)] border border-line bg-surface px-3 py-2 text-sm" />
+        </label>
+        <label class="flex items-center gap-2 text-xs font-medium text-ink">
+          <input type="checkbox" formControlName="iaCoachActive" class="size-4 accent-[var(--color-accent)]" />
+          IA pour les coachs et administrateurs
+        </label>
+        <label class="flex items-center gap-2 text-xs font-medium text-ink">
+          <input type="checkbox" formControlName="iaEntrepreneurActive" class="size-4 accent-[var(--color-accent)]" />
+          IA pour les entrepreneurs
+        </label>
+      </fieldset>
+
+      <fieldset class="grid gap-4 sm:grid-cols-2">
+        <legend class="mb-2 text-xs font-bold uppercase tracking-wider text-ink-muted">Affichage</legend>
+        <label class="flex flex-col gap-1 text-xs font-medium text-ink">
+          Ordre
+          <input type="number" min="0" formControlName="ordre" class="rounded-[var(--radius-button)] border border-line bg-surface px-3 py-2 text-sm" />
+        </label>
+        <label class="flex items-center gap-2 self-end pb-2 text-xs font-medium text-ink">
+          <input type="checkbox" formControlName="estDefaut" class="size-4 accent-[var(--color-accent)]" />
+          Plan par défaut (structures sans abonnement en vigueur)
+        </label>
+      </fieldset>
+
+      @if (formError(); as message) {
+        <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700" role="alert">{{ message }}</p>
+      }
+
+      <div class="flex justify-end gap-2 border-t border-line pt-4">
+        <app-button variant="secondary" size="sm" (click)="fermer()">Annuler</app-button>
+        <app-button variant="primary" size="sm" type="submit" [disabled]="enCours()">Enregistrer</app-button>
+      </div>
+    </form>
+  </app-modal>
+}

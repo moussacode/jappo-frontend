@@ -90,57 +90,39 @@
           </div>
         </div>
 
-        <!-- Premium -->
-        <div class="rounded-2xl border border-line bg-surface p-5 shadow-xs">
-          <div class="flex items-start justify-between">
-            <div>
-              <p class="text-xs font-semibold uppercase tracking-wide text-ink-muted">
-                Premium
-              </p>
+        <!-- Une carte par plan effectif -->
+        @for (plan of repartition(); track plan.code) {
+          <div class="rounded-2xl border border-line bg-surface p-5 shadow-xs">
+            <div class="flex items-start justify-between">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                  {{ plan.libelle }}
+                </p>
 
-              <p class="mt-2 text-2xl font-bold text-ink">
-                {{ nombrePremium() }}
-              </p>
+                <p class="mt-2 text-2xl font-bold text-ink">
+                  {{ plan.nombre }}
+                </p>
 
-              <p class="mt-1 text-xs text-ink-muted">
-                structures Premium
-              </p>
-            </div>
+                <p class="mt-1 text-xs text-ink-muted">
+                  structure{{ plan.nombre > 1 ? 's' : '' }}
+                </p>
+              </div>
 
-            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10">
-              <app-icon
-                name="sparkles"
-                class="h-5 w-5 text-accent"
-              />
-            </div>
-          </div>
-        </div>
-
-        <!-- Freemium -->
-        <div class="rounded-2xl border border-line bg-surface p-5 shadow-xs">
-          <div class="flex items-start justify-between">
-            <div>
-              <p class="text-xs font-semibold uppercase tracking-wide text-ink-muted">
-                Freemium
-              </p>
-
-              <p class="mt-2 text-2xl font-bold text-ink">
-                {{ nombreFreemium() }}
-              </p>
-
-              <p class="mt-1 text-xs text-ink-muted">
-                structures Freemium
-              </p>
-            </div>
-
-            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-muted">
-              <app-icon
-                name="layers"
-                class="h-5 w-5 text-ink-muted"
-              />
+              <div
+                class="flex h-10 w-10 items-center justify-center rounded-xl"
+                [class.bg-accent/10]="!plan.estDefaut"
+                [class.bg-surface-muted]="plan.estDefaut"
+              >
+                <app-icon
+                  [name]="plan.estDefaut ? 'layers' : 'sparkles'"
+                  class="h-5 w-5"
+                  [class.text-accent]="!plan.estDefaut"
+                  [class.text-ink-muted]="plan.estDefaut"
+                />
+              </div>
             </div>
           </div>
-        </div>
+        }
 
         <!-- Actifs -->
         <div class="rounded-2xl border border-line bg-surface p-5 shadow-xs">
@@ -294,10 +276,15 @@
                   <!-- Plan -->
                   <td class="px-5 py-4">
                     <app-badge
-                      [status]="getPlanBadgeStatus(abonnement.plan)"
+                      [status]="getPlanBadgeStatus(abonnement.planEffectif)"
                     >
-                      {{ getPlanLabel(abonnement.plan) }}
+                      {{ getPlanLabel(abonnement.planEffectif) }}
                     </app-badge>
+                    @if (abonnement.plan.id !== abonnement.planEffectif.id) {
+                      <p class="mt-1 text-[11px] text-ink-muted">
+                        Souscrit : {{ abonnement.plan.libelle }}
+                      </p>
+                    }
                   </td>
 
                   <!-- Statut -->
@@ -376,9 +363,9 @@
           </p>
 
           <p class="text-xs font-medium text-ink-muted">
-            {{ nombrePremium() }} Premium
-            ·
-            {{ nombreFreemium() }} Freemium
+            @for (plan of repartition(); track plan.code; let dernier = $last) {
+              {{ plan.nombre }} {{ plan.libelle }}@if (!dernier) { · }
+            }
           </p>
         </div>
 

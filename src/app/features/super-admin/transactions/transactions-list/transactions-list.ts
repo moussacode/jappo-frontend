@@ -1,3 +1,4 @@
+import { PlanAbonnement } from '../../../../core/models/abonnement.model';
 import {
   Component,
   computed,
@@ -271,17 +272,8 @@ export class TransactionsList implements OnInit {
     }
   }
 
-  protected getPlanLabel(plan?: string): string {
-    switch (plan?.toUpperCase()) {
-      case 'PREMIUM':
-        return 'Premium';
-
-      case 'FREEMIUM':
-        return 'Freemium';
-
-      default:
-        return plan ?? '—';
-    }
+  protected getPlanLabel(plan?: PlanAbonnement | null): string {
+    return plan?.libelle ?? '—';
   }
 
   /**

@@ -59,7 +59,7 @@ export class PaiementSucces {
           this.succes.set(response.statut === 'SUCCES');
           this.message.set(response.message);
 
-          this.plan.set(response.plan);
+          this.plan.set(response.plan?.libelle ?? '');
           this.montant.set(response.montant);
           this.dateConfirmation.set(response.dateConfirmation);
         },

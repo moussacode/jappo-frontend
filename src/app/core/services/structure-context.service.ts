@@ -12,7 +12,7 @@ import {
 } from './auth.service';
 
 import { AbonnementService } from './abonnement.service';
-import { Abonnement } from '../models/abonnement.model';
+import { Abonnement, UsageAbonnement } from '../models/abonnement.model';
 
 @Injectable({
   providedIn: 'root',
@@ -43,8 +43,24 @@ export class StructureContextService {
   readonly abonnement =
     this._abonnement.asReadonly();
 
-  readonly isPremium = computed(
-    () => this._abonnement()?.plan === 'PREMIUM'
+  /** Plan réellement appliqué à la structure active (configuré par le SUPER_ADMIN). */
+  readonly planEffectif = computed(
+    () => this._abonnement()?.planEffectif ?? null
+  );
+
+  private readonly _usage =
+    signal<UsageAbonnement | null>(null);
+
+  /** Limites du plan et consommation courante (cohortes, tokens IA du mois). */
+  readonly usage =
+    this._usage.asReadonly();
+
+  /**
+   * L'utilisateur connecté peut-il utiliser l'assistant IA ?
+   * null tant que l'usage n'est pas chargé (ne rien bloquer à l'aveugle).
+   */
+  readonly iaDisponible = computed(
+    () => this._usage()?.ia.accesUtilisateur ?? null
   );
 
   readonly activeStructure = computed(
@@ -66,6 +82,8 @@ export class StructureContextService {
     // On supprime l'ancien abonnement
     // pendant le chargement du nouveau.
     this._abonnement.set(null);
+    this._usage.set(null);
+    this.refreshUsage(structureId);
 
     this.abonnementService
       .getAbonnement(structureId)
@@ -82,6 +100,28 @@ export class StructureContextService {
 
           this._abonnement.set(null);
         },
+      });
+  }
+
+  /** Recharge la consommation (après un message IA, une création de cohorte…). */
+  refreshUsage(
+    structureId: string | null = this.activeStructureId()
+  ): void {
+
+    if (!structureId) {
+      return;
+    }
+
+    this.abonnementService
+      .getUsage(structureId)
+      .subscribe({
+        next: (usage) => {
+          // Ignore une réponse arrivée après un changement de structure.
+          if (this.activeStructureId() === structureId) {
+            this._usage.set(usage);
+          }
+        },
+        error: () => this._usage.set(null),
       });
   }
 
@@ -196,6 +236,8 @@ export class StructureContextService {
     this._memberships.set([]);
 
     this._abonnement.set(null);
+
+    this._usage.set(null);
 
     localStorage.removeItem(
       this.activeStructureIdKey

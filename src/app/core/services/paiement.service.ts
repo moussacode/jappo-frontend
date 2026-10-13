@@ -1,3 +1,4 @@
+import { PlanAbonnement } from '../models/abonnement.model';
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -10,7 +11,7 @@ export interface InitiationPaiementResponse {
 export interface ConfirmationPaiementResponse {
   message: string;
   statut: 'EN_ATTENTE' | 'SUCCES' | 'ECHEC' | 'ANNULE';
-  plan: 'FREEMIUM' | 'PREMIUM';
+  plan: PlanAbonnement;
   montant: number;
   dateConfirmation: string | null;
 }
@@ -24,13 +25,15 @@ export class PaiementService {
 
   private readonly apiUrl = environment.apiUrl;
 
-  initierUpgradePremium(
-    structureId: string
+  /** Lance le paiement PayDunya du plan choisi ; le prix est lu côté serveur. */
+  initierPaiement(
+    structureId: string,
+    planId: string
   ): Observable<InitiationPaiementResponse> {
 
     return this.http.post<InitiationPaiementResponse>(
       `${this.apiUrl}/structures/${structureId}/abonnement/upgrade`,
-      {}
+      { planId }
     );
   }
 

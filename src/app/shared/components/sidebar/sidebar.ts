@@ -619,45 +619,39 @@ export interface NavItem {
               }
 
 
-              <!-- Premium -->
-              @if (!isSuperAdmin()) {
+              <!-- Offre de la structure (plan configuré par le SUPER_ADMIN) -->
+              @if (!isSuperAdmin() && planEffectif(); as plan) {
 
-                @if (isPremium()) {
+                <div
+                  class="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-xs font-medium text-ink-muted"
+                >
 
-                  <div
-                    class="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-xs font-medium text-accent"
-                  >
+                  <app-icon
+                    name="sparkles"
+                    class="size-4"
+                  />
 
-                    <app-icon
-                      name="sparkles"
-                      class="size-4"
-                    />
+                  <span class="flex-1 truncate">
+                    {{ 'sidebar.offre' | translate }} {{ plan.libelle }}
+                  </span>
 
-                    <span class="flex-1">
-                      {{ 'sidebar.planPremium' | translate }}
-                    </span>
+                </div>
 
-                    <span class="text-[10px] font-semibold">
-                      ✓
-                    </span>
-
-                  </div>
-
-                } @else {
+                @if (activeRole() === 'ADMIN_STRUCTURE') {
 
                   <button
                     type="button"
                     (click)="openUpgrade()"
-                    class="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-xs font-medium text-ink hover:bg-surface-muted transition-colors cursor-pointer mt-1"
+                    class="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-xs font-medium text-accent hover:bg-surface-muted transition-colors cursor-pointer"
                   >
 
                     <app-icon
-                      name="sparkles"
-                      class="size-4 text-ink-muted"
+                      name="arrow-up-circle"
+                      class="size-4"
                     />
 
                     <span>
-                      {{ 'sidebar.passerPremium' | translate }}
+                      {{ 'sidebar.changerOffre' | translate }}
                     </span>
 
                   </button>
@@ -771,8 +765,11 @@ export class Sidebar {
   protected readonly currentUser =
     this.authService.currentUser;
 
-  protected readonly isPremium =
-    this.structureContext.isPremium;
+  protected readonly planEffectif =
+    this.structureContext.planEffectif;
+
+  protected readonly activeRole =
+    this.structureContext.activeRole;
 
 
   protected isSuperAdmin(): boolean {

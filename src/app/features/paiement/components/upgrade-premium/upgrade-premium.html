@@ -1,7 +1,7 @@
 <div class="">
 
   @if (erreur()) {
-    <div class="mt-4 rounded-[var(--radius-card)] border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs font-medium text-red-600">
+    <div class="mt-4 rounded-[var(--radius-card)] border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs font-medium text-red-600" role="alert">
       {{ erreur() }}
     </div>
   }
@@ -11,14 +11,16 @@
   variant="primary"
   size="lg"
   [fullWidth]="true"
-  [disabled]="chargement()"
-  (click)="passerPremium()"
+  [disabled]="chargement() || disabled() || !plan()"
+  (click)="payer()"
   class="mt-6">
-  
+
   @if (chargement()) {
     Redirection vers PayDunya...
+  } @else if (plan(); as p) {
+    Souscrire à l'offre {{ p.libelle }}
   } @else {
-    Passer à Premium
+    Choisissez une offre
   }
 
 </app-button>

@@ -258,7 +258,7 @@
                     <!-- Plan -->
                     <td class="px-5 py-3.5">
                       <app-badge
-                        [status]="transaction.planVise?.toUpperCase() === 'PREMIUM' ? 'info' : 'neutral'"
+                        [status]="!transaction.planVise || transaction.planVise.estDefaut ? 'neutral' : 'info'"
                       >
                         {{ getPlanLabel(transaction.planVise) }}
                       </app-badge>

@@ -99,23 +99,29 @@
             </app-button>
           }
 
-          <app-button
-            variant="primary"
-            size="sm"
-            [disabled]="actionLoading()"
-            (click)="activerPremium()"
-          >
-            Activer Premium
-          </app-button>
-
-          <app-button
-            variant="secondary"
-            size="sm"
-            [disabled]="actionLoading()"
-            (click)="forcerFreemium()"
-          >
-            Forcer Freemium
-          </app-button>
+          <!-- Changer de plan (plans actifs configurés par le SUPER_ADMIN) -->
+          <div class="flex items-center gap-2">
+            <label class="sr-only" for="changer-plan">Nouvelle offre</label>
+            <select
+              id="changer-plan"
+              class="rounded-[var(--radius-button)] border border-line bg-surface px-3 py-2 text-xs text-ink focus:border-accent focus:outline-none"
+              [value]="planSelectionneId()"
+              (change)="planSelectionneId.set($any($event.target).value)"
+            >
+              <option value="">Choisir une offre…</option>
+              @for (plan of plans(); track plan.id) {
+                <option [value]="plan.id">{{ plan.libelle }}</option>
+              }
+            </select>
+            <app-button
+              variant="primary"
+              size="sm"
+              [disabled]="actionLoading() || !planSelectionneId()"
+              (click)="changerPlan()"
+            >
+              Changer de plan
+            </app-button>
+          </div>
         </div>
 
       </header>
@@ -158,7 +164,7 @@
           @if (str.abonnement; as abonnement) {
             <div class="mt-3 flex items-baseline gap-2">
               <span class="text-2xl font-extrabold text-ink">
-                {{ getPlanLabel(abonnement.plan) }}
+                {{ getPlanLabel(abonnement.planEffectif) }}
               </span>
               <app-badge [status]="getBadgeStatus(abonnement.statut)">
                 {{ getStatutLabel(abonnement.statut) }}
@@ -287,9 +293,12 @@
             <div>
               <p class="text-[11px] font-bold uppercase tracking-wider text-ink-muted">Plan</p>
               <div class="mt-1">
-                <app-badge [status]="getBadgeStatus(abonnement.plan)">
-                  {{ getPlanLabel(abonnement.plan) }}
+                <app-badge [status]="getPlanBadgeStatus(abonnement.planEffectif)">
+                  {{ getPlanLabel(abonnement.planEffectif) }}
                 </app-badge>
+                @if (abonnement.plan.id !== abonnement.planEffectif.id) {
+                  <p class="mt-1 text-[11px] text-ink-muted">Souscrit : {{ abonnement.plan.libelle }}</p>
+                }
               </div>
             </div>
 
@@ -473,7 +482,7 @@
                         {{ t.refCommand }}
                       </td>
                       <td class="px-5 py-4 font-bold text-ink">
-                        {{ formaterMontant(t.montant) }}
+                        {{ formaterMontant(t.montant, t.devise) }}
                       </td>
                       <td class="px-5 py-4 font-medium text-ink">
                         {{ getPlanLabel(t.planVise) }}
