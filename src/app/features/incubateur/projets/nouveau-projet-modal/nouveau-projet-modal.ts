@@ -25,9 +25,9 @@ import { Cohorte } from '../../../../core/models';
         <!-- CAS 1 : ENTREPRENEUR PRÉSÉLECTIONNÉ (CONTEXTE VERROUILLÉ) -->
         <!-- ========================================== -->
         @if (preselectedEntrepreneurId()) {
-          <div class="rounded-xl border border-line bg-surface-muted/60 p-4 flex items-center justify-between gap-3 shadow-xs">
+          <div class="rounded-xl border border-line bg-surface-muted/60 p-4 flex items-center justify-between gap-3">
             <div class="flex items-center gap-3 min-w-0">
-              <div class="flex size-11 shrink-0 items-center justify-center rounded-full bg-accent text-white font-bold text-sm shadow-xs">
+              <div class="flex size-11 shrink-0 items-center justify-center rounded-full bg-accent text-white font-bold text-sm">
                 {{ getInitials(preselectedEntrepreneurName() || 'EP') }}
               </div>
               <div class="flex flex-col min-w-0">
@@ -107,7 +107,7 @@ import { Cohorte } from '../../../../core/models';
             } @else {
               <!-- Carte entrepreneur sélectionné -->
               @if (selectedEntrepreneur()) {
-                <div class="flex items-center justify-between rounded-xl border border-accent/30 bg-accent-soft/30 p-3 shadow-xs">
+                <div class="flex items-center justify-between rounded-xl border border-accent/30 bg-accent-soft/30 p-3">
                   <div class="flex items-center gap-2.5 min-w-0">
                     <div class="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-white text-xs font-bold">
                       {{ getInitials(afficherNomEntrepreneur(selectedEntrepreneur()!)) }}

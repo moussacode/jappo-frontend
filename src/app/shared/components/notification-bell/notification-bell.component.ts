@@ -24,8 +24,8 @@ import { Icon } from '../icon/icon';
       #trigger
       type="button"
       (click)="toggleDropdown()"
-      class="relative flex size-9 shrink-0 items-center justify-center rounded-xl border border-line bg-surface text-ink-muted transition-all hover:bg-surface-muted hover:text-ink cursor-pointer"
-      [class.bg-surface-muted]="isDropdownOpen()"
+      class="relative flex size-8 shrink-0 items-center justify-center rounded-lg text-ink-muted transition-all hover:bg-surface hover:text-ink cursor-pointer"
+      [class.bg-surface]="isDropdownOpen()"
       [class.!text-ink]="isDropdownOpen()"
       aria-haspopup="true"
       [attr.aria-expanded]="isDropdownOpen()"

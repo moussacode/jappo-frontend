@@ -61,11 +61,26 @@ export interface InviterEntrepreneursRequest {
   emails: string[];
 }
 
+/** Stade d'accompagnement d'une phase (le nom de la phase reste libre). */
+export type StadeAccompagnement = 'PRE_INCUBATION' | 'INCUBATION' | 'ACCELERATION' | 'POST_INCUBATION';
+
+export const STADES_ACCOMPAGNEMENT: { value: StadeAccompagnement; label: string }[] = [
+  { value: 'PRE_INCUBATION', label: 'Pré-incubation' },
+  { value: 'INCUBATION', label: 'Incubation' },
+  { value: 'ACCELERATION', label: 'Accélération' },
+  { value: 'POST_INCUBATION', label: 'Post-incubation' },
+];
+
+export function libelleStade(stade: StadeAccompagnement | null | undefined): string | null {
+  return STADES_ACCOMPAGNEMENT.find((s) => s.value === stade)?.label ?? null;
+}
+
 export interface Phase {
   id: string;
   nom: string;
   description?: string;
   ordre?: number;
+  stade?: StadeAccompagnement | null;
   archive: boolean;
   dateCreation: string;
   dateModification?: string;
@@ -111,4 +126,61 @@ export function libelleStatutCohorte(statut: StatutCohorte): string {
 
 export function libellePhase(phase?: PhaseSummary | null): string {
   return phase?.nom?.trim() ? phase.nom : 'Phase non définie';
+}
+/** Situation d'un projet vis-à-vis d'une cohorte dans le rapport. */
+export type SituationRapport = 'EN_COURS' | 'PROMU' | 'DIPLOME' | 'ABANDON' | 'RETIRE';
+
+export interface RapportCohorteSynthese {
+  projets: number;
+  enCours: number;
+  promus: number;
+  diplomes: number;
+  abandons: number;
+  retires: number;
+  missionsTotal: number;
+  missionsValidees: number;
+  tauxValidationMissions: number;
+  missionsEnRetard: number;
+  projetsEnRetard: number;
+  livrablesEnAttente: number;
+  livrablesACorriger: number;
+  livrablesValides: number;
+  avancementMoyen: number | null;
+}
+
+export interface RapportCohorteLigne {
+  projetId: string;
+  nomProjet: string;
+  entrepreneurId: string | null;
+  nomEntrepreneur: string | null;
+  emailEntrepreneur: string | null;
+  situation: SituationRapport;
+  dateEntree: string;
+  dateSortie: string | null;
+  raisonSortie: string | null;
+  phaseActuelle: string | null;
+  stadeActuel: StadeAccompagnement | null;
+  avancement: number | null;
+  missionsTotal: number;
+  missionsValidees: number;
+  missionsEnRetard: number;
+  livrablesEnAttente: number;
+  livrablesACorriger: number;
+  livrablesValides: number;
+}
+
+/** Rapport de pilotage d'une cohorte (GET /api/cohortes/{id}/rapport). */
+export interface RapportCohorte {
+  cohorteId: string;
+  nomCohorte: string;
+  statutCohorte: StatutCohorte | null;
+  dateDebut: string | null;
+  dateFin: string | null;
+  nomProgramme: string | null;
+  nomParcours: string | null;
+  nomPhase: string | null;
+  stade: StadeAccompagnement | null;
+  dateGeneration: string;
+  synthese: RapportCohorteSynthese;
+  projets: RapportCohorteLigne[];
 }

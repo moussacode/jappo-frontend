@@ -15,11 +15,13 @@ import { KpiCardComponent } from '../../../../shared/components/kpi-card/kpi-car
 import { BadgeComponent, BadgeStatus } from '../../../../shared/components/badge/badge';
 import { CardComponent } from '../../../../shared/components/card/card.component';
 import { Icon } from '../../../../shared/components/icon/icon';
+import { VIZ } from '../../../../shared/components/viz/viz';
+import { humaniserEnum } from '../../../../core/utils/libelle';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [RouterLink, KpiCardComponent, BadgeComponent, CardComponent, Icon],
+  imports: [RouterLink, KpiCardComponent, BadgeComponent, CardComponent, Icon, ...VIZ],
   templateUrl: './dashboard.html',
 })
 export class Dashboard implements OnInit {
@@ -49,6 +51,41 @@ export class Dashboard implements OnInit {
   protected readonly missionsTotalCount = computed(() => {
     return this.projet()?.nombreMissionsTotal ?? 0;
   });
+
+  protected readonly aujourdhui = new Intl.DateTimeFormat('fr-FR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  }).format(new Date());
+
+  protected readonly statutProjet = computed(() => humaniserEnum(this.projet()?.statut));
+
+  /** Part des missions validées (0–100). */
+  protected readonly tauxCompletion = computed(() => {
+    const total = this.missionsTotalCount();
+    return total ? Math.round((this.missionsTermineesCount() / total) * 100) : 0;
+  });
+
+  /** Missions non terminées d'abord, limitées à l'essentiel. */
+  protected readonly missionsDuMoment = computed(() => {
+    const terminee = (m: Mission) => ['TERMINEE', 'VALIDE'].includes((m.statut ?? '').toUpperCase());
+    return [...this.missions()].sort((a, b) => Number(terminee(a)) - Number(terminee(b))).slice(0, 6);
+  });
+
+  /** Réunions prévues ou en cours, de la plus proche à la plus lointaine. */
+  protected readonly reunionsAVenir = computed(() =>
+    this.meetings()
+      .filter((m) => m.status === 'PLANNED' || m.status === 'ONGOING')
+      .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt)),
+  );
+
+  protected jourCourt(date: string): { jour: string; num: string } {
+    const d = new Date(date);
+    return {
+      jour: d.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', ''),
+      num: String(d.getDate()),
+    };
+  }
 
   ngOnInit(): void {
     const userId = this.authService.currentUser()?.id;

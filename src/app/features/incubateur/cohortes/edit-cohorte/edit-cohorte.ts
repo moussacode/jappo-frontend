@@ -97,7 +97,7 @@ import { ModalComponent } from '../../../../shared/components/modal/modal.compon
         >
           <select
             formControlName="phaseId"
-            class="w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-sm text-ink focus:border-accent focus:outline-none shadow-xs transition-all cursor-pointer"
+            class="w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-sm text-ink focus:border-accent focus:outline-none transition-all cursor-pointer"
           >
             @if (phases().length === 0) {
               <option value="">Aucune phase disponible</option>

@@ -2,6 +2,10 @@ import { Component, ChangeDetectionStrategy, AfterViewInit, OnDestroy, ElementRe
 import { RouterLink } from '@angular/router';
 import { Icon } from '../../../shared/components/icon/icon';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
+import { ContainerScroll } from '../../../shared/components/ui/container-scroll/container-scroll';
+import { CtaMarquee } from '../../../shared/components/ui/cta-marquee/cta-marquee';
+import { RevealOnViewDirective } from '../../../shared/directives/reveal-on-view.directive';
+import { TestimonialsColumn, Testimonial } from '../../../shared/components/ui/testimonials-column/testimonials-column';
 import { AuthService } from '../../../core/services/auth.service';
 
 // Déclaration pour que TypeScript reconnaisse GSAP chargé via CDN ou npm
@@ -12,7 +16,7 @@ declare const ScrollTrigger: any;
   selector: 'app-landing-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [RouterLink, Icon, ButtonComponent],
+  imports: [RouterLink, Icon, ButtonComponent, ContainerScroll, TestimonialsColumn, RevealOnViewDirective, CtaMarquee],
   templateUrl: './landing-page.html',
 })
 export class LandingPage implements AfterViewInit, OnDestroy {
@@ -88,7 +92,7 @@ protected readonly currentUser = this.authService.currentUser;
     { nom: 'Batch Fintech 2026', detail: '8 Startups · Pré-incubation', progression: 27 },
   ];
 
-  protected readonly temoignages = [
+  protected readonly temoignages: Testimonial[] = [
     {
       titre: '« Un gain de temps considérable au quotidien. »',
       contenu: 'Le suivi des jalons de nos porteurs de projets et la visibilité sur l\'état d\'avancement des cohortes nous permettent de cibler nos efforts d\'accompagnement là où c\'est le plus nécessaire.',
@@ -105,44 +109,82 @@ protected readonly currentUser = this.authService.currentUser;
     },
   ];
 
+  /** Trois colonnes décalées (rotation de la liste) pour ne pas aligner les mêmes avis côte à côte. */
+  protected readonly temoignageColonnes = [0, 1, 2].map((offset) => {
+    const n = this.temoignages.length;
+    return this.temoignages.map((_, i) => this.temoignages[(i + offset) % n]);
+  });
+
+  /**
+   * Outils « éparpillés » placés en cercle autour du logo (section Écosystème).
+   * x / y sont des fractions du rayon (--orbit-r), pour que l'orbite s'adapte à l'écran.
+   */
+  protected readonly orbitTools = (
+    [
+      { icon: 'chart', label: 'Tableurs' },
+      { icon: 'calendar', label: 'Agendas' },
+      { icon: 'folder', label: 'Dossiers partagés' },
+      { icon: 'video', label: 'Visios' },
+      { icon: 'paperclip', label: 'Pièces jointes' },
+      { icon: 'check-circle', label: 'Listes de tâches' },
+      { icon: 'File-Text', label: 'Formulaires' },
+      { icon: 'edit-2', label: 'Notes' },
+    ] as const
+  ).map((tool, i, all) => {
+    const angle = (i / all.length) * 2 * Math.PI - Math.PI / 2;
+    return { ...tool, x: +Math.cos(angle).toFixed(3), y: +Math.sin(angle).toFixed(3) };
+  });
+
   ngAfterViewInit(): void {
-    if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
-      gsap.registerPlugin(ScrollTrigger);
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-      const orbitItems = this.elRef.nativeElement.querySelectorAll('.orbit-tool');
+    // Défilement doux pour les ancres de la navbar et du footer, limité à la landing.
+    if (!reducedMotion) document.documentElement.style.scrollBehavior = 'smooth';
 
-      if (orbitItems.length > 0) {
-        // Animation GSAP ScrollTrigger ultra-fluide identique aux standards SaaS modernes
-        this.scrollTriggerInstance = gsap.fromTo(orbitItems, 
-          {
-            x: (i: number, target: HTMLElement) => parseFloat(target.dataset['x'] || '0'),
-            y: (i: number, target: HTMLElement) => parseFloat(target.dataset['y'] || '0'),
-            scale: 1,
-            opacity: 1
-          },
-          {
-            x: 0,
-            y: 0,
-            scale: 0.2,
-            opacity: 0,
-            ease: "power1.out",
-            scrollTrigger: {
-              trigger: "#orbit-section",
-              start: "top center",
-              end: "bottom center",
-              scrub: true, // Lie directement l'animation au défilement de la page
-              markers: false
-            }
-          }
-        );
-      }
-    }
+    // Sans GSAP (CDN bloqué) ou avec réduction des animations, les outils restent simplement en orbite.
+    if (reducedMotion || typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
+
+    gsap.registerPlugin(ScrollTrigger);
+
+    const host: HTMLElement = this.elRef.nativeElement;
+    const stage = host.querySelector<HTMLElement>('.orbit-stage');
+    const orbitItems = host.querySelectorAll<HTMLElement>('.orbit-tool');
+    if (!stage || orbitItems.length === 0) return;
+
+    const radius = () => parseFloat(getComputedStyle(stage).getPropertyValue('--orbit-r')) || 0;
+
+    // Les outils quittent leur orbite et sont « absorbés » par le logo au fil du scroll.
+    this.scrollTriggerInstance = gsap.fromTo(
+      orbitItems,
+      {
+        x: (_: number, target: HTMLElement) => parseFloat(target.dataset['x'] || '0') * radius(),
+        y: (_: number, target: HTMLElement) => parseFloat(target.dataset['y'] || '0') * radius(),
+        scale: 1,
+        opacity: 1,
+      },
+      {
+        x: 0,
+        y: 0,
+        scale: 0.2,
+        opacity: 0,
+        ease: 'power1.in',
+        stagger: 0.03,
+        scrollTrigger: {
+          trigger: stage,
+          start: 'top 80%',
+          end: 'bottom 30%',
+          scrub: true, // Lie directement l'animation au défilement de la page
+          invalidateOnRefresh: true, // Recalcule le rayon au redimensionnement
+        },
+      },
+    );
   }
 
   ngOnDestroy(): void {
+    document.documentElement.style.removeProperty('scroll-behavior');
+
     // Nettoyage propre du ScrollTrigger pour éviter les fuites de mémoire lors du changement de page
-    if (this.scrollTriggerInstance && this.scrollTriggerInstance.scrollTrigger) {
-      this.scrollTriggerInstance.scrollTrigger.kill();
-    }
+    this.scrollTriggerInstance?.scrollTrigger?.kill();
+    this.scrollTriggerInstance?.kill();
   }
 }

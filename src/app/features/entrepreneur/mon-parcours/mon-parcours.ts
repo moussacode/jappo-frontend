@@ -54,7 +54,7 @@ const STATUTS_A_TRAITER = ['A_FAIRE', 'EN_COURS', 'A_REVOIR'];
     TranslatePipe,
   ],
   template: `
-    <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div class="mx-auto flex w-full max-w-[1400px] min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
 
       @if (chargement()) {
         <app-loading-state message="Chargement de votre parcours..." />
@@ -524,15 +524,14 @@ export class MonParcours implements OnInit {
             error: () => {},
           });
 
-        if (projet.cohorteId) {
-          this.ressourceService
-            .getByCohorte(projet.cohorteId)
-            .pipe(takeUntilDestroyed(this.destroyRef))
-            .subscribe({
-              next: (r) => this.ressources.set(r),
-              error: () => {},
-            });
-        }
+        // Endpoint entrepreneur : ressources filtrées selon son projet (cohorte, parcours, phase, missions).
+        this.ressourceService
+          .getAccessibleForEntrepreneur()
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe({
+            next: (r) => this.ressources.set(r),
+            error: () => {},
+          });
 
       });
   }

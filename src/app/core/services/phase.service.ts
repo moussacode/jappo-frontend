@@ -2,11 +2,12 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { Cohorte, Phase } from '../models/cohorte.model';
+import { Cohorte, Phase, StadeAccompagnement } from '../models/cohorte.model';
 
 export interface CreatePhaseRequest {
   nom: string;
   description?: string;
+  stade?: StadeAccompagnement;
 }
 
 @Injectable({ providedIn: 'root' })

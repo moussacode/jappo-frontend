@@ -40,17 +40,17 @@ const FILTRES_PROJETS: { value: ProjetFilter; label: string }[] = [
     TabFilterComponent
   ],
   template: `
-    <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div class="mx-auto flex w-full max-w-[1400px] min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
       
       <!-- En-tête Page -->
       <app-page-header
-        title="Mes Projets"
+        title="Mes projets"
         [subtitle]="
           loading()
             ? 'Chargement de vos projets en cours...'
             : projets().length + ' projet(s)'
         "
-        breadcrumb="Entrepreneur > Mes Projets"
+        
       />
 
       <!-- Filtre par statut -->

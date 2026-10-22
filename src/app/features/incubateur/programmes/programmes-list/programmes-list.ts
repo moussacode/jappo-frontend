@@ -1,7 +1,7 @@
 import { Component, inject, signal, computed, OnInit, DestroyRef } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DatePipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
@@ -56,14 +56,14 @@ interface ProgrammeStats {
   ],
   host: { '(document:keydown.escape)': 'menuOuvertId.set(null)' },
   template: `
-    <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div class="mx-auto flex w-full max-w-[1400px] min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
 
       <app-page-header
         title="Programmes"
         subtitle="Construisez et suivez la structure d'accompagnement de votre structure."
       >
         @if (isAdmin()) {
-          <app-button size="sm" (click)="ouvrirEditeur(null)">
+          <app-button size="sm" (click)="nouveauProgramme()">
             <app-icon name="plus" class="mr-1.5 size-4" />
             Nouveau programme
           </app-button>
@@ -106,7 +106,7 @@ interface ProgrammeStats {
           [description]="recherche() ? 'Aucun programme ne correspond à votre recherche.' : 'Commencez par créer votre premier programme d\\'accompagnement.'"
         >
           @if (isAdmin() && !recherche()) {
-            <app-button size="sm" (click)="ouvrirEditeur(null)">
+            <app-button size="sm" (click)="nouveauProgramme()">
               <app-icon name="plus" class="mr-1.5 size-4" />
               Créer un programme
             </app-button>
@@ -397,6 +397,12 @@ export class ProgrammesListComponent implements OnInit {
 
   toggleMenu(id: string): void {
     this.menuOuvertId.set(this.menuOuvertId() === id ? null : id);
+  }
+
+  private readonly router = inject(Router);
+
+  nouveauProgramme(): void {
+    void this.router.navigate(['/incubateur/programmes/nouveau']);
   }
 
   ouvrirEditeur(programme: Programme | null): void {

@@ -11,9 +11,9 @@ import { StructureContextService } from '../../../../core/services/structure-con
 import { SuiviProjetService } from '../../../../core/services/suivi-projet.service';
 import { ProgressionService } from '../../../../core/services/progression.service';
 
-import { Projet, ParticipationCohorteResponse, PromouvoirProjetRequest } from '../../../../core/models/projet.model';
+import { Projet, ParticipationCohorteResponse, PromouvoirProjetRequest, CloturerAccompagnementRequest } from '../../../../core/models/projet.model';
 import { Mission } from '../../../../core/models/mission.model';
-import { Cohorte } from '../../../../core/models/cohorte.model';
+import { Cohorte, libelleStade } from '../../../../core/models/cohorte.model';
 import { SuiviProjetDTO } from '../../../../core/models/suivi-projet.model';
 import { FeuilleRouteProjet } from '../../../../core/models/parcours.model';
 
@@ -30,6 +30,12 @@ import { EtapeTimelineComponent } from '../../../../shared/components/etape-time
 import { AvatarComponent } from '../../../../shared/components/avatar/avatar.component';
 import { TabFilterComponent, TabOption } from '../../../../shared/components/tab-filter/tab-filter.component';
 import { FormFieldComponent } from '../../../../shared/components/input/form-field.component';
+
+interface ErreurCloture {
+  message: string;
+  missionsNonValidees: { titre: string; statut: string }[];
+  forcable: boolean;
+}
 
 interface Promotion409 {
   message: string;
@@ -59,7 +65,7 @@ const ANNEAU_CIRCONFERENCE = 2 * Math.PI * ANNEAU_RAYON;
     FormFieldComponent,
   ],
   template: `
-<div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
+<div class="mx-auto flex w-full max-w-[1400px] min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
 
   @if (loading()) {
     <app-loading-state message="Chargement du projet..." />
@@ -75,10 +81,22 @@ const ANNEAU_CIRCONFERENCE = 2 * Math.PI * ANNEAU_RAYON;
         @if (p.archive) {
           <app-badge status="warning" size="sm">Archivé</app-badge>
         }
-        @if (canPromote()) {
+        @if (libelleStade(p.stade); as stade) {
+          <app-badge status="info" size="sm">{{ stade }}</app-badge>
+        }
+        @if (p.statut === 'DIPLOME') {
+          <app-badge status="success" size="sm">Diplômé</app-badge>
+        } @else if (p.statut === 'ABANDONNE') {
+          <app-badge status="danger" size="sm">Abandonné</app-badge>
+        }
+        @if (canPromote() && estActif(p)) {
           <app-button variant="secondary" size="sm" (click)="ouvrirPromotion()">
             <app-icon name="arrow-right" class="mr-1.5 size-4" />
             Promouvoir
+          </app-button>
+          <app-button variant="secondary" size="sm" (click)="ouvrirCloture()">
+            <app-icon name="check" class="mr-1.5 size-4" />
+            Clôturer l'accompagnement
           </app-button>
         }
         @if (!p.archive) {
@@ -424,7 +442,7 @@ const ANNEAU_CIRCONFERENCE = 2 * Math.PI * ANNEAU_RAYON;
                           @if (part.dateSortie) { → {{ part.dateSortie | date:'dd/MM/yyyy' }} }
                         </p>
                         @if (part.motifSortie) {
-                          <p class="text-xs font-medium text-ink">Motif : {{ part.motifSortie }}</p>
+                          <p class="text-xs font-medium text-ink">Motif : {{ libelleMotifSortie(part.motifSortie) }}</p>
                         }
                         @if (part.raison) {
                           <p class="mt-1 rounded-button border border-line bg-surface-muted p-2 text-xs italic text-ink-muted">
@@ -663,6 +681,85 @@ const ANNEAU_CIRCONFERENCE = 2 * Math.PI * ANNEAU_RAYON;
     </div>
   </app-modal>
 }
+
+<!-- Modale de clôture de l'accompagnement -->
+@if (clotureOuverte()) {
+  <app-modal
+    title="Clôturer l'accompagnement"
+    subtitle="Le passage vers la phase suivante se fait par promotion. La clôture marque la fin du parcours ou un abandon."
+    maxWidth="md"
+    (close)="clotureOuverte.set(false)"
+  >
+    <div class="flex flex-col gap-5">
+      <fieldset>
+        <legend class="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-muted">Issue *</legend>
+        <div class="flex flex-col gap-2">
+          @for (option of optionsIssue; track option.value) {
+            <label
+              class="flex cursor-pointer items-start gap-3 rounded-card border p-3 transition-colors focus-within:ring-2 focus-within:ring-accent"
+              [class]="issueCloture() === option.value ? 'border-accent bg-accent-soft' : 'border-line hover:border-line-strong'"
+            >
+              <input type="radio" name="issue-cloture" [value]="option.value" [checked]="issueCloture() === option.value"
+                (change)="choisirIssue(option.value)" class="mt-0.5 size-4 accent-accent" />
+              <span>
+                <span class="block text-sm font-medium text-ink">{{ option.label }}</span>
+                <span class="block text-xs text-ink-muted">{{ option.aide }}</span>
+              </span>
+            </label>
+          }
+        </div>
+      </fieldset>
+
+      <app-form-field [label]="motifObligatoire() ? 'Motif *' : 'Motif'">
+        <textarea
+          [ngModel]="motifCloture()"
+          (ngModelChange)="motifCloture.set($event)"
+          rows="3"
+          [attr.aria-required]="motifObligatoire()"
+          [placeholder]="issueCloture() === 'ABANDONNE' ? 'Ex : le porteur a rejoint un emploi salarié' : 'Ex : premier contrat signé, levée réalisée…'"
+          class="w-full resize-none rounded-input border border-input-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus-visible:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        ></textarea>
+      </app-form-field>
+
+      @if (erreurCloture(); as erreur) {
+        <div role="alert" class="flex flex-col gap-3 rounded-card border border-warning/40 bg-warning/10 p-4">
+          <p class="flex items-start gap-2 text-sm font-semibold text-ink">
+            <app-icon name="alert-circle" class="mt-0.5 size-4 shrink-0 text-warning" />{{ erreur.message }}
+          </p>
+          @if (erreur.missionsNonValidees.length) {
+            <ul class="flex flex-col gap-1">
+              @for (m of erreur.missionsNonValidees; track m.titre) {
+                <li class="flex items-center gap-1.5 text-xs text-ink">
+                  <span class="size-1.5 shrink-0 rounded-pill bg-warning" aria-hidden="true"></span>
+                  {{ m.titre }} — {{ m.statut }}
+                </li>
+              }
+            </ul>
+          }
+          @if (erreur.forcable) {
+            <label class="flex cursor-pointer items-center gap-2">
+              <input type="checkbox" [checked]="forcerCloture()" (change)="forcerCloture.set(!forcerCloture())"
+                class="size-4 rounded border-input-border accent-accent" />
+              <span class="text-sm font-medium text-ink">Diplômer quand même (motif obligatoire)</span>
+            </label>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="mt-6 flex justify-end gap-3 border-t border-line pt-4">
+      <app-button variant="secondary" size="sm" (click)="clotureOuverte.set(false)">Annuler</app-button>
+      <app-button
+        variant="primary"
+        size="sm"
+        [disabled]="clotureEnCours() || (motifObligatoire() && !motifCloture().trim())"
+        (click)="confirmerCloture()"
+      >
+        {{ clotureEnCours() ? 'Clôture...' : (issueCloture() === 'ABANDONNE' ? "Déclarer l'abandon" : 'Diplômer le projet') }}
+      </app-button>
+    </div>
+  </app-modal>
+}
   `,
 })
 export class ProjetDetail implements OnInit {
@@ -756,6 +853,20 @@ export class ProjetDetail implements OnInit {
   forcerPromotion = false;
   readonly promotion409 = signal<Promotion409 | null>(null);
 
+  // Clôture de l'accompagnement
+  readonly clotureOuverte = signal(false);
+  readonly clotureEnCours = signal(false);
+  readonly issueCloture = signal<CloturerAccompagnementRequest['issue']>('DIPLOME');
+  readonly motifCloture = signal('');
+  readonly forcerCloture = signal(false);
+  readonly erreurCloture = signal<ErreurCloture | null>(null);
+  readonly motifObligatoire = computed(() => this.issueCloture() === 'ABANDONNE' || this.forcerCloture());
+  readonly optionsIssue: { value: CloturerAccompagnementRequest['issue']; label: string; aide: string }[] = [
+    { value: 'DIPLOME', label: 'Diplômé', aide: 'Fin du parcours : le projet est dans la dernière phase et ses missions obligatoires sont validées.' },
+    { value: 'ABANDONNE', label: 'Abandon', aide: "Arrêt de l'accompagnement, quelle que soit la phase. Motif obligatoire." },
+  ];
+  readonly libelleStade = libelleStade;
+
   readonly breadcrumbItems = computed<BreadcrumbItem[]>(() => {
     const p = this.projet();
     const items: BreadcrumbItem[] = [{ label: 'Projets', url: '/incubateur/projets' }];
@@ -839,6 +950,61 @@ export class ProjetDetail implements OnInit {
     }
   }
 
+  // --- CLÔTURE DE L'ACCOMPAGNEMENT ---
+
+  estActif(p: Projet): boolean {
+    return !p.archive && (p.statut ?? 'ACTIF') === 'ACTIF';
+  }
+
+  ouvrirCloture(): void {
+    this.issueCloture.set('DIPLOME');
+    this.motifCloture.set('');
+    this.forcerCloture.set(false);
+    this.erreurCloture.set(null);
+    this.clotureOuverte.set(true);
+  }
+
+  choisirIssue(issue: CloturerAccompagnementRequest['issue']): void {
+    this.issueCloture.set(issue);
+    this.forcerCloture.set(false);
+    this.erreurCloture.set(null);
+  }
+
+  confirmerCloture(): void {
+    const p = this.projet(); if (!p) return;
+    const motif = this.motifCloture().trim();
+    if (this.motifObligatoire() && !motif) return;
+    this.clotureEnCours.set(true);
+    const req: CloturerAccompagnementRequest = {
+      issue: this.issueCloture(),
+      motif: motif || undefined,
+      forcer: this.issueCloture() === 'DIPLOME' && this.forcerCloture(),
+    };
+    this.projetService.cloturerAccompagnement(p.id, req).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (updated) => {
+        this.projet.set(updated);
+        this.clotureEnCours.set(false);
+        this.clotureOuverte.set(false);
+        this.projetService.getHistorique(p.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(h => this.historique.set(h));
+        this.suiviProjetService.getSuiviProjet(p.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(s => this.suivi.set(s));
+      },
+      error: (err: HttpErrorResponse) => {
+        this.clotureEnCours.set(false);
+        this.erreurCloture.set({
+          message: err.error?.message ?? 'La clôture a échoué.',
+          missionsNonValidees: err.error?.missionsNonValidees ?? [],
+          // Seul un diplôme bloqué par la phase ou les missions (409) peut être forcé.
+          forcable: err.status === 409 && this.issueCloture() === 'DIPLOME' && !this.forcerCloture(),
+        });
+      },
+    });
+  }
+
+  libelleMotifSortie(motif: string): string {
+    const libelles: Record<string, string> = { PROMU: 'Promu', RETIRE: 'Retiré', TERMINE: 'Parcours terminé' };
+    return libelles[motif] ?? motif;
+  }
+
   // --- PROMOTION / ARCHIVAGE ---
 
   ouvrirPromotion(): void {
@@ -855,7 +1021,7 @@ export class ProjetDetail implements OnInit {
     const req: PromouvoirProjetRequest = { cohorteCibleId: this.cohorteCibleId(), raison: this.raisonPromotion.trim() || undefined, forcer: this.forcerPromotion };
     this.projetService.promouvoir(p.id, req).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: updated => { this.projet.set(updated); this.promotionEnCours.set(false); this.promotionOuverte.set(false); this.projetService.getHistorique(p.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(h => this.historique.set(h)); },
-      error: (err: HttpErrorResponse) => { this.promotionEnCours.set(false); if (err.status === 409) this.promotion409.set(err.error); else alert('Erreur : ' + (err.error?.message ?? err.message)); },
+      error: (err: HttpErrorResponse) => { this.promotionEnCours.set(false); if (err.status === 409 && err.error?.missionsNonValidees) this.promotion409.set(err.error); else alert('Erreur : ' + (err.error?.message ?? err.message)); },
     });
   }
 

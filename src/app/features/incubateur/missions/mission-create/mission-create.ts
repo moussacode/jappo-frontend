@@ -71,7 +71,7 @@ import { ModalComponent } from '../../../../shared/components/modal/modal.compon
             formControlName="description"
             rows="4"
             placeholder="Précisez les attentes, les livrables..."
-            class="w-full rounded-xl border border-line bg-surface p-4 text-xs sm:text-sm text-ink placeholder:text-ink-muted/50 focus:border-accent focus:outline-none transition-colors resize-y leading-relaxed shadow-2xs"
+            class="w-full rounded-xl border border-line bg-surface p-4 text-xs sm:text-sm text-ink placeholder:text-ink-muted/50 focus:border-accent focus:outline-none transition-colors resize-y leading-relaxed"
           ></textarea>
 
           @if (isFieldInvalid('description')) {
@@ -124,7 +124,7 @@ import { ModalComponent } from '../../../../shared/components/modal/modal.compon
               class="flex items-center gap-3 rounded-xl border p-3 cursor-pointer transition-all"
               [class]="
                 missionForm.get('cibleType')?.value === 'cohorte'
-                  ? 'border-accent bg-accent-soft/10 text-ink shadow-2xs'
+                  ? 'border-accent bg-accent-soft/10 text-ink'
                   : 'border-line bg-surface text-ink-muted'
               "
             >
@@ -144,7 +144,7 @@ import { ModalComponent } from '../../../../shared/components/modal/modal.compon
               class="flex items-center gap-3 rounded-xl border p-3 cursor-pointer transition-all"
               [class]="
                 missionForm.get('cibleType')?.value === 'projet'
-                  ? 'border-accent bg-accent-soft/10 text-ink shadow-2xs'
+                  ? 'border-accent bg-accent-soft/10 text-ink'
                   : 'border-line bg-surface text-ink-muted'
               "
             >

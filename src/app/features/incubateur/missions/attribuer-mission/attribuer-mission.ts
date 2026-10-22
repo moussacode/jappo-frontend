@@ -37,7 +37,7 @@ interface CohorteAvecCompte extends Cohorte {
       <form
         [formGroup]="form"
         (ngSubmit)="attribuer()"
-        class="flex max-w-[520px] flex-col gap-4 rounded-[var(--radius-card)] border border-line bg-surface p-6 shadow-[var(--shadow-subtle)]"
+        class="flex max-w-[520px] flex-col gap-4 rounded-[var(--radius-card)] border border-line bg-surface p-6"
       >
         <!-- Titre -->
         <div class="flex flex-col gap-1.5">

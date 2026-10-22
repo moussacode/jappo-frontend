@@ -36,7 +36,7 @@ type Onglet = 'progression' | 'documents' | 'missions';
     ParcoursProgressComponent,
   ],
   template: `
-    <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div class="mx-auto flex w-full max-w-[1400px] min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
       
       <!-- Bouton Retour -->
       <div class="flex items-center justify-between">
@@ -68,7 +68,7 @@ type Onglet = 'progression' | 'documents' | 'missions';
           
           <div class="flex flex-col gap-6">
             <!-- Carte d'en-tête d'attente -->
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-line bg-surface p-6 shadow-xs">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-line bg-surface p-6">
               <div class="flex items-center gap-4 min-w-0">
                 <div class="flex size-14 shrink-0 items-center justify-center rounded-full border border-warning-500/30 bg-warning-500/10 text-lg font-bold text-warning-700">
                   {{ initiales(e) }}
@@ -113,7 +113,7 @@ type Onglet = 'progression' | 'documents' | 'missions';
                   type="button"
                   (click)="relancerDirectement(e)"
                   [disabled]="relanceEnCours()"
-                  class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-action-fill px-4 py-2.5 text-xs font-semibold text-white shadow-xs transition-all hover:opacity-90 disabled:opacity-50"
+                  class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-action-fill px-4 py-2.5 text-xs font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
                 >
                   <app-icon name="plus" class="size-4" />
                   <span>{{ relanceEnCours() ? 'Envoi en cours...' : 'Relancer l\\'invitation' }}</span>
@@ -122,7 +122,7 @@ type Onglet = 'progression' | 'documents' | 'missions';
             </div>
 
             <!-- Bloc d'information d'attente -->
-            <div class="flex flex-col items-center justify-center rounded-2xl border border-dashed border-line bg-surface p-12 text-center shadow-xs">
+            <div class="flex flex-col items-center justify-center rounded-2xl border border-dashed border-line bg-surface p-12 text-center">
               <div class="flex size-12 items-center justify-center rounded-full bg-warning-500/10 text-warning-600 mb-3 border border-warning-500/20">
                 <app-icon name="warning" class="size-6" />
               </div>
@@ -140,7 +140,7 @@ type Onglet = 'progression' | 'documents' | 'missions';
           <!-- CAS 2 : ENTREPRENEUR ACTIF (VUE COMPLÈTE) -->
           
           <!-- En-tête Profil -->
-          <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-line bg-surface p-6 shadow-xs">
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-line bg-surface p-6">
             <div class="flex items-center gap-4 min-w-0">
               <div class="flex size-14 shrink-0 items-center justify-center rounded-full border border-accent/20 bg-accent-soft text-lg font-bold text-accent">
                 {{ initiales(e) }}
@@ -183,7 +183,7 @@ type Onglet = 'progression' | 'documents' | 'missions';
               <button
                 type="button"
                 (click)="ouvrirModalNouveauProjet()"
-                class="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-xs font-semibold text-white hover:bg-accent/90 shadow-xs transition-colors cursor-pointer"
+                class="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-xs font-semibold text-white hover:bg-accent/90 transition-colors cursor-pointer"
               >
                 <app-icon name="plus" class="size-3.5" />
                 <span>{{ projet() ? 'Nouveau projet' : '+ Créer un projet' }}</span>
@@ -193,7 +193,7 @@ type Onglet = 'progression' | 'documents' | 'missions';
 
           <!-- KPIS Synthétiques -->
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div class="rounded-2xl border border-line bg-surface p-5 shadow-xs flex flex-col justify-between gap-3">
+            <div class="rounded-2xl border border-line bg-surface p-5 flex flex-col justify-between gap-3">
               <div class="flex items-center justify-between">
                 <span class="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Projet Principal</span>
                 @if (!projet()) {
@@ -217,14 +217,14 @@ type Onglet = 'progression' | 'documents' | 'missions';
               </div>
             </div>
 
-            <div class="rounded-2xl border border-line bg-surface p-5 shadow-xs flex flex-col justify-between gap-3">
+            <div class="rounded-2xl border border-line bg-surface p-5 flex flex-col justify-between gap-3">
               <span class="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Cohorte</span>
               <span class="text-sm font-bold text-ink truncate">
                 {{ projet()?.nomCohorte || e.nomCohorte || 'Non assigné' }}
               </span>
             </div>
 
-            <div class="rounded-2xl border border-line bg-surface p-5 shadow-xs flex flex-col justify-between gap-3">
+            <div class="rounded-2xl border border-line bg-surface p-5 flex flex-col justify-between gap-3">
               <span class="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Maturité du projet</span>
               <div class="flex items-center gap-3">
                 <span class="text-xl font-bold text-accent">{{ projet()?.scoreMaturite || 0 }}%</span>
@@ -309,7 +309,7 @@ type Onglet = 'progression' | 'documents' | 'missions';
                   <button
                     type="button"
                     (click)="ouvrirModalNouveauProjet()"
-                    class="mt-2 inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-xs font-semibold text-white hover:bg-accent/90 shadow-xs transition-colors cursor-pointer"
+                    class="mt-2 inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-xs font-semibold text-white hover:bg-accent/90 transition-colors cursor-pointer"
                   >
                     <app-icon name="plus" class="size-3.5" />
                     <span>+ Créer un projet</span>
@@ -320,7 +320,7 @@ type Onglet = 'progression' | 'documents' | 'missions';
           }
 
           @if (ongletActif() === 'documents') {
-            <div class="w-full min-w-0 overflow-hidden rounded-2xl border border-line bg-surface shadow-xs">
+            <div class="w-full min-w-0 overflow-hidden rounded-2xl border border-line bg-surface">
               <div class="px-6 py-4 border-b border-line bg-surface-muted/30 flex items-center justify-between">
                 <h2 class="text-sm font-bold text-ink">Documents & Livrables</h2>
                 <span class="text-xs text-ink-muted">{{ livrables().length }} fichier(s)</span>
@@ -339,7 +339,7 @@ type Onglet = 'progression' | 'documents' | 'missions';
           }
 
           @if (ongletActif() === 'missions') {
-            <div class="w-full min-w-0 overflow-hidden rounded-2xl border border-line bg-surface shadow-xs">
+            <div class="w-full min-w-0 overflow-hidden rounded-2xl border border-line bg-surface">
               <div class="px-6 py-4 border-b border-line bg-surface-muted/30 flex items-center justify-between gap-3 flex-wrap">
                 <div class="flex items-center gap-2">
                   <h2 class="text-sm font-bold text-ink">Missions assignées</h2>

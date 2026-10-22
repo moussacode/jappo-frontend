@@ -32,7 +32,7 @@ import { Icon } from '../../../../shared/components/icon/icon';
       <app-page-header
         title="Modifier mon projet"
         [subtitle]="loading() ? 'Chargement...' : (projet()?.nom || '')"
-        breadcrumb="Entrepreneur > Mes Projets > Modifier"
+        breadcrumb="Entrepreneur > Mes projets > Modifier"
       />
 
       <!-- SKELETON LOADER -->
@@ -58,7 +58,7 @@ import { Icon } from '../../../../shared/components/icon/icon';
         </div>
       } @else {
         <!-- FORMULAIRE -->
-        <app-card padding="lg" class="border border-line/60 shadow-xs">
+        <app-card padding="lg" class="border border-line/60">
           <form (ngSubmit)="saveProjet()" class="space-y-6">
 
             <!-- Nom du projet -->

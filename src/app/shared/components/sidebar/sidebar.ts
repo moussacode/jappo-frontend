@@ -4,6 +4,7 @@ import {
   input,
   output,
   signal,
+  computed,
   inject,
   ElementRef,
   HostListener,
@@ -37,9 +38,7 @@ import {
   ParametresModal,
 } from '../parametres-modal/parametres-modal';
 
-import {
-  NotificationBellComponent,
-} from '../notification-bell/notification-bell.component';
+import { CommandPaletteService } from '../command-palette/command-palette.service';
 
 import {
   TranslatePipe,
@@ -56,6 +55,10 @@ export interface NavItem {
   path?: string;
   icon: IconName;
   children?: SubNavItem[];
+  /** Titre de section : les entrées consécutives partageant un groupe sont regroupées. */
+  group?: string;
+  /** Pastille de compteur affichée à droite du libellé. */
+  badge?: string | number;
 }
 
 
@@ -68,637 +71,291 @@ export interface NavItem {
     RouterLinkActive,
     Icon,
     ParametresModal,
-    NotificationBellComponent,
     TranslatePipe,
   ],
 
   changeDetection: ChangeDetectionStrategy.OnPush,
 
   template: `
-    <!-- Bouton burger (mobile uniquement, visible quand le tiroir est fermé) -->
-    @if (!mobileOpen()) {
-      <button
-        type="button"
-        (click)="openMobile()"
-        class="fixed left-4 top-4 z-50 flex size-10 items-center justify-center rounded-xl border border-line bg-surface text-ink shadow-sm md:hidden"
-        [attr.aria-label]="'sidebar.ouvrir' | translate"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="size-5">
-          <line x1="4" y1="7" x2="20" y2="7" />
-          <line x1="4" y1="12" x2="20" y2="12" />
-          <line x1="4" y1="17" x2="20" y2="17" />
-        </svg>
-      </button>
-    }
-
     <!-- Fond semi-transparent (mobile uniquement, quand le tiroir est ouvert) -->
     @if (mobileOpen()) {
-      <div
-        class="fixed inset-0 z-30 bg-black/40 md:hidden"
-        (click)="closeMobile()"
-      ></div>
+      <div class="fixed inset-0 z-30 bg-black/40 backdrop-blur-[2px] md:hidden" (click)="closeMobile()"></div>
     }
 
     <aside
-      class="fixed inset-y-0 left-0 z-40 flex h-dvh w-[260px] shrink-0 flex-col bg-surface p-3 shadow-2xl transition-transform duration-300 ease-in-out select-none overflow-visible sm:p-4 md:static md:inset-auto md:z-auto md:h-full md:min-h-0 md:translate-x-0 md:shadow-none"
+      class="lg-surface fixed inset-y-0 left-0 z-40 flex h-dvh w-[272px] shrink-0 flex-col border-y-0 border-l-0 p-3 transition-[transform,width] duration-300 ease-out select-none md:relative md:z-30 md:h-full md:min-h-0 md:translate-x-0"
       [class.translate-x-0]="mobileOpen()"
       [class.-translate-x-full]="!mobileOpen()"
-      [class.md:w-[260px]]="!collapsed()"
-      [class.md:w-[80px]]="collapsed()"
+      [class.md:w-[272px]]="!collapsed()"
+      [class.md:w-[76px]]="collapsed()"
+      aria-label="Navigation principale"
     >
 
-      <!-- Bouton fermer (mobile uniquement) -->
-      <div class="mb-2 flex justify-end md:hidden">
-        <button
-          type="button"
-          (click)="closeMobile()"
-          class="flex size-8 items-center justify-center rounded-lg text-ink-muted hover:bg-surface-muted hover:text-ink"
-          [attr.aria-label]="'sidebar.reduire' | translate"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="size-4">
-            <line x1="6" y1="6" x2="18" y2="18" />
-            <line x1="6" y1="18" x2="18" y2="6" />
-          </svg>
-        </button>
-      </div>
-
-      <!-- Bouton Toggle Sidebar (desktop uniquement) -->
+      <!-- Réduire / déplier (desktop) -->
       <button
         type="button"
         (click)="toggleCollapsed()"
-        class="absolute -right-4 top-6 z-50 hidden h-7 w-7 items-center justify-center rounded-full border border-line bg-surface text-ink-muted shadow-sm transition-all hover:bg-surface-muted hover:text-ink cursor-pointer md:flex"
-        [attr.aria-label]="
-          collapsed()
-            ? ('sidebar.ouvrir' | translate)
-            : ('sidebar.reduire' | translate)
-        "
+        class="absolute -right-3 top-7 z-50 hidden size-6 items-center justify-center rounded-full border border-line bg-surface text-ink-muted transition-colors hover:text-ink md:flex"
+        [attr.aria-label]="collapsed() ? ('sidebar.ouvrir' | translate) : ('sidebar.reduire' | translate)"
       >
-        <app-icon
-          name="sidebar-left"
-          class="size-3.5 transition-transform duration-200"
-          [class.rotate-180]="collapsed()"
-        />
+        <app-icon name="chevron-left" class="size-3.5 transition-transform duration-200" [class.rotate-180]="collapsed()" />
       </button>
 
+      <!-- Fermer (mobile) -->
+      <button
+        type="button"
+        (click)="closeMobile()"
+        class="absolute right-3 top-4 flex size-8 items-center justify-center rounded-lg text-ink-muted hover:bg-surface-muted md:hidden"
+        [attr.aria-label]="'sidebar.reduire' | translate"
+      >
+        <app-icon name="x" class="size-4" />
+      </button>
 
-      <!-- Sélecteur de Structure Multi-Tenant -->
-      <div class="relative mb-4 sm:mb-6 shrink-0">
-
+      <!-- Sélecteur d'espace de travail (multi-structure) -->
+      <div class="relative mb-3 shrink-0">
         @if (activeMembership(); as active) {
-
           <button
             type="button"
             (click)="toggleStructureMenu()"
-            class="flex w-full items-center gap-2.5 rounded-xl border border-line bg-surface p-2 text-left transition-all hover:bg-surface-muted hover:border-line-strong focus:outline-none focus:ring-2 focus:ring-accent/20 cursor-pointer"
+            class="group flex w-full items-center gap-3 rounded-xl p-2 text-left transition-colors hover:bg-surface-muted/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
             [class.justify-center]="collapsed()"
             [title]="collapsed() ? active.structure.nom : ''"
             aria-haspopup="true"
             [attr.aria-expanded]="isStructureMenuOpen()"
           >
-
-            <div
-              class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-xs font-bold text-accent-strong uppercase shadow-xs"
-            >
+            <div class="flex size-9 shrink-0 items-center justify-center rounded-[10px] border border-line bg-surface text-sm font-semibold text-ink uppercase ring-1 ring-white/20">
               {{ getStructureInitial(active.structure.nom) }}
             </div>
-
             @if (!collapsed()) {
-
-              <div class="flex flex-1 flex-col min-w-0">
-
-                <span
-                  class="truncate text-xs font-semibold text-ink leading-tight"
-                >
-                  {{ active.structure.nom }}
-                </span>
-
-                <span
-                  class="truncate text-[10px] text-ink-muted leading-tight mt-0.5"
-                >
+              <div class="flex min-w-0 flex-1 flex-col">
+                <span class="truncate text-[13px] font-semibold leading-tight text-ink">{{ active.structure.nom }}</span>
+                <span class="mt-0.5 truncate text-[11px] leading-tight text-ink-muted">
                   {{ getRoleTranslationKey(active.role) | translate }}
+                  @if (planEffectif(); as plan) { · {{ plan.libelle }} }
                 </span>
-
               </div>
-
-              <app-icon
-                name="chevrons-up-down"
-                class="size-3.5 shrink-0 text-ink-muted transition-transform duration-200"
-                [class.rotate-180]="isStructureMenuOpen()"
-              />
+              <app-icon name="chevrons-up-down" class="size-3.5 shrink-0 text-ink-faint group-hover:text-ink-muted" />
             }
-
           </button>
 
-
           @if (isStructureMenuOpen()) {
-
             <div
-              class="absolute z-50 flex flex-col rounded-xl border border-line bg-surface p-1.5 shadow-lg animate-in fade-in zoom-in-95 duration-150"
+              class="lg-surface-strong lg-pop absolute z-50 flex flex-col rounded-xl p-1.5"
               [class.left-0]="!collapsed()"
               [class.right-0]="!collapsed()"
               [class.top-[calc(100%+6px)]]="!collapsed()"
               [class.left-[calc(100%+12px)]]="collapsed()"
               [class.top-0]="collapsed()"
-              [class.w-60]="collapsed()"
+              [class.w-64]="collapsed()"
             >
-
-              <div
-                class="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted"
-              >
-                {{
-                  'sidebar.espacesDeTravail'
-                    | translate:{ count: memberships().length }
-                }}
+              <div class="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
+                {{ 'sidebar.espacesDeTravail' | translate:{ count: memberships().length } }}
               </div>
-
-              <div
-                class="flex flex-col gap-0.5 max-h-56 overflow-y-auto custom-scrollbar"
-              >
-
+              <div class="flex max-h-56 flex-col gap-0.5 overflow-y-auto">
                 @for (m of memberships(); track m.structure.id) {
-
                   <button
                     type="button"
                     (click)="switchStructure(m)"
-                    class="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-xs transition-colors cursor-pointer"
-                    [class]="
-                      m.structure.id === active.structure.id
-                        ? 'bg-surface-muted text-ink font-semibold'
-                        : 'text-ink-muted hover:bg-surface-muted/60 hover:text-ink'
-                    "
+                    class="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-xs transition-colors"
+                    [class]="m.structure.id === active.structure.id ? 'bg-accent-soft font-semibold text-ink' : 'text-ink-muted hover:bg-surface-muted hover:text-ink'"
                   >
-
-                    <div
-                      class="flex size-6 shrink-0 items-center justify-center rounded-md bg-accent-soft text-[10px] font-bold text-accent-strong uppercase"
-                    >
+                    <div class="flex size-6 shrink-0 items-center justify-center rounded-md bg-accent-soft text-[10px] font-bold text-accent-strong uppercase">
                       {{ getStructureInitial(m.structure.nom) }}
                     </div>
-
-                    <div class="flex flex-1 flex-col min-w-0">
-
-                      <span class="truncate text-xs leading-tight">
-                        {{ m.structure.nom }}
-                      </span>
-
-                      <span
-                        class="truncate text-[10px] text-ink-muted leading-tight"
-                      >
-                        {{ getRoleTranslationKey(m.role) | translate }}
-                      </span>
-
+                    <div class="flex min-w-0 flex-1 flex-col">
+                      <span class="truncate leading-tight">{{ m.structure.nom }}</span>
+                      <span class="truncate text-[10px] leading-tight text-ink-muted">{{ getRoleTranslationKey(m.role) | translate }}</span>
                     </div>
-
                     @if (m.structure.id === active.structure.id) {
-
-                      <app-icon
-                        name="check"
-                        class="size-3.5 shrink-0 text-accent-strong"
-                      />
-
+                      <app-icon name="check" class="size-3.5 shrink-0 text-accent" />
                     }
-
                   </button>
-
                 }
-
               </div>
-
             </div>
-
           }
-
+        } @else {
+          <div class="flex items-center gap-3 p-2" [class.justify-center]="collapsed()">
+            <div class="flex size-9 shrink-0 items-center justify-center rounded-[10px] border border-line bg-surface text-sm font-semibold text-ink">J</div>
+            @if (!collapsed()) { <span class="text-sm font-bold tracking-tight text-ink">JAPPO</span> }
+          </div>
         }
-
       </div>
 
-
-      <!-- Navigation -->
-      <div
-        class="custom-scrollbar flex flex-1 flex-col overflow-y-auto pr-0.5"
+      <!-- Recherche globale (⌘K) -->
+      <button
+        type="button"
+        (click)="openPalette()"
+        class="mb-4 flex h-9 shrink-0 items-center gap-2.5 rounded-xl border border-line bg-surface/50 px-2.5 text-[13px] text-ink-faint transition-colors hover:border-line-strong hover:text-ink-muted"
+        [class.justify-center]="collapsed()"
+        title="Rechercher"
       >
+        <app-icon name="search" class="size-4 shrink-0" />
+        @if (!collapsed()) {
+          <span class="flex-1 text-left">Rechercher</span>
+          <span class="kbd">{{ raccourci }}</span>
+        }
+      </button>
 
-        <span
-          class="block mb-2 text-[10px] font-semibold uppercase tracking-wider text-ink-muted transition-all"
-          [class.px-3]="!collapsed()"
-          [class.text-center]="collapsed()"
-        >
-          {{ 'sidebar.menu' | translate }}
-        </span>
+      <!-- Navigation groupée -->
+      <nav class="-mr-1 flex flex-1 flex-col gap-5 overflow-y-auto pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        @for (groupe of groupes(); track $index) {
+          <div class="flex flex-col gap-0.5">
+            @if (groupe.titre && !collapsed()) {
+              <span class="mb-1 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">{{ groupe.titre }}</span>
+            } @else if (groupe.titre) {
+              <span class="mx-auto mb-1 h-px w-6 bg-line"></span>
+            }
 
-
-        <nav class="flex flex-col gap-1">
-
-          @for (item of navItems(); track item.label) {
-
-            <div class="relative">
-
-              <!-- Navigation simple -->
+            @for (item of groupe.items; track item.label) {
               @if (!item.children || item.children.length === 0) {
-
                 <a
                   [routerLink]="item.path"
                   routerLinkActive
                   #rla="routerLinkActive"
                   (click)="onNavItemClick()"
-                  class="flex  h-10 items-center rounded-xl px-3 text-xs font-medium transition-colors"
-                  [class]="
-                    rla.isActive
-                      ? 'bg-surface-muted text-ink glass-button font-semibold shadow-xs'
-                      : 'text-ink-muted hover:bg-surface-muted/60  hover:text-ink'
-                  "
+                  class="group relative flex h-9 items-center gap-3 rounded-[10px] px-2.5 text-[13px] transition-colors"
+                  [class]="estActif(item.path, rla.isActive)
+                    ? 'bg-surface font-semibold text-ink shadow-[inset_0_0_0_1px_var(--color-line)]'
+                    : 'font-medium text-ink-muted hover:bg-surface-muted/70 hover:text-ink'"
                   [class.justify-center]="collapsed()"
                   [class.px-0]="collapsed()"
-                  [title]="
-                    collapsed()
-                      ? getNavLabel(item.label)
-                      : ''
-                  "
+                  [attr.aria-current]="estActif(item.path, rla.isActive) ? 'page' : null"
+                  [title]="collapsed() ? getNavLabel(item.label) : ''"
                 >
-
+                  @if (estActif(item.path, rla.isActive)) {
+                    <span class="absolute -left-3 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-accent"></span>
+                  }
                   <app-icon
                     [name]="item.icon"
-                    class="size-4 shrink-0"
+                    class="size-4 shrink-0 transition-colors"
+                    [class]="estActif(item.path, rla.isActive) ? 'text-accent' : 'text-ink-faint group-hover:text-ink-muted'"
                   />
-
                   @if (!collapsed()) {
-
-                    <span class="ml-3 truncate">
-                      {{ item.label | translate }}
-                    </span>
-
+                    <span class="flex-1 truncate">{{ item.label | translate }}</span>
+                    @if (item.badge) {
+                      <span class="flex h-5 min-w-5 items-center justify-center rounded-full bg-accent-soft px-1.5 text-[10px] font-semibold text-accent-strong">{{ item.badge }}</span>
+                    }
                   }
-
                 </a>
-
-              }
-
-
-              <!-- Navigation avec sous-menu -->
-              @else {
-
+              } @else {
                 <button
                   type="button"
                   (click)="toggleSubmenu(item.label)"
-                  class="flex h-10 w-full items-center justify-between rounded-xl px-3 text-xs font-medium text-ink-muted hover:bg-surface-muted/60 hover:text-ink transition-colors cursor-pointer"
-                  [class.bg-surface-muted]="
-                    isSubmenuOpen(item.label) && !collapsed()
-                  "
-                  [class.!text-ink]="
-                    isSubmenuOpen(item.label) && !collapsed()
-                  "
+                  class="group flex h-9 w-full items-center gap-3 rounded-[10px] px-2.5 text-[13px] font-medium text-ink-muted transition-colors hover:bg-surface-muted/70 hover:text-ink"
                   [class.justify-center]="collapsed()"
                   [class.px-0]="collapsed()"
-                  [title]="
-                    collapsed()
-                      ? getNavLabel(item.label)
-                      : ''
-                  "
+                  [attr.aria-expanded]="isSubmenuOpen(item.label)"
+                  [title]="collapsed() ? getNavLabel(item.label) : ''"
                 >
-
-                  <div class="flex items-center min-w-0">
-
-                    <app-icon
-                      [name]="item.icon"
-                      class="size-4 shrink-0"
-                    />
-
-                    @if (!collapsed()) {
-
-                      <span class="ml-3 truncate">
-                        {{ item.label | translate }}
-                      </span>
-
-                    }
-
-                  </div>
-
-
+                  <app-icon [name]="item.icon" class="size-4 shrink-0 text-ink-faint group-hover:text-ink-muted" />
                   @if (!collapsed()) {
-
-                    <app-icon
-                      name="chevrons-up-down"
-                      class="size-3.5 shrink-0 text-ink-muted transition-transform duration-200"
-                      [class.rotate-180]="
-                        isSubmenuOpen(item.label)
-                      "
-                    />
-
+                    <span class="flex-1 truncate text-left">{{ item.label | translate }}</span>
+                    <app-icon name="chevron-right" class="size-3.5 text-ink-faint transition-transform duration-200" [class.rotate-90]="isSubmenuOpen(item.label)" />
                   }
-
                 </button>
 
-
-                <!-- Sous-menu ouvert -->
-                @if (
-                  isSubmenuOpen(item.label) &&
-                  !collapsed()
-                ) {
-
-                  <div
-                    class="relative ml-5 my-1 flex flex-col gap-0.5 pl-3 border-l border-line"
-                  >
-
-                    @for (
-                      child of item.children;
-                      track child.path
-                    ) {
-
+                @if (isSubmenuOpen(item.label) && !collapsed()) {
+                  <div class="relative my-0.5 ml-[18px] flex flex-col gap-0.5 border-l border-line pl-3">
+                    @for (child of item.children; track child.path) {
                       <a
                         [routerLink]="child.path"
                         routerLinkActive
                         #childRla="routerLinkActive"
                         (click)="onNavItemClick()"
-                        class="flex h-8 items-center rounded-lg px-2.5 text-xs font-medium transition-colors"
-                        [class]="
-                          childRla.isActive
-                            ? 'bg-surface-muted text-ink font-semibold'
-                            : 'text-ink-muted hover:bg-surface-muted/60 hover:text-ink'
-                        "
-                      >
-                        {{ child.label | translate }}
-                      </a>
-
+                        class="flex h-8 items-center rounded-lg px-2.5 text-xs transition-colors"
+                        [class]="estActif(child.path, childRla.isActive) ? 'bg-surface font-semibold text-ink' : 'font-medium text-ink-muted hover:bg-surface-muted/70 hover:text-ink'"
+                      >{{ child.label | translate }}</a>
                     }
-
                   </div>
-
                 }
 
-
-                <!-- Sous-menu en mode réduit -->
-                @if (
-                  isSubmenuOpen(item.label) &&
-                  collapsed()
-                ) {
-
-                  <div
-                    class="absolute left-[calc(100%+12px)] top-0 z-50 w-48 rounded-xl border border-line bg-surface p-1.5 shadow-lg animate-in fade-in zoom-in-95 duration-150"
-                  >
-
-                    <div
-                      class="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-ink-muted"
-                    >
-                      {{ item.label | translate }}
-                    </div>
-
-
-                    <div class="mt-1 flex flex-col gap-0.5">
-
-                      @for (
-                        child of item.children;
-                        track child.path
-                      ) {
-
-                        <a
-                          [routerLink]="child.path"
-                          routerLinkActive
-                          #popoverRla="routerLinkActive"
-                          (click)="onNavItemClick()"
-                          class="flex h-8 items-center rounded-lg px-2 text-xs font-medium transition-colors"
-                          [class]="
-                            popoverRla.isActive
-                              ? 'bg-surface-muted text-ink font-semibold'
-                              : 'text-ink-muted hover:bg-surface-muted/60 hover:text-ink'
-                          "
-                        >
-                          {{ child.label | translate }}
-                        </a>
-
-                      }
-
-                    </div>
-
+                @if (isSubmenuOpen(item.label) && collapsed()) {
+                  <div class="lg-surface-strong lg-pop absolute left-[calc(100%+12px)] z-50 w-52 rounded-xl p-1.5">
+                    <div class="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">{{ item.label | translate }}</div>
+                    @for (child of item.children; track child.path) {
+                      <a
+                        [routerLink]="child.path"
+                        (click)="onNavItemClick()"
+                        class="flex h-8 items-center rounded-lg px-2 text-xs font-medium text-ink-muted hover:bg-surface-muted hover:text-ink"
+                      >{{ child.label | translate }}</a>
+                    }
                   </div>
-
                 }
-
               }
-
-            </div>
-
-          }
-
-        </nav>
-
-      </div>
-
-
-      <!-- Bloc Utilisateur -->
-      <div
-        class="relative mt-2 sm:mt-3 shrink-0 border-t border-line pt-2 sm:pt-3"
-      >
-
-        @if (currentUser(); as user) {
-
-          <div
-            class="flex items-center gap-2"
-            [class.justify-center]="collapsed()"
-          >
-
-            <!-- Bouton Profil -->
-            <button
-              type="button"
-              (click)="toggleProfileMenu()"
-              class="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-line bg-surface p-2 transition-all hover:bg-surface-muted cursor-pointer"
-              [class.flex-none]="collapsed()"
-              [class.justify-center]="collapsed()"
-            >
-
-              <div
-                class="relative flex size-8 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-bold text-accent-strong uppercase"
-              >
-
-                {{ getUserInitial(user.prenom, user.nom) }}
-
-                <span
-                  class="absolute -bottom-0.5 -right-0.5 size-2 rounded-full bg-emerald-500 ring-2 ring-surface"
-                ></span>
-
-              </div>
-
-
-              @if (!collapsed()) {
-
-                <div
-                  class="flex flex-1 flex-col min-w-0 text-left"
-                >
-
-                  <span
-                    class="truncate text-xs font-semibold text-ink leading-tight"
-                  >
-                    {{ user.prenom }} {{ user.nom }}
-                  </span>
-
-                  <span
-                    class="truncate text-[10px] text-ink-muted leading-tight mt-0.5"
-                  >
-                    {{ user.email }}
-                  </span>
-
-                </div>
-
-
-                <app-icon
-                  name="chevrons-up-down"
-                  class="size-3.5 text-ink-muted"
-                />
-
-              }
-
-            </button>
-
-
-            <!-- Notifications -->
-            @if (!collapsed()) {
-
-              <app-notification-bell />
-
             }
-
           </div>
-
-
-          @if (collapsed()) {
-
-            <div class="mt-2 flex justify-center">
-              <app-notification-bell />
-            </div>
-
-          }
-
-
-          <!-- Menu Dropdown Profil -->
-          @if (isProfileMenuOpen()) {
-
-            <div
-              class="glass-modal  absolute bottom-[calc(100%+8px)] left-0 z-50 flex w-60 flex-col rounded-xl border border-line bg-surface p-1.5 shadow-xl animate-in fade-in zoom-in-95 duration-150"
-            >
-
-              <div
-                class="px-2 py-1.5 border-b border-line mb-1"
-              >
-                <p
-                  class="text-xs font-medium text-ink truncate"
-                >
-                  {{ user.email }}
-                </p>
-              </div>
-
-
-              <!-- Paramètres & Aide -->
-              @if (!isSuperAdmin()) {
-
-                <button
-                  type="button"
-                  (click)="openSettings()"
-                  class="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-xs font-medium text-ink hover:bg-surface-muted transition-colors cursor-pointer"
-                >
-
-                  <app-icon
-                    name="settings"
-                    class="size-4 text-ink-muted"
-                  />
-
-                  <span>
-                    {{ 'commun.parametres' | translate }}
-                  </span>
-
-                </button>
-
-
-                <button
-                  type="button"
-                  (click)="openAssistance()"
-                  class="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-xs font-medium text-ink hover:bg-surface-muted transition-colors cursor-pointer"
-                >
-                  <span>
-                    {{ 'sidebar.aide' | translate }}
-                  </span>
-                </button>
-
-              }
-
-
-              <!-- Offre de la structure (plan configuré par le SUPER_ADMIN) -->
-              @if (!isSuperAdmin() && planEffectif(); as plan) {
-
-                <div
-                  class="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-xs font-medium text-ink-muted"
-                >
-
-                  <app-icon
-                    name="sparkles"
-                    class="size-4"
-                  />
-
-                  <span class="flex-1 truncate">
-                    {{ 'sidebar.offre' | translate }} {{ plan.libelle }}
-                  </span>
-
-                </div>
-
-                @if (activeRole() === 'ADMIN_STRUCTURE') {
-
-                  <button
-                    type="button"
-                    (click)="openUpgrade()"
-                    class="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-xs font-medium text-accent hover:bg-surface-muted transition-colors cursor-pointer"
-                  >
-
-                    <app-icon
-                      name="arrow-up-circle"
-                      class="size-4"
-                    />
-
-                    <span>
-                      {{ 'sidebar.changerOffre' | translate }}
-                    </span>
-
-                  </button>
-
-                }
-
-              }
-
-
-              <!-- Déconnexion -->
-              <button
-                type="button"
-                (click)="logout()"
-                class="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-xs font-medium text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer mt-1"
-              >
-
-                <app-icon
-                  name="logout"
-                  class="size-4"
-                />
-
-                <span>
-                  {{ 'commun.seDeconnecter' | translate }}
-                </span>
-
-              </button>
-
-            </div>
-
-          }
-
         }
+      </nav>
 
-      </div>
-
-
-      
-
-    </aside>
-    <!-- Modal Paramètres -->
-      @if (isSettingsOpen()) {
-
-        <app-parametres-modal
-          (close)="isSettingsOpen.set(false)"
-        />
-
+      <!-- Offre (admin de structure) -->
+      @if (!collapsed() && !isSuperAdmin() && activeRole() === 'ADMIN_STRUCTURE' && planEffectif(); as plan) {
+        <button
+          type="button"
+          (click)="openUpgrade()"
+          class=" relative mt-3 shrink-0 overflow-hidden rounded-xl border border-line bg-surface p-3 text-left transition-colors hover:border-accent/40"
+        >
+          <span class="flex items-center gap-2 text-xs font-semibold text-ink">
+            <app-icon name="sparkles" class="size-4 text-accent" />
+            {{ 'sidebar.offre' | translate }} {{ plan.libelle }}
+          </span>
+          <span class="mt-1 block text-[11px] font-medium text-accent">{{ 'sidebar.changerOffre' | translate }} →</span>
+        </button>
       }
+
+      <!-- Bloc utilisateur -->
+      <div class="relative mt-3 shrink-0 border-t border-line pt-3">
+        @if (currentUser(); as user) {
+          <button
+            type="button"
+            (click)="toggleProfileMenu()"
+            class="flex w-full min-w-0 items-center gap-2.5 rounded-xl p-1.5 text-left transition-colors hover:bg-surface-muted/70"
+            [class.justify-center]="collapsed()"
+            aria-haspopup="true"
+            [attr.aria-expanded]="isProfileMenuOpen()"
+          >
+            <div class="relative flex size-8 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-bold text-accent-strong uppercase">
+              {{ getUserInitial(user.prenom, user.nom) }}
+              <span class="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-emerald-500 ring-2 ring-surface"></span>
+            </div>
+            @if (!collapsed()) {
+              <div class="flex min-w-0 flex-1 flex-col">
+                <span class="truncate text-xs font-semibold leading-tight text-ink">{{ user.prenom }} {{ user.nom }}</span>
+                <span class="mt-0.5 truncate text-[11px] leading-tight text-ink-muted">{{ user.email }}</span>
+              </div>
+              <app-icon name="chevrons-up-down" class="size-3.5 text-ink-faint" />
+            }
+          </button>
+
+          @if (isProfileMenuOpen()) {
+            <div class="lg-surface-strong lg-pop absolute bottom-[calc(100%+8px)] left-0 z-50 flex w-60 flex-col rounded-xl p-1.5">
+              <div class="mb-1 border-b border-line px-2 py-1.5">
+                <p class="truncate text-xs font-semibold text-ink">{{ user.prenom }} {{ user.nom }}</p>
+                <p class="truncate text-[11px] text-ink-muted">{{ user.email }}</p>
+              </div>
+              @if (!isSuperAdmin()) {
+                <button type="button" (click)="openSettings()" class="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-xs font-medium text-ink transition-colors hover:bg-surface-muted">
+                  <app-icon name="settings" class="size-4 text-ink-muted" />
+                  <span class="flex-1 text-left">{{ 'commun.parametres' | translate }}</span>
+                </button>
+                <button type="button" (click)="openAssistance()" class="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-xs font-medium text-ink transition-colors hover:bg-surface-muted">
+                  <app-icon name="book-open" class="size-4 text-ink-muted" />
+                  <span class="flex-1 text-left">{{ 'sidebar.aide' | translate }}</span>
+                </button>
+              }
+              <button type="button" (click)="logout()" class="mt-1 flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-xs font-medium text-rose-600 transition-colors hover:bg-rose-500/10">
+                <app-icon name="logout" class="size-4" />
+                <span>{{ 'commun.seDeconnecter' | translate }}</span>
+              </button>
+            </div>
+          }
+        }
+      </div>
+    </aside>
+
+    @if (isSettingsOpen()) {
+      <app-parametres-modal (close)="isSettingsOpen.set(false)" />
+    }
   `,
   styles: [`
     :host {
@@ -733,6 +390,38 @@ export class Sidebar {
 
 
   navItems = input.required<NavItem[]>();
+
+  /**
+   * URL à considérer comme active à la place de celle du routeur
+   * (aperçus des maquettes). Sans valeur, le routeur fait foi.
+   */
+  urlSimulee = input<string>();
+
+  protected estActif(path: string | undefined, actifSelonRouteur: boolean): boolean {
+    const url = this.urlSimulee();
+    if (!url) return actifSelonRouteur;
+    return !!path && (url === path || url.startsWith(path + '/'));
+  }
+
+  private readonly palette =
+    inject(CommandPaletteService);
+
+  protected readonly raccourci =
+    /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘K' : 'Ctrl K';
+
+  /** Entrées regroupées par section consécutive (`group`). */
+  protected readonly groupes = computed(() => {
+    const groupes: { titre?: string; items: NavItem[] }[] = [];
+    for (const item of this.navItems()) {
+      const dernier = groupes[groupes.length - 1];
+      if (dernier && dernier.titre === item.group) {
+        dernier.items.push(item);
+      } else {
+        groupes.push({ titre: item.group, items: [item] });
+      }
+    }
+    return groupes;
+  });
 
   /**
    * Émis après chaque clic sur un lien de navigation.
@@ -783,6 +472,12 @@ export class Sidebar {
    */
   protected getNavLabel(label: string): string {
     return this.translationService.t(label);
+  }
+
+
+  openPalette(): void {
+    this.closeMobile();
+    this.palette.open();
   }
 
 
@@ -901,7 +596,7 @@ export class Sidebar {
 
     this.authService.logout();
 
-    this.router.navigate(['/login']);
+    this.router.navigate(['/connexion']);
   }
 
 

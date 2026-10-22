@@ -6,9 +6,9 @@ import { Icon, IconName } from '../icon/icon';
   standalone: true,
   imports: [Icon],
   template: `
-    <div class="flex flex-col items-center justify-center p-8 text-center rounded-2xl border border-line bg-surface">
+    <div class="sticky left-0 flex max-w-[calc(100vw-6.5rem)] flex-col items-center justify-center px-6 py-10 text-center md:max-w-none">
       @if (iconName()) {
-        <div class="flex size-12 items-center justify-center rounded-xl bg-surface-muted text-ink-muted mb-4">
+        <div class="mb-4 flex size-12 items-center justify-center rounded-2xl border border-line bg-surface text-ink-muted">
           <app-icon [name]="iconName()!" class="size-6" />
         </div>
       }

@@ -1,4 +1,4 @@
-<div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
+<div class="mx-auto flex w-full max-w-[1400px] min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
 
       <!-- En-tête de page -->
       <app-page-header
@@ -67,7 +67,7 @@
 
       <!-- État vide -->
       @else if (filteredRessources().length === 0) {
-        <app-card padding="none" class="shadow-xs">
+        <app-card padding="none" class="">
           <div class="p-8 sm:p-12">
             <app-empty-state
               [title]="activeTab() === 'ARCHIVEE' ? 'Aucune ressource archivée' : 'Aucune ressource pour le moment'"
@@ -89,7 +89,7 @@
       @else {
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           @for (r of filteredRessources(); track r.id) {
-            <app-card padding="none" class="group flex flex-col justify-between overflow-hidden shadow-xs  transition-all hover:border-accent/40 cursor-pointer" (click)="voirRessource(r)">
+            <app-card padding="none" class="group flex flex-col justify-between overflow-hidden  transition-all hover:border-accent/40 cursor-pointer" (click)="voirRessource(r)">
               
               <div class="p-5 flex flex-col gap-3">
                 <!-- En-tête : icône + titre -->
@@ -161,7 +161,7 @@
             <button
               type="button"
               (click)="setCreationMode('LIEN')"
-              [class]="creationMode() === 'LIEN' ? 'bg-surface text-ink shadow-xs font-bold' : 'text-ink-muted hover:text-ink'"
+              [class]="creationMode() === 'LIEN' ? 'bg-surface text-ink font-bold' : 'text-ink-muted hover:text-ink'"
               class="flex-1 flex items-center justify-center gap-2 py-2 text-xs rounded-lg transition-all cursor-pointer"
             >
               <app-icon name="link" class="size-4" />
@@ -170,7 +170,7 @@
             <button
               type="button"
               (click)="setCreationMode('FICHIER')"
-              [class]="creationMode() === 'FICHIER' ? 'bg-surface text-ink shadow-xs font-bold' : 'text-ink-muted hover:text-ink'"
+              [class]="creationMode() === 'FICHIER' ? 'bg-surface text-ink font-bold' : 'text-ink-muted hover:text-ink'"
               class="flex-1 flex items-center justify-center gap-2 py-2 text-xs rounded-lg transition-all cursor-pointer"
             >
               <app-icon name="upload" class="size-4" />

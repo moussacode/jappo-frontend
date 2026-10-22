@@ -1,0 +1,24 @@
+<div class="tc-track flex flex-col gap-6 pb-6">
+  @for (half of [0, 1]; track half) {
+    @for (t of loop(); track $index) {
+      <figure
+        class="w-full max-w-xs rounded-3xl border border-line bg-surface p-8 text-left shadow-lg shadow-accent/10"
+        [attr.aria-hidden]="half === 1 || $index >= testimonials().length ? 'true' : null"
+      >
+        <blockquote class="text-sm leading-relaxed text-ink-muted">
+          @if (t.titre) {
+            <p class="mb-2 font-semibold text-ink">{{ t.titre }}</p>
+          }
+          <p>{{ t.contenu }}</p>
+        </blockquote>
+        <figcaption class="mt-5 flex items-center gap-3">
+          <app-avatar [initials]="t.initiale" [imageUrl]="t.image" size="md" />
+          <div class="flex flex-col">
+            <span class="text-sm font-semibold leading-5 tracking-tight text-ink">{{ t.auteur }}</span>
+            <span class="text-xs leading-5 tracking-tight text-ink-faint">{{ t.role }}</span>
+          </div>
+        </figcaption>
+      </figure>
+    }
+  }
+</div>

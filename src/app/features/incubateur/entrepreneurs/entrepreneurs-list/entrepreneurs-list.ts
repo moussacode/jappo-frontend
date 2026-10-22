@@ -52,11 +52,11 @@ export type FiltreStatut = 'ACTIFS' | 'EN_ATTENTE' | 'TOUS';
     InviterEntrepreneurModalComponent
   ],
   template: `
-    <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div class="mx-auto flex w-full max-w-[1400px] min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
       
       <!-- En-tête Page -->
       <app-page-header
-        title="Gestion des Entrepreneurs"
+        title="Entrepreneurs"
         subtitle="Suivez et surveillez l'activité et la progression de vos entrepreneurs."
         breadcrumb="Incubateur > Entrepreneurs"
       >

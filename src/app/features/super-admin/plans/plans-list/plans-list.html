@@ -1,5 +1,5 @@
 <div class="min-h-full bg-surface-muted">
-  <div class="mx-auto max-w-7xl space-y-6 p-6">
+  <div class="mx-auto max-w-[1400px] space-y-6 p-4 sm:p-6 lg:p-8">
 
     <!-- Header -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -9,7 +9,7 @@
           <app-icon name="chevron-right" class="h-3.5 w-3.5" />
           <span class="text-ink">Plans</span>
         </div>
-        <h1 class="text-2xl font-bold tracking-tight text-ink">Plans d'abonnement</h1>
+        <h1 class="text-xl font-semibold tracking-tight text-ink sm:text-[22px]">Plans d'abonnement</h1>
         <p class="mt-1 text-sm text-ink-muted">
           Prix, durée, limites et accès à l'IA de chaque offre. Un plan utilisé ne peut pas être supprimé : désactivez-le.
         </p>
@@ -47,7 +47,7 @@
     } @else {
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         @for (plan of plans(); track plan.id) {
-          <article class="flex flex-col rounded-2xl border border-line bg-surface p-5 shadow-xs" [class.opacity-60]="!plan.actif">
+          <article class="flex flex-col rounded-2xl border border-line bg-surface p-5" [class.opacity-60]="!plan.actif">
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
                 <h2 class="truncate text-base font-bold text-ink">{{ plan.libelle }}</h2>

@@ -9,7 +9,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-line">
       <div>
         <div class="flex items-center gap-3 flex-wrap">
-          <h1 class="text-2xl font-bold tracking-tight text-ink">{{ m.titre }}</h1>
+          <h1 class="text-xl font-semibold tracking-tight text-ink sm:text-[22px]">{{ m.titre }}</h1>
           <app-badge [status]="statutBadge(m.statut).status">
             {{ statutBadge(m.statut).label }}
           </app-badge>
@@ -40,14 +40,14 @@
       <div class="flex flex-col gap-6">
         
         <!-- Carte Consignes -->
-        <div class="rounded-[var(--radius-card-lg)] border border-line bg-surface p-6 shadow-[var(--shadow-subtle)]">
+        <div class="rounded-[var(--radius-card-lg)] border border-line bg-surface p-6">
           <h2 class="text-base font-semibold text-ink">Consignes</h2>
           <p class="mt-3 text-xs sm:text-sm text-ink-muted leading-relaxed whitespace-pre-line">
             {{ m.description || 'Aucune consigne détaillée fournie pour cette mission.' }}
           </p>
         </div>
 
-        <section class="rounded-[var(--radius-card-lg)] border border-line bg-surface p-6 shadow-[var(--shadow-subtle)]">
+        <section class="rounded-[var(--radius-card-lg)] border border-line bg-surface p-6">
           <div class="flex items-center justify-between gap-3 border-b border-line pb-3">
             <h2 class="text-base font-semibold text-ink">Livrables attendus</h2>
             <span class="text-xs text-ink-muted">{{ m.livrablesAttendus?.length ?? 0 }}</span>
@@ -111,7 +111,7 @@
             <h2 class="text-base font-semibold text-ink">Mon travail pour cette activite</h2>
 
             @for (l of livrablesExistants(); track l.id) {
-              <div class="rounded-xl border border-line bg-surface overflow-hidden shadow-xs">
+              <div class="rounded-xl border border-line bg-surface overflow-hidden">
                 
                 <!-- Carte du livrable actuel -->
                 <div class="p-5 flex flex-col gap-4">
@@ -561,7 +561,7 @@
         }
 
         <!-- Carte Soumission de nouveau livrable (si aucun livrable encore déposé) -->
-          <div class="rounded-[var(--radius-card-lg)] border border-line bg-surface p-6 shadow-[var(--shadow-subtle)]">
+          <div class="rounded-[var(--radius-card-lg)] border border-line bg-surface p-6">
             <div class="flex items-center justify-between pb-4 border-b border-line">
               <div>
                 <h2 class="text-base font-semibold text-ink">Ajouter une remise</h2>
@@ -782,7 +782,7 @@
 
       <!-- Colonne droite : À propos de la mission -->
       <div class="flex flex-col gap-6">
-        <div class="rounded-[var(--radius-card-lg)] border border-line bg-surface p-6 shadow-[var(--shadow-subtle)]">
+        <div class="rounded-[var(--radius-card-lg)] border border-line bg-surface p-6">
           <h2 class="text-base font-semibold text-ink border-b border-line pb-3 mb-4">À propos</h2>
           
           <div class="space-y-4">

@@ -8,14 +8,14 @@ export type VueMode = 'grid' | 'table';
   standalone: true,
   imports: [Icon],
   template: `
-    <div class="flex items-center rounded-xl border border-line bg-surface p-1 shadow-xs">
+    <div class="flex items-center rounded-xl border border-line bg-surface p-1">
       <!-- Bouton Vue Grille / Cartes -->
       <button
         type="button"
         (click)="modeChange.emit('grid')"
         [class]="
           mode() === 'grid'
-            ? 'bg-action-fill text-white shadow-xs'
+            ? 'bg-action-fill text-white'
             : 'text-ink-muted hover:text-ink'
         "
         class="flex size-8 cursor-pointer items-center justify-center rounded-lg transition-all"
@@ -30,7 +30,7 @@ export type VueMode = 'grid' | 'table';
         (click)="modeChange.emit('table')"
         [class]="
           mode() === 'table'
-            ? 'bg-action-fill text-white shadow-xs'
+            ? 'bg-action-fill text-white'
             : 'text-ink-muted hover:text-ink'
         "
         class="flex size-8 cursor-pointer items-center justify-center rounded-lg transition-all"

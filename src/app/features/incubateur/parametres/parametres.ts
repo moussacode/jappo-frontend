@@ -21,11 +21,11 @@ interface NavItem {
   standalone: true,
   imports: [FormsModule, Icon, ButtonComponent],
   template: `
-    <div class="flex flex-col gap-6 p-6 sm:p-8 max-w-7xl mx-auto w-full">
+    <div class="flex flex-col gap-6 p-6 sm:p-8 max-w-[1400px] mx-auto w-full">
       
       <!-- En-tête de page -->
       <div>
-        <h1 class="text-2xl font-bold tracking-tight text-ink">Paramètres</h1>
+        <h1 class="text-xl font-semibold tracking-tight text-ink sm:text-[22px]">Paramètres</h1>
         <p class="mt-1 text-xs sm:text-sm text-ink-muted">
           Gérez les informations de votre structure, votre équipe et vos préférences.
         </p>
@@ -62,7 +62,7 @@ interface NavItem {
         <div class="flex flex-col gap-6 min-w-0">
 
           @if (onglet() === 'compte') {
-            <div class="flex flex-col gap-6 rounded-[var(--radius-card-lg)] border border-line bg-surface p-6 shadow-[var(--shadow-subtle)] max-w-2xl">
+            <div class="flex flex-col gap-6 rounded-[var(--radius-card-lg)] border border-line bg-surface p-6 max-w-2xl">
               <div>
                 <h2 class="text-base font-semibold text-ink">Informations de la structure</h2>
                 <p class="mt-0.5 text-xs text-ink-muted">Mettez à jour les coordonnées et identifiants publics de votre organisation.</p>
@@ -120,7 +120,7 @@ interface NavItem {
           }
 
           @if (onglet() === 'equipe') {
-            <div class="flex flex-col gap-6 rounded-[var(--radius-card-lg)] border border-line bg-surface p-6 shadow-[var(--shadow-subtle)] max-w-3xl">
+            <div class="flex flex-col gap-6 rounded-[var(--radius-card-lg)] border border-line bg-surface p-6 max-w-3xl">
               <div class="flex items-center justify-between pb-4 border-b border-line">
                 <div>
                   <h2 class="text-base font-semibold text-ink">Membres de l'équipe</h2>

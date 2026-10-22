@@ -87,7 +87,7 @@
   --color-surface-subtle: var(--color-paper-mist);
   --color-line: var(--color-ash);
   --color-line-strong: var(--color-smoke);
-  --color-input-border: var(--color-midnight-ink);
+  --color-input-border: var(--color-smoke);
   --color-ink: var(--color-charcoal);
   --color-ink-muted: var(--color-steel);
   --color-ink-faint: var(--color-fog);
@@ -108,7 +108,7 @@ html.dark {
   --color-line: var(--color-slate);
   --color-line-strong: var(--color-steel);
 
-  --color-input-border: var(--color-silver);
+  --color-input-border: var(--color-slate);
 
   --color-ink: #fafafa;
   --color-ink-muted: var(--color-silver);
@@ -136,7 +136,7 @@ html[data-theme="ocean"] {
   --color-line: #cbdff2;
   --color-line-strong: #9fc3e5;
 
-  --color-input-border: #2563eb;
+  --color-input-border: #9fc3e5;
 
   --color-ink: #102a43;
   --color-ink-muted: #486581;
@@ -164,7 +164,7 @@ html[data-theme="forest"] {
   --color-line: #c8ddca;
   --color-line-strong: #9fbea2;
 
-  --color-input-border: #16a34a;
+  --color-input-border: #9fbea2;
 
   --color-ink: #17351f;
   --color-ink-muted: #4f6b56;
@@ -527,4 +527,149 @@ body {
 
 .animate-float-delayed {
   animation: float-delayed 7s ease-in-out infinite 1s;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LIQUID GLASS — système de surfaces de l'application connectée
+   Construit sur les tokens sémantiques : fonctionne dans tous les
+   thèmes (clair, sombre, océan, forêt, verre).
+═══════════════════════════════════════════════════════════════ */
+:root {
+  --glass-bg: color-mix(in oklab, var(--color-surface) 74%, transparent);
+  --glass-bg-strong: color-mix(in oklab, var(--color-surface) 90%, transparent);
+  --glass-border: color-mix(in oklab, var(--color-line) 75%, transparent);
+  --glass-highlight: rgba(255, 255, 255, 0.7);
+  --glass-shadow: none;
+  --ambient-1: rgba(37, 99, 235, 0.13);
+  --ambient-2: rgba(124, 58, 237, 0.09);
+  --ambient-3: rgba(14, 165, 233, 0.10);
+
+  /* Graphiques — palette catégorielle de référence validée (CVD) */
+  --viz-1: #2a78d6;
+  --viz-2: #eb6834;
+  --viz-3: #1baf7a;
+  --viz-4: #eda100;
+  --viz-5: #6250d6;
+}
+
+html.dark {
+  --glass-bg: color-mix(in oklab, var(--color-surface) 70%, transparent);
+  --glass-bg-strong: color-mix(in oklab, var(--color-surface) 88%, transparent);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-highlight: rgba(255, 255, 255, 0.06);
+  --glass-shadow: none;
+  --ambient-1: rgba(59, 130, 246, 0.16);
+  --ambient-2: rgba(139, 92, 246, 0.12);
+  --ambient-3: rgba(14, 165, 233, 0.08);
+
+  --viz-1: #3987e5;
+  --viz-2: #d95926;
+  --viz-3: #199e70;
+  --viz-4: #c98500;
+  --viz-5: #9085e9;
+}
+
+/* Fond d'ambiance : halos colorés flous derrière les surfaces vitrées */
+.app-ambient {
+  background: var(--color-surface-muted);
+}
+
+@layer components {
+/* Panneau vitré (sidebar, topbar, cartes) */
+.lg-surface {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: none;
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
+  backdrop-filter: blur(20px) saturate(170%);
+}
+
+.lg-surface-strong {
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), 0 24px 60px -20px rgba(15, 23, 42, 0.35);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  backdrop-filter: blur(28px) saturate(180%);
+}
+
+/* Reflet « liquide » : léger dégradé spéculaire en haut à gauche */
+.lg-sheen { position: relative; }
+
+.lg-interactive {
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+.lg-interactive:hover {
+  border-color: var(--color-line-strong);
+}
+}
+
+/* Navigateurs sans backdrop-filter : surfaces opaques lisibles */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .lg-surface, .lg-surface-strong { background: var(--color-surface); }
+}
+
+/* Accessibilité : préférence de transparence réduite */
+@media (prefers-reduced-transparency: reduce) {
+  .lg-surface, .lg-surface-strong {
+    background: var(--color-surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@layer components {
+/* Raccourci clavier affiché (⌘K) */
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  height: 1.25rem;
+  padding: 0 0.375rem;
+  border-radius: 4px;
+  border: 1px solid var(--color-line);
+  background: var(--color-surface-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--color-ink-faint);
+}
+
+@keyframes lg-pop {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.lg-pop { animation: lg-pop 160ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   FORMULAIRES & TABLEAUX — rendu par défaut harmonisé
+   (couche base : toute classe utilitaire posée sur l'élément l'emporte)
+═══════════════════════════════════════════════════════════════ */
+@layer base {
+  :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea) {
+    border-radius: var(--radius-button);
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+  }
+  :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea):focus-visible {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-accent) 18%, transparent);
+  }
+  :where(input[type="checkbox"], input[type="radio"]) {
+    accent-color: var(--color-accent);
+  }
+  :where(thead th) {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--color-ink-muted);
+    text-align: left;
+  }
+  :where(tbody tr) {
+    transition: background-color 120ms ease;
+  }
+  :where(tbody tr:hover) {
+    background-color: color-mix(in oklab, var(--color-surface-muted) 55%, transparent);
+  }
 }

@@ -51,7 +51,7 @@ const BMC_GRID_POSITION: Record<string, string> = {
   imports: [TranslatePipe],
   template: `
     <section
-      class="overflow-hidden rounded-2xl border border-line bg-surface shadow-xs"
+      class="overflow-hidden rounded-2xl border border-line bg-surface"
       [attr.aria-label]="'bmc.title' | translate"
     >
       <header class="flex flex-col gap-1 border-b border-line bg-accent-soft/30 px-4 py-3 sm:px-5">

@@ -38,7 +38,7 @@ import { BreadcrumbComponent, BreadcrumbItem } from '../../../../shared/componen
         <div class="flex flex-col gap-3">
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <h1 class="text-xl font-bold tracking-tight text-ink sm:text-2xl">{{ mc.titre }}</h1>
+              <h1 class="text-xl font-semibold tracking-tight text-ink sm:text-[22px]">{{ mc.titre }}</h1>
               <div class="flex items-center gap-3 text-xs text-ink-muted mt-1.5 flex-wrap">
                 <span>Cohorte : <strong class="text-ink font-semibold">{{ mc.nomCohorte || 'Non assignée' }}</strong></span>
                 @if (mc.dateEcheance) {
@@ -123,7 +123,7 @@ import { BreadcrumbComponent, BreadcrumbItem } from '../../../../shared/componen
             </div>
           </div>
 
-          <div class="rounded-xl border border-line bg-surface overflow-hidden shadow-xs">
+          <div class="rounded-xl border border-line bg-surface overflow-hidden">
             <table class="w-full text-xs">
               <thead class="bg-surface-muted border-b border-line">
                 <tr>

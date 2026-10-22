@@ -1,29 +1,28 @@
-<div class="flex glass-surface flex-col justify-between h-full rounded-[var(--radius-card-lg)] border border-line bg-surface p-3 sm:p-4 md:p-6 shadow-[var(--shadow-subtle)] transition-all hover:border-line-strong">
+<div class="lg-surface flex h-full flex-col justify-between overflow-hidden rounded-[var(--radius-card-lg)] p-4 transition-colors hover:border-line-strong sm:p-5">
 
-  <!-- Partie supérieure : Label et Valeur -->
-  <div>
-    <p class="text-[10px] sm:text-xs font-semibold tracking-wider text-ink-muted uppercase truncate" [title]="label()">
+  <div class="flex items-start justify-between gap-3">
+    <p class="line-clamp-2 text-[13px] font-medium leading-snug text-ink-muted" [title]="label()">
       {{ label() }}
     </p>
-    <p class="mt-2 text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-ink">{{ value() }}</p>
+    @if (icon(); as i) {
+      <span class="flex size-8 shrink-0 items-center justify-center text-ink-faint">
+        <app-icon [name]="i" class="size-4" />
+      </span>
+    }
   </div>
 
-  <!-- Partie inférieure : Tendance ou Note (toujours alignée en bas) -->
+  <p class="mt-2 text-2xl font-bold tracking-tight text-ink tabular-nums sm:text-3xl">{{ value() }}</p>
+
   <div>
     @if (trend()) {
-      <div class="mt-3 sm:mt-4 flex items-center gap-1.5 text-[10px] sm:text-xs font-medium">
-        <span class="text-ink-faint">{{ trendLabel() }}:</span>
-        <span [class]="trendColorClass()" class="inline-flex items-center gap-1 font-semibold">
-          {{ trend() }}
-          @if (trendDirection() === 'up') {
-            <span>↗</span>
-          } @else {
-            <span>↘</span>
-          }
+      <div class="mt-3 flex items-center gap-1.5 text-[11px] font-medium sm:text-xs">
+        <span [class]="trendColorClass()" class="inline-flex items-center gap-0.5 rounded-full bg-surface-muted px-1.5 py-0.5 font-semibold">
+          {{ trendDirection() === 'up' ? '↗' : trendDirection() === 'down' ? '↘' : '→' }} {{ trend() }}
         </span>
+        <span class="text-ink-faint">{{ trendLabel() }}</span>
       </div>
     } @else if (note()) {
-      <p class="mt-3 sm:mt-4 text-[10px] sm:text-xs font-medium leading-snug" [class]="noteColorClass()">
+      <p class="mt-3 text-[11px] font-medium leading-snug sm:text-xs" [class]="noteColorClass()">
         {{ note() }}
       </p>
     }

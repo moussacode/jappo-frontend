@@ -1,53 +1,53 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
-import {
-  Sidebar,
-  NavItem,
-} from '../../shared/components/sidebar/sidebar';
+import { NavItem } from '../../shared/components/sidebar/sidebar';
+import { AppShell } from '../../shared/components/app-shell/app-shell';
 
-@Component({
-  selector: 'app-super-admin-layout',
-  imports: [RouterOutlet, Sidebar],
-  template: `
-    <div class="flex h-dvh min-h-0 flex-col">
-      <div class="flex min-h-0 flex-1 overflow-hidden">
-        <app-sidebar [navItems]="navItems" />
-
-        <main class="min-h-0 min-w-0 flex-1 overflow-y-auto bg-neutral-25">
-          <router-outlet />
-        </main>
-      </div>
-    </div>
-  `,
-})
-export class SuperAdminLayout {
-
-  protected readonly navItems: NavItem[] = [
+/** Menu de l'espace (partagé avec les maquettes). */
+export const SUPER_ADMIN_NAV: NavItem[] = [
     {
       label: "Vue d'ensemble",
+      group: 'Plateforme',
       path: '/super-admin/dashboard',
       icon: 'dashboard',
     },
     {
       label: 'Structures',
+      group: 'Plateforme',
       path: '/super-admin/structures',
       icon: 'layers',
     },
     {
       label: 'Transactions',
+      group: 'Facturation',
       path: '/super-admin/transactions',
       icon: 'missions',
     },
     {
       label: 'Abonnements',
+      group: 'Facturation',
       path: '/super-admin/abonnements',
       icon: 'book-open',
     },
     {
       label: 'Plans',
+      group: 'Facturation',
       path: '/super-admin/plans',
       icon: 'sparkles',
     },
   ];
+
+@Component({
+  selector: 'app-super-admin-layout',
+  imports: [RouterOutlet, AppShell],
+  template: `
+    <app-shell [navItems]="navItems" espace="Administration JAPPO">
+      <router-outlet />
+    </app-shell>
+  `,
+})
+export class SuperAdminLayout {
+
+  protected readonly navItems = SUPER_ADMIN_NAV;
 }

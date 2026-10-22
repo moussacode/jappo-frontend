@@ -12,9 +12,22 @@ import { EtapeService } from '../../../../core/services/etape.service';
 import { ProgrammeService } from '../../../../core/services/programme.service';
 import { CohorteService } from '../../../../core/services/cohorte.service';
 import { StructureContextService } from '../../../../core/services/structure-context.service';
-import { Cohorte, Parcours, Phase, ParcoursPhase, CreateParcoursRequest, CreateCohorteRequest } from '../../../../core/models/cohorte.model';
+import { Cohorte, Parcours, Phase, ParcoursPhase, CreateParcoursRequest, CreateCohorteRequest, STADES_ACCOMPAGNEMENT, StadeAccompagnement, libelleStade } from '../../../../core/models/cohorte.model';
 import { Etape, Programme } from '../../../../core/models/parcours.model';
 import { INPUT_CLASS } from '../constants';
+
+// Champ commun aux modales de création et de modification de phase.
+const CHAMP_STADE = `
+  <div>
+    <label for="phase-stade" class="mb-1.5 block text-sm font-medium text-ink">Stade d'accompagnement</label>
+    <select id="phase-stade" formControlName="stade" aria-describedby="phase-stade-aide" class="${INPUT_CLASS}">
+      <option value="">Non renseigné</option>
+      @for (s of stades; track s.value) {
+        <option [value]="s.value">{{ s.label }}</option>
+      }
+    </select>
+    <p id="phase-stade-aide" class="mt-1 text-xs text-ink-muted">Utilisé par les rapports et l'assistant IA. On entre dans un stade par promotion vers une cohorte de cette phase.</p>
+  </div>`;
 
 import { Icon } from '../../../../shared/components/icon/icon';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
@@ -182,6 +195,9 @@ type FiltreArchive = 'ACTIVES' | 'ARCHIVEES' | 'TOUTES';
                     <app-icon name="chevron-down" class="size-4 shrink-0 text-ink-muted transition-transform duration-200" [class.-rotate-90]="!phasesOuvertes().has(phase.id)" />
                     <span class="shrink-0 text-[11px] font-semibold uppercase tracking-wider text-accent">Phase {{ i + 1 }}</span>
                     <span class="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{{ phase.nom }}</span>
+                    @if (libelleStade(phase.stade); as stade) {
+                      <app-badge status="neutral" size="sm">{{ stade }}</app-badge>
+                    }
                     @if (phase.archive) {
                       <app-badge status="warning" size="sm">Archivée</app-badge>
                     }
@@ -339,6 +355,7 @@ type FiltreArchive = 'ACTIVES' | 'ARCHIVEES' | 'TOUTES';
                   <label class="mb-1.5 block text-sm font-medium text-ink">Description</label>
                   <textarea formControlName="description" rows="3" class="${INPUT_CLASS}"></textarea>
                 </div>
+                ${CHAMP_STADE}
                 <p class="text-xs text-ink-muted">La phase sera ajoutée à la fin du parcours.</p>
                 <div class="flex justify-end gap-2">
                   <app-button type="button" variant="ghost" (click)="fermerModals()">Annuler</app-button>
@@ -394,6 +411,7 @@ type FiltreArchive = 'ACTIVES' | 'ARCHIVEES' | 'TOUTES';
               <label class="mb-1.5 block text-sm font-medium text-ink">Description</label>
               <textarea formControlName="description" rows="3" class="${INPUT_CLASS}"></textarea>
             </div>
+            ${CHAMP_STADE}
             <div class="flex justify-end gap-2">
               <app-button type="button" variant="ghost" (click)="fermerModals()">Annuler</app-button>
               <app-button type="submit" [disabled]="formPhase.invalid || enCours()">{{ enCours() ? 'En cours...' : 'Enregistrer' }}</app-button>
@@ -579,7 +597,10 @@ export class ParcoursDetailComponent implements OnInit {
   readonly formPhase = new FormGroup({
     nom: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     description: new FormControl('', { nonNullable: true }),
+    stade: new FormControl<StadeAccompagnement | ''>('', { nonNullable: true }),
   });
+  readonly stades = STADES_ACCOMPAGNEMENT;
+  readonly libelleStade = libelleStade;
   readonly formCohortePhase = new FormGroup({
     nom: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     description: new FormControl('', { nonNullable: true }),
@@ -851,9 +872,9 @@ export class ParcoursDetailComponent implements OnInit {
     if (this.formPhase.invalid) return;
     this.enCours.set(true);
     this.erreurModal.set(null);
-    const { nom, description } = this.formPhase.getRawValue();
+    const { nom, description, stade } = this.formPhase.getRawValue();
 
-    this.phaseService.createPhase({ nom, description: description || undefined })
+    this.phaseService.createPhase({ nom, description: description || undefined, stade: stade || undefined })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (phase) => this.rattacherPhase(phase.id),
@@ -888,7 +909,7 @@ export class ParcoursDetailComponent implements OnInit {
 
   ouvrirEditionPhase(phase: Phase): void {
     this.preparerModal();
-    this.formPhase.reset({ nom: phase.nom, description: phase.description ?? '' });
+    this.formPhase.reset({ nom: phase.nom, description: phase.description ?? '', stade: phase.stade ?? '' });
     this.phaseEnEdition.set(phase);
   }
 
@@ -897,9 +918,9 @@ export class ParcoursDetailComponent implements OnInit {
     if (this.formPhase.invalid || !phase) return;
     this.enCours.set(true);
     this.erreurModal.set(null);
-    const { nom, description } = this.formPhase.getRawValue();
+    const { nom, description, stade } = this.formPhase.getRawValue();
 
-    this.phaseService.updatePhase(phase.id, { nom, description: description || undefined })
+    this.phaseService.updatePhase(phase.id, { nom, description: description || undefined, stade: stade || undefined })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {

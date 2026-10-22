@@ -8,6 +8,7 @@ import {
   CreateProjetRequest,
   UpdateProjetRequest,
   PromouvoirProjetRequest,
+  CloturerAccompagnementRequest,
   PromotionGroupeeRequest,
   PromotionGroupeeResultat,
   ParticipationCohorteResponse,
@@ -60,6 +61,11 @@ export class ProjetService {
   }
 
   /** Promotion individuelle vers une cohorte cible. */
+  /** Diplôme (fin de parcours) ou abandon : clôt participation, progression et statut du projet. */
+  cloturerAccompagnement(projetId: string, request: CloturerAccompagnementRequest): Observable<Projet> {
+    return this.http.post<Projet>(`${this.apiUrl}/${projetId}/cloturer`, request);
+  }
+
   promouvoir(projetId: string, request: PromouvoirProjetRequest): Observable<Projet> {
     return this.http.post<Projet>(`${this.apiUrl}/${projetId}/promouvoir`, request);
   }

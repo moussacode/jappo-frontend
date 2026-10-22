@@ -1,0 +1,26 @@
+:host {
+  --tc-duration: 10s;
+
+  display: block;
+}
+
+.tc-track {
+  animation: tc-scroll var(--tc-duration) linear infinite;
+  will-change: transform;
+}
+
+:host:hover .tc-track {
+  animation-play-state: paused;
+}
+
+@keyframes tc-scroll {
+  to {
+    transform: translateY(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tc-track {
+    animation: none;
+  }
+}

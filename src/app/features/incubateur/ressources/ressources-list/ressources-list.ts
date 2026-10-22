@@ -43,11 +43,11 @@ type CreationMode = 'LIEN' | 'FICHIER';
     CardComponent
   ],
   template: `
-    <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div class="mx-auto flex w-full max-w-[1400px] min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
       
       <!-- En-tête Page -->
       <app-page-header
-        title="Gestion des Ressources"
+        title="Ressources"
         subtitle="Partagez et gérez les documents, liens et outils pour votre structure."
         breadcrumb="Incubateur > Ressources"
       >
@@ -66,22 +66,11 @@ type CreationMode = 'LIEN' | 'FICHIER';
 
       <!-- Barre de contrôles : Onglets (Actives / Archivées) + Recherche -->
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div class="flex items-center gap-2">
-          <app-button 
-            [variant]="activeTab() === 'ACTIVE' ? 'primary' : 'secondary'" 
-            size="xs" 
-            (click)="switchTab('ACTIVE')"
-          >
-            Actives ({{ stats().total }})
-          </app-button>
-          <app-button 
-            [variant]="activeTab() === 'ARCHIVEE' ? 'primary' : 'secondary'" 
-            size="xs" 
-            (click)="switchTab('ARCHIVEE')"
-          >
-            Archivées
-          </app-button>
-        </div>
+        <app-tab-filter
+          [options]="[{ value: 'ACTIVE', label: 'Actives', count: stats().total }, { value: 'ARCHIVEE', label: 'Archivées' }]"
+          [value]="activeTab()"
+          (valueChange)="switchTab($any($event))"
+        />
 
         <div class="relative w-full sm:w-72">
           <input

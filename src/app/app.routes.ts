@@ -176,6 +176,11 @@ export const routes: Routes = [
           import('./features/incubateur/cohortes/cohorte-detail/cohorte-detail').then((m) => m.CohorteDetail),
       },
       {
+        path: 'cohortes/:id/rapport',
+        loadComponent: () =>
+          import('./features/incubateur/cohortes/cohorte-rapport/cohorte-rapport').then((m) => m.CohorteRapport),
+      },
+      {
         path: 'parcours',
         loadComponent: () =>
           import('./features/incubateur/parcours/parcours-list/parcours-list').then((m) => m.ParcoursList),
@@ -184,6 +189,11 @@ export const routes: Routes = [
         path: 'programmes',
         loadComponent: () =>
           import('./features/incubateur/programmes/programmes-list/programmes-list').then((m) => m.ProgrammesListComponent),
+      },
+      {
+        path: 'programmes/nouveau',
+        loadComponent: () =>
+          import('./features/incubateur/programmes/programme-wizard/programme-wizard').then((m) => m.ProgrammeWizardComponent),
       },
       {
         path: 'programmes/:id',
@@ -303,6 +313,12 @@ export const routes: Routes = [
     import('./features/assistance/assistance-page')
       .then(m => m.AssistancePage),
 },
+
+  // --- Maquettes statiques (import Figma via html.to.design) ---
+  {
+    path: 'maquettes',
+    loadChildren: () => import('./maquettes/maquettes.routes').then((m) => m.MAQUETTES_ROUTES),
+  },
 
   {
     path: 'coach',

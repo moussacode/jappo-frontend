@@ -8,6 +8,7 @@ import {
   UpdateCohorteRequest,
   InviterEntrepreneursRequest,
   CoachSummary,
+  RapportCohorte,
 } from '../models/cohorte.model';
 import { PromotionGroupeeRequest, PromotionGroupeeResultat } from '../models/projet.model';
 
@@ -60,6 +61,11 @@ export class CohorteService {
 
   getCohorteById(id: string): Observable<Cohorte> {
     return this.http.get<Cohorte>(`${this.apiUrl}/${id}`);
+  }
+
+  /** Rapport de pilotage (ADMIN_STRUCTURE, COACH). */
+  getRapport(id: string): Observable<RapportCohorte> {
+    return this.http.get<RapportCohorte>(`${this.apiUrl}/${id}/rapport`);
   }
 
   getById(id: string): Observable<Cohorte> {

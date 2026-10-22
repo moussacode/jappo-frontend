@@ -72,7 +72,9 @@ export type IconName =
   | 'arrow-up-circle'
   | 'check-circle'
   | 'x-circle'
-  | 'user-plus';
+  | 'user-plus'
+  | 'monitor-up'
+  | 'volume-2';
 
 export type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | string;
 

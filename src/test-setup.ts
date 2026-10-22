@@ -2,11 +2,11 @@ import '@angular/compiler';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { BrowserDynamicTestingModule, platformBrowserDynamicTesting } from '@angular/platform-browser-dynamic/testing';
 import { provideRouter } from '@angular/router';
 import { beforeEach } from 'vitest';
 
-TestBed.initTestEnvironment(BrowserDynamicTestingModule, platformBrowserDynamicTesting());
+// L'environnement de test est initialisé par le builder @angular/build:unit-test :
+// un second initTestEnvironment provoque NG0400 sur toutes les specs.
 
 if (typeof window !== 'undefined' && typeof window.matchMedia !== 'function') {
   Object.defineProperty(window, 'matchMedia', {

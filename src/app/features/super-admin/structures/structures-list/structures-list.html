@@ -1,12 +1,12 @@
-<div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 sm:gap-8 p-3 sm:p-4 md:p-6 lg:p-8 font-sans">
+<div class="mx-auto flex w-full max-w-[1400px] min-w-0 flex-col gap-6 sm:gap-8 p-3 sm:p-4 md:p-6 lg:p-8 font-sans">
 
   <!-- En-tête de la Page -->
   <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
     <div>
-      <p class="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">
+      <p class="mb-1 text-xs font-semibold uppercase tracking-wider text-accent">
         Administration Générale
       </p>
-      <h1 class="text-xl font-bold text-ink sm:text-2xl">
+      <h1 class="text-xl font-semibold tracking-tight text-ink sm:text-[22px]">
         Structures
       </h1>
       <p class="text-xs text-ink-muted mt-1">
@@ -66,7 +66,7 @@
           placeholder="Rechercher par nom, slug..."
           [value]="recherche()"
           (input)="changerRecherche($any($event.target).value)"
-          class="w-full rounded-xl border border-line/60 bg-surface py-2 pl-9 pr-4 text-xs text-ink placeholder:text-ink-muted/60 transition-colors focus:border-accent focus:outline-none shadow-xs"
+          class="w-full rounded-xl border border-line/60 bg-surface py-2 pl-9 pr-4 text-xs text-ink placeholder:text-ink-muted/60 transition-colors focus:border-accent focus:outline-none"
         />
         <app-icon name="search" class="absolute left-3 top-2.5 size-4 text-ink-muted" />
       </div>
@@ -86,7 +86,7 @@
 
   <!-- Erreur -->
   @if (error()) {
-    <div class="rounded-2xl border border-red-500/30 bg-red-500/5 p-6 shadow-xs">
+    <div class="rounded-2xl border border-red-500/30 bg-red-500/5 p-6">
       <div class="flex items-start gap-3">
         <div class="rounded-xl bg-red-500/10 p-2 text-red-600">
           <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -114,7 +114,7 @@
 
   <!-- Loading Skeletons -->
   @if (loading()) {
-    <div class="overflow-hidden rounded-2xl border border-line bg-surface shadow-xs animate-pulse">
+    <div class="overflow-hidden rounded-2xl border border-line bg-surface animate-pulse">
       <div class="divide-y divide-line/60">
         @for (item of [1, 2, 3, 4, 5]; track item) {
           <div class="flex items-center gap-6 px-6 py-5">
@@ -135,7 +135,7 @@
   @if (!loading()) {
 
     <!-- Tableau de données -->
-    <div class="overflow-hidden rounded-2xl border border-line bg-surface shadow-xs">
+    <div class="overflow-hidden rounded-2xl border border-line bg-surface">
       @if (structuresFiltrees().length > 0) {
         <div class="overflow-x-auto custom-scrollbar">
           <table class="w-full min-w-[850px] border-collapse text-left text-xs">

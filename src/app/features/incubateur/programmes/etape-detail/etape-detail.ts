@@ -68,7 +68,7 @@ import { LoadingState } from '../../../../shared/components/loading-state/loadin
     
   ],
   template: `
-    <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div class="mx-auto flex w-full max-w-[1400px] min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
       @if (loading()) {
         <div class="py-16">
           <app-loading-state text="Chargement de l'étape..."></app-loading-state>

@@ -96,7 +96,7 @@ const FILTRES_COHORTES: { value: CohorteFilter; label: string }[] = [
       <div
         role="tablist"
         aria-label="Cohortes Fabrique 360"
-        class="custom-scrollbar flex w-full shrink-0 items-end gap-1 overflow-x-auto border-b border-line bg-surface px-3 pt-3 sm:px-4 md:px-6 lg:px-8"
+        class="lg-surface flex w-full shrink-0 items-center gap-1 overflow-x-auto border-x-0 border-t-0 px-3 py-2 [scrollbar-width:none] sm:px-4 md:px-6 lg:px-8"
       >
         <button
           type="button"
@@ -106,9 +106,9 @@ const FILTRES_COHORTES: { value: CohorteFilter; label: string }[] = [
           aria-controls="panel-cohortes"
           (click)="activeContextId.set('GLOBAL')"
           [class]="activeContextId() === 'GLOBAL'
-            ? 'border-accent bg-accent-soft text-accent'
-            : 'border-transparent text-ink-muted hover:bg-surface-subtle hover:text-ink'"
-          class="flex cursor-pointer items-center gap-2 whitespace-nowrap rounded-t-button border-b-2 px-4 py-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            ? 'bg-surface font-semibold text-ink shadow-[0_0_0_1px_var(--color-line)]'
+            : 'text-ink-muted hover:bg-surface-muted/70 hover:text-ink'"
+          class="flex cursor-pointer items-center gap-2 whitespace-nowrap rounded-[10px] px-3 py-2 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
           <app-icon name="dashboard" class="size-4" />
           Vue globale
@@ -135,16 +135,16 @@ const FILTRES_COHORTES: { value: CohorteFilter; label: string }[] = [
               (dragstart)="onTabDragStart($event, item.cohorte.id)"
               (dragend)="onTabDragEnd()"
               [class]="(activeContextId() === item.cohorte.id
-                ? 'border-accent bg-accent-soft text-accent'
-                : 'border-transparent text-ink-muted hover:bg-surface-subtle hover:text-ink')
+                ? 'bg-surface font-semibold text-ink shadow-[0_0_0_1px_var(--color-line)]'
+                : 'text-ink-muted hover:bg-surface-muted/70 hover:text-ink')
                 + (draggedId() === item.cohorte.id ? ' opacity-40' : '')"
-              class="flex cursor-pointer items-center gap-2 whitespace-nowrap rounded-t-button border-b-2 px-4 py-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              class="flex cursor-pointer items-center gap-2 whitespace-nowrap rounded-[10px] px-3 py-2 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               <app-icon name="cohortes" class="size-4" />
               {{ item.cohorte.nom }}
               <span
-                [class]="activeContextId() === item.cohorte.id ? 'bg-surface text-accent' : 'bg-surface-subtle text-ink-muted'"
-                class="ml-1 rounded-pill px-2 py-0.5 text-[11px] font-semibold"
+                [class]="activeContextId() === item.cohorte.id ? 'bg-accent-soft text-accent-strong' : 'bg-surface-muted text-ink-faint'"
+                class="rounded-pill px-1.5 py-px text-[10px] font-semibold tabular-nums"
               >
                 {{ item.nbProjets }}
               </span>
@@ -157,7 +157,7 @@ const FILTRES_COHORTES: { value: CohorteFilter; label: string }[] = [
             type="button"
             (click)="nouvelleCohorteOuverte.set(true)"
             aria-label="Créer une nouvelle cohorte"
-            class="flex cursor-pointer items-center rounded-t-button border-b-2 border-transparent px-3 py-3 text-ink-muted transition-colors hover:bg-surface-subtle hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            class="ml-1 flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-[10px] border border-dashed border-line text-ink-muted transition-colors hover:border-accent hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             <app-icon name="plus" class="size-4" />
           </button>
@@ -165,7 +165,7 @@ const FILTRES_COHORTES: { value: CohorteFilter; label: string }[] = [
       </div>
 
       <div id="panel-cohortes" role="tabpanel" class="min-h-0 flex-1 overflow-y-auto">
-        <div class="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-6 p-4 sm:p-6 lg:p-8">
+        <div class="mx-auto flex w-full min-w-0 max-w-[1400px] flex-col gap-6 p-4 sm:p-6 lg:p-8">
 
           <!-- CHARGEMENT -->
           @if (isLoading()) {
@@ -174,7 +174,7 @@ const FILTRES_COHORTES: { value: CohorteFilter; label: string }[] = [
 
           <!-- ÉTAT 1 : VUE GLOBALE -->
           @else if (activeContextId() === 'GLOBAL') {
-            <app-page-header title="Gestion des cohortes" subtitle="Supervisez la performance globale de l'incubateur.">
+            <app-page-header title="Cohortes" subtitle="Supervisez la performance globale de l'incubateur.">
               @if (cohortesAffichees().length > 0) {
                 <app-button variant="secondary" size="sm" (click)="exporterCohortes()">
                   Exporter CSV
@@ -220,130 +220,89 @@ const FILTRES_COHORTES: { value: CohorteFilter; label: string }[] = [
               }
             } @else {
               <!-- KPI globaux -->
-              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <app-kpi-card [label]="labelKpiCohortes()" value="{{ cohortes().length }}" />
-                <app-kpi-card label="Startups accompagnées" value="{{ totalStartupsActives() }}" />
-                <app-kpi-card label="Maturité globale" value="{{ progressionGlobaleMoyenne() }}%" />
+              <div class="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+                <app-kpi-card icon="cohortes" [label]="labelKpiCohortes()" value="{{ cohortes().length }}" />
+                <app-kpi-card icon="projects" label="Startups accompagnées" value="{{ totalStartupsActives() }}" />
+                <app-kpi-card icon="chart" label="Maturité globale" value="{{ progressionGlobaleMoyenne() }}%" />
               </div>
 
-              <!-- Cartes mobiles (cohortes) -->
-              <div class="flex flex-col gap-3 sm:hidden">
+              <!-- Tri -->
+              <div class="flex items-center justify-between gap-3">
+                <p class="text-xs text-ink-muted">{{ sortedCohortesAffichees().length }} cohorte(s)</p>
+                <div class="flex items-center gap-1 text-xs">
+                  <span class="mr-1 text-ink-faint">Trier par</span>
+                  @for (tri of [{ cle: 'nom', label: 'Nom' }, { cle: 'progression', label: 'Maturité' }]; track tri.cle) {
+                    <button
+                      type="button"
+                      (click)="toggleGlobalSort($any(tri.cle))"
+                      [attr.aria-pressed]="globalSortBy() === tri.cle"
+                      class="inline-flex cursor-pointer items-center gap-1 rounded-lg px-2.5 py-1.5 font-medium transition-colors"
+                      [class]="globalSortBy() === tri.cle ? 'bg-surface text-ink shadow-[0_0_0_1px_var(--color-line)]' : 'text-ink-muted hover:text-ink'"
+                    >
+                      {{ tri.label }}
+                      @if (globalSortBy() === tri.cle) {
+                        <app-icon [name]="globalSortDir() === 'asc' ? 'chevron-up' : 'chevron-down'" class="size-3.5 text-accent" />
+                      }
+                    </button>
+                  }
+                </div>
+              </div>
+
+              <!-- Grille de cohortes -->
+              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 @for (item of sortedCohortesAffichees(); track item.cohorte.id) {
-                  <app-card padding="none" [hoverable]="true">
+                  <article class="lg-surface lg-interactive group flex flex-col overflow-hidden rounded-2xl">
                     <button
                       type="button"
                       (click)="activeContextId.set(item.cohorte.id)"
-                      class="flex w-full flex-col gap-2 p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
+                      class="flex flex-1 cursor-pointer flex-col gap-4 p-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
                     >
-                      <div class="flex min-w-0 items-center justify-between gap-2">
-                        <span class="truncate text-sm font-semibold text-ink">{{ item.cohorte.nom }}</span>
-                        <span class="shrink-0 text-xs font-medium text-ink-muted">{{ item.nbProjets }} startup{{ item.nbProjets > 1 ? 's' : '' }}</span>
+                      <div class="flex items-start gap-3">
+                        <span class="flex size-10 shrink-0 items-center justify-center rounded-xl border border-line bg-surface text-sm font-semibold text-ink">
+                          {{ initialesCohorte(item.cohorte.nom) }}
+                        </span>
+                        <div class="min-w-0 flex-1">
+                          <h3 class="truncate text-base font-semibold text-ink transition-colors group-hover:text-accent">{{ item.cohorte.nom }}</h3>
+                          <p class="truncate text-xs text-ink-muted">{{ libellePhase(item.cohorte.phase) || 'Phase non définie' }}</p>
+                        </div>
+                        @if (item.cohorte.statut === 'ARCHIVEE') {
+                          <app-badge status="neutral" size="sm">Archivée</app-badge>
+                        }
                       </div>
-                      <ng-container *ngTemplateOutlet="progression; context: { $implicit: item.scoreMoyen, largeur: 'flex-1' }"></ng-container>
-                      <p class="text-xs text-ink-muted">
-                        {{ formatDate(item.cohorte.dateDebut) }} → {{ formatDate(item.cohorte.dateFin) }}
-                      </p>
+                      <div>
+                        <div class="mb-1.5 flex items-baseline justify-between text-xs">
+                          <span class="text-ink-muted">Maturité moyenne</span>
+                          <span class="font-semibold text-ink tabular-nums">{{ item.scoreMoyen }}%</span>
+                        </div>
+                        <div class="h-1.5 w-full overflow-hidden rounded-full bg-surface-muted">
+                          <div class="h-full rounded-full bg-accent transition-[width] duration-700" [style.width.%]="item.scoreMoyen"></div>
+                        </div>
+                      </div>
+                      <div class="flex items-center gap-4 text-xs text-ink-muted">
+                        <span class="flex items-center gap-1.5"><app-icon name="projects" class="size-3.5" />{{ item.nbProjets }} startup{{ item.nbProjets > 1 ? 's' : '' }}</span>
+                        <span class="flex items-center gap-1.5"><app-icon name="calendar" class="size-3.5" />{{ formatDate(item.cohorte.dateDebut) }} → {{ formatDate(item.cohorte.dateFin) }}</span>
+                      </div>
                     </button>
-                    <div class="flex items-center justify-between gap-2 border-t border-line px-4 py-2">
+                    <div class="flex items-center justify-between gap-2 border-t border-line px-5 py-2.5">
                       <a
                         [routerLink]="['/incubateur/cohortes', item.cohorte.id]"
-                        class="inline-flex items-center gap-1 rounded-button border border-line px-2.5 py-1.5 text-xs font-semibold text-accent transition-colors hover:bg-accent-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                        class="inline-flex items-center gap-1 text-xs font-semibold text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                       >
-                        <app-icon name="arrow-right" class="size-3.5" />
-                        Voir le détail
+                        Ouvrir la fiche <app-icon name="arrow-right" class="size-3.5" />
                       </a>
                       @if (isAdmin()) {
                         @if (item.cohorte.statut === 'ARCHIVEE') {
                           <app-button variant="ghost" size="xs" (click)="restaurerCohorte(item.cohorte, $event)">Restaurer</app-button>
                         } @else {
-                          <app-button variant="ghost" size="xs" (click)="archiverCohorte(item.cohorte, $event)">Archiver</app-button>
+                          <app-button variant="ghost" size="xs" (click)="archiverCohorte(item.cohorte, $event)">
+                            <app-icon name="archive" class="size-3.5" /> Archiver
+                          </app-button>
                         }
                       }
                     </div>
-                  </app-card>
-                } @empty {
-                  <p class="py-8 text-center text-sm text-ink-muted">Aucune cohorte.</p>
+                  </article>
                 }
               </div>
-
-              <!-- Tableau (desktop) -->
-              <app-card padding="none" class="hidden w-full min-w-0 overflow-hidden sm:block">
-                <div class="overflow-x-auto">
-                  <table class="w-full min-w-[650px] border-collapse text-left text-sm">
-                    <thead>
-                      <tr class="border-b border-line bg-surface-subtle text-xs font-semibold uppercase tracking-wide text-ink-muted">
-                        <th scope="col" class="w-3/12 px-6 py-3"
-                            [attr.aria-sort]="globalSortBy() === 'nom' ? (globalSortDir() === 'asc' ? 'ascending' : 'descending') : null">
-                          <button type="button" (click)="toggleGlobalSort('nom')"
-                            class="flex cursor-pointer items-center gap-1.5 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
-                            Programme
-                            @if (globalSortBy() === 'nom') {
-                              <app-icon [name]="globalSortDir() === 'asc' ? 'chevron-up' : 'chevron-down'" class="size-3.5 text-accent" />
-                            }
-                          </button>
-                        </th>
-                        <th scope="col" class="w-3/12 px-6 py-3">Période</th>
-                        <th scope="col" class="w-2/12 px-6 py-3 text-center">Startups</th>
-                        <th scope="col" class="w-2/12 px-6 py-3 text-center"
-                            [attr.aria-sort]="globalSortBy() === 'progression' ? (globalSortDir() === 'asc' ? 'ascending' : 'descending') : null">
-                          <button type="button" (click)="toggleGlobalSort('progression')"
-                            class="mx-auto flex cursor-pointer items-center gap-1.5 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
-                            Maturité
-                            @if (globalSortBy() === 'progression') {
-                              <app-icon [name]="globalSortDir() === 'asc' ? 'chevron-up' : 'chevron-down'" class="size-3.5 text-accent" />
-                            }
-                          </button>
-                        </th>
-                        <th scope="col" class="w-2/12 px-6 py-3 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody class="divide-y divide-line bg-surface">
-                      @for (item of sortedCohortesAffichees(); track item.cohorte.id) {
-                        <tr class="group cursor-pointer transition-colors hover:bg-surface-subtle" (click)="activeContextId.set(item.cohorte.id)">
-                          <td class="px-6 py-4">
-                            <button type="button" (click)="activeContextId.set(item.cohorte.id)"
-                              class="cursor-pointer text-left font-semibold text-ink transition-colors group-hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
-                              {{ item.cohorte.nom }}
-                            </button>
-                          </td>
-                          <td class="px-6 py-4 text-xs text-ink-muted">
-                            <div class="flex items-center gap-2">
-                              <span>{{ formatDate(item.cohorte.dateDebut) }}</span>
-                              <app-icon name="arrow-right" class="size-3 text-ink-faint" />
-                              <span>{{ formatDate(item.cohorte.dateFin) }}</span>
-                            </div>
-                          </td>
-                          <td class="px-6 py-4 text-center font-semibold text-ink">{{ item.nbProjets }}</td>
-                          <td class="px-6 py-4">
-                            <div class="flex justify-center">
-                              <ng-container *ngTemplateOutlet="progression; context: { $implicit: item.scoreMoyen, largeur: 'w-20' }"></ng-container>
-                            </div>
-                          </td>
-                          <td class="px-6 py-4 text-right">
-                            <div class="flex items-center justify-end gap-2">
-                              <a
-                                [routerLink]="['/incubateur/cohortes', item.cohorte.id]"
-                                (click)="$event.stopPropagation()"
-                                class="inline-flex items-center gap-1 whitespace-nowrap rounded-button border border-line px-2.5 py-1.5 text-xs font-semibold text-accent transition-colors hover:bg-accent-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                              >
-                                <app-icon name="arrow-right" class="size-3.5" />
-                                Détail
-                              </a>
-                              @if (isAdmin()) {
-                                @if (item.cohorte.statut === 'ARCHIVEE') {
-                                  <app-button variant="ghost" size="xs" title="Restaurer le programme" (click)="restaurerCohorte(item.cohorte, $event)">Restaurer</app-button>
-                                } @else {
-                                  <app-button variant="ghost" size="xs" title="Archiver le programme" (click)="archiverCohorte(item.cohorte, $event)">Archiver</app-button>
-                                }
-                              }
-                            </div>
-                          </td>
-                        </tr>
-                      }
-                    </tbody>
-                  </table>
-                </div>
-              </app-card>
             }
           }
 
@@ -379,11 +338,11 @@ const FILTRES_COHORTES: { value: CohorteFilter; label: string }[] = [
             </app-page-header>
 
             <!-- KPI cohorte -->
-            <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-              <app-kpi-card label="Startups suivies" value="{{ data.projets.length }}" />
-              <app-kpi-card label="Maturité moyenne" value="{{ data.scoreMoyen }}%" />
-              <app-kpi-card label="Startups à jour" value="{{ data.aJour }}" />
-              <app-kpi-card label="En retard" value="{{ data.enRetard.length }}" />
+            <div class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+              <app-kpi-card icon="projects" label="Startups suivies" value="{{ data.projets.length }}" />
+              <app-kpi-card icon="chart" label="Maturité moyenne" value="{{ data.scoreMoyen }}%" />
+              <app-kpi-card icon="check-circle" label="Startups à jour" value="{{ data.aJour }}" />
+              <app-kpi-card icon="clock" label="En retard" value="{{ data.enRetard.length }}" />
             </div>
 
             <!-- Barre d'outils portefeuille -->
@@ -465,7 +424,7 @@ const FILTRES_COHORTES: { value: CohorteFilter; label: string }[] = [
                       <th scope="col" class="w-4/12 px-6 py-3 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody class="divide-y divide-line bg-surface">
+                  <tbody class="divide-y divide-line">
                     @for (p of filteredSortedProjets(); track p.id) {
                       <tr class="transition-colors hover:bg-surface-subtle">
                         <td class="px-6 py-4">
@@ -1150,6 +1109,12 @@ export class CohortesList {
         this.isLoading.set(false);
       },
     });
+  }
+
+  /** « Cohorte A » → « CA », « Batch 3 » → « B3 ». */
+  protected initialesCohorte(nom: string): string {
+    const mots = (nom ?? '').trim().split(/\s+/).filter(Boolean);
+    return (mots.length > 1 ? mots[0][0] + mots[mots.length - 1][0] : (mots[0] ?? '').slice(0, 2)).toUpperCase();
   }
 
   protected formatDate(dateString: string | undefined): string {

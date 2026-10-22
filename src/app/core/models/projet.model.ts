@@ -1,3 +1,5 @@
+import { StadeAccompagnement } from './cohorte.model';
+
 export type StatutProjet =
   | 'ACTIF'
   | 'DIPLOME'
@@ -34,6 +36,8 @@ export interface Projet {
   phaseId?: string;
   nomPhase?: string;
   phaseOrdre?: number;
+  // Stade de la phase de la cohorte active
+  stade?: StadeAccompagnement | null;
 }
 
 export interface CreateProjetRequest {
@@ -48,6 +52,13 @@ export interface UpdateProjetRequest {
   nom?: string;
   description?: string;
   secteur?: string;
+}
+
+/** Clôture de l'accompagnement : DIPLOME (fin de parcours) ou ABANDONNE. */
+export interface CloturerAccompagnementRequest {
+  issue: 'DIPLOME' | 'ABANDONNE';
+  motif?: string;
+  forcer: boolean;
 }
 
 export interface PromouvoirProjetRequest {

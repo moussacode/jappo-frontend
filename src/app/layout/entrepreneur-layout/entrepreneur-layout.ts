@@ -1,76 +1,76 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
-import {
-  Sidebar,
-  NavItem,
-} from '../../shared/components/sidebar/sidebar';
-
-import { TranslatePipe } from '../../shared/pipes/translate.pipe';
+import { NavItem } from '../../shared/components/sidebar/sidebar';
+import { AppShell } from '../../shared/components/app-shell/app-shell';
 import { EntrepreneurAssistantWidget } from '../../features/entrepreneur/assistant/entrepreneur-assistant-widget';
 
-@Component({
-  selector: 'app-entrepreneur-layout',
-  imports: [
-    RouterOutlet,
-    Sidebar,
-    TranslatePipe,
-    EntrepreneurAssistantWidget,
-  ],
-  template: `
-    <div class="flex h-dvh min-h-0 flex-col">
-      <div class="flex min-h-0 flex-1 overflow-hidden">
-        <app-sidebar [navItems]="navItems" />
-
-        <main class="min-h-0 min-w-0 flex-1 overflow-y-auto bg-surface-muted">
-          <router-outlet />
-        </main>
-        <app-entrepreneur-assistant-widget />
-      </div>
-    </div>
-  `,
-})
-export class EntrepreneurLayout {
-  protected readonly navItems: NavItem[] = [
+/** Menu de l'espace (partagé avec les maquettes). */
+export const ENTREPRENEUR_NAV: NavItem[] = [
     {
       label: 'entrepreneur.nav.parcours',
+      group: 'Pilotage',
       path: '/entrepreneur/mon-parcours',
       icon: 'layers',
     },
     {
       label: 'entrepreneur.nav.dashboard',
+      group: 'Pilotage',
       path: '/entrepreneur/dashboard',
       icon: 'dashboard',
     },
     {
       label: 'entrepreneur.nav.activites',
+      group: 'Mon travail',
       path: '/entrepreneur/missions',
       icon: 'missions',
     },
     {
       label: 'entrepreneur.nav.projets',
+      group: 'Mon travail',
       path: '/entrepreneur/projets',
       icon: 'projects',
     },
     {
-      label: 'entrepreneur.nav.reunions',
-      path: '/entrepreneur/reunions',
-      icon: 'video',
-    },
-    {
       label: 'entrepreneur.nav.livrables',
+      group: 'Mon travail',
       path: '/entrepreneur/documents',
       icon: 'documents',
     },
     {
+      label: 'entrepreneur.nav.reunions',
+      group: 'Collaboration',
+      path: '/entrepreneur/reunions',
+      icon: 'video',
+    },
+    {
       label: 'entrepreneur.nav.ressources',
+      group: 'Collaboration',
       path: '/entrepreneur/ressources',
       icon: 'book-open',
     },
     {
       label: 'entrepreneur.nav.assistantIa',
+      group: 'Collaboration',
       path: '/entrepreneur/assistant',
       icon: 'ai',
     },
   ];
+
+@Component({
+  selector: 'app-entrepreneur-layout',
+  imports: [
+    RouterOutlet,
+    AppShell,
+    EntrepreneurAssistantWidget,
+  ],
+  template: `
+    <app-shell [navItems]="navItems">
+      <router-outlet />
+    </app-shell>
+    <app-entrepreneur-assistant-widget />
+  `,
+})
+export class EntrepreneurLayout {
+  protected readonly navItems = ENTREPRENEUR_NAV;
 }

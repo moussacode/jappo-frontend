@@ -38,10 +38,10 @@ import { KpiCardComponent } from '../../../../shared/components/kpi-card/kpi-car
 import { BadgeComponent, BadgeStatus } from '../../../../shared/components/badge/badge';
 import { Icon } from '../../../../shared/components/icon/icon';
 import { CardComponent } from '../../../../shared/components/card/card.component';
-import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state';
 import { InviterEntrepreneurModalComponent } from '../../entrepreneurs/inviter-entrepreneur/inviter-entrepreneur';
+import { VIZ, VizPoint } from '../../../../shared/components/viz/viz';
 
 @Component({
   selector: 'app-dashboard',
@@ -53,11 +53,11 @@ import { InviterEntrepreneurModalComponent } from '../../entrepreneurs/inviter-e
     BadgeComponent,
     Icon,
     CardComponent,
-    PageHeaderComponent,
     ButtonComponent,
     EmptyStateComponent,
     InviterEntrepreneurModalComponent,
     TranslatePipe,
+    ...VIZ,
   ],
   templateUrl:"./dashboard.html"
 })
@@ -105,6 +105,36 @@ protected readonly salutation = computed(() => {
   protected readonly cohortesActives = signal<Cohorte[]>([]);
   protected readonly livrablesRecents = signal<LivrableRecentResponse[]>([]);
   protected readonly alertesProjets = signal<AlerteProjetResponse[]>([]);
+
+  protected readonly aujourdhui = new Intl.DateTimeFormat('fr-FR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  }).format(new Date());
+
+  /** Projets par phase, dans l'ordre du parcours. */
+  protected readonly phases = computed<VizPoint[]>(() =>
+    [...(this.stats()?.projetsParPhase ?? [])]
+      .sort((a, b) => a.ordre - b.ordre)
+      .map((p) => ({ label: p.nomPhase, value: p.nombre })),
+  );
+
+  protected readonly projetsSuivis = computed(() =>
+    this.phases().reduce((total, p) => total + p.value, 0),
+  );
+
+  /** « Cohorte A » → « CA », « AgriConnect » → « AG ». */
+  protected initiales(nom: string): string {
+    const mots = (nom ?? '').trim().split(/\s+/).filter(Boolean);
+    return (mots.length > 1 ? mots[0][0] + mots[mots.length - 1][0] : (mots[0] ?? '').slice(0, 2)).toUpperCase();
+  }
+
+  protected readonly actionsRapides = [
+    { label: 'Nouvelle cohorte', description: 'Lancer une promotion', icon: 'cohortes', lien: '/incubateur/cohortes' },
+    { label: 'Créer une mission', description: 'Assigner du travail', icon: 'missions', lien: '/incubateur/missions' },
+    { label: 'Planifier une réunion', description: 'Point ou atelier', icon: 'video', lien: '/incubateur/reunions/nouvelle' },
+    { label: 'Demander à l’IA', description: 'Synthèses et alertes', icon: 'ai', lien: '/incubateur/assistant-ia' },
+  ] as const;
 
   ngOnInit(): void {
     const activeMembership = this.structureContext.activeMembership();

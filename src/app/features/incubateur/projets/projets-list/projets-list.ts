@@ -25,6 +25,7 @@ import { downloadCsv } from '../../../../core/utils/csv-export';
 export type VueMode = 'grid' | 'table';
 export type FiltreArchive = 'TOUS' | 'ACTIFS' | 'ARCHIVES';
 
+import { humaniserEnum } from '../../../../core/utils/libelle';
 @Component({
   selector: 'app-projets-list',
   standalone: true,
@@ -45,7 +46,7 @@ export type FiltreArchive = 'TOUS' | 'ACTIFS' | 'ARCHIVES';
     NouveauProjetModal
   ],
   template: `
-    <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div class="mx-auto flex w-full max-w-[1400px] min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
       
       <!-- En-tête Page Unifié -->
       <app-page-header
@@ -538,7 +539,7 @@ export class ProjetsList implements OnInit {
       case 'ABANDONNE':
         return { status: 'danger', label: 'Abandonné' };
       default:
-        return { status: 'neutral', label: statut || 'Indéfini' };
+        return { status: 'neutral', label: humaniserEnum(statut, 'Indéfini') };
     }
   }
 }

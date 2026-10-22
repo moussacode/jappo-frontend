@@ -76,7 +76,7 @@ interface LigneSuivi {
     LoadingState, ErrorState
 ],
   template: `
-<div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
+<div class="mx-auto flex w-full max-w-[1400px] min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
 
   <!-- Chargement -->
   @if (chargement()) {
@@ -104,6 +104,12 @@ interface LigneSuivi {
       <app-breadcrumb [items]="[{ label: 'Cohortes', url: '/incubateur/cohortes' }, { label: cohorte()!.nom }]" />
 
       <app-page-header [title]="cohorte()!.nom">
+        @if (isAdminOrCoach()) {
+          <app-button variant="secondary" size="sm" [routerLink]="['/incubateur/cohortes', cohorte()!.id, 'rapport']">
+            <app-icon name="bar-chart" class="mr-1 h-4 w-4" />
+            Rapport
+          </app-button>
+        }
         @if (isAdmin()) {
           <app-button variant="secondary" size="sm" (click)="ouvrirInvitation()">
             <app-icon name="plus" class="mr-1 h-4 w-4" />

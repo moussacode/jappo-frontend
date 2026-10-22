@@ -32,7 +32,7 @@ import { BadgeComponent, BadgeStatus } from "../badge/badge";
         </div>
 
         <!-- Corps : Contenu personnalisable via ng-content ou lignes de métadonnées -->
-        <div class="flex flex-col gap-1.5 rounded-xl border border-line bg-surface-muted/40 p-3  text-xs">
+        <div class="flex flex-col gap-1.5 text-xs [&:has(>[card-body]:empty)]:hidden [&:not(:has(>*))]:hidden">
           <ng-content select="[card-body]" />
         </div>
 

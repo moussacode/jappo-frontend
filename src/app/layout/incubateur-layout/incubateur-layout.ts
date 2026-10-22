@@ -6,10 +6,8 @@ import {
 
 import { RouterOutlet } from '@angular/router';
 
-import {
-  Sidebar,
-  NavItem,
-} from '../../shared/components/sidebar/sidebar';
+import { NavItem } from '../../shared/components/sidebar/sidebar';
+import { AppShell } from '../../shared/components/app-shell/app-shell';
 
 import { AuthService } from '../../core/services/auth.service';
 
@@ -18,32 +16,84 @@ import {
 } from '../../core/services/structure-context.service';
 
 
+/** Menu de l'espace Incubateur (partagé avec les maquettes). */
+export const INCUBATEUR_NAV: NavItem[] = [
+
+        {
+          label: 'incubateur.nav.dashboard',
+          group: 'Pilotage',
+          path: '/incubateur/dashboard',
+          icon: 'dashboard',
+        },
+
+        {
+          label: 'incubateur.nav.cohortes',
+          group: 'Pilotage',
+          path: '/incubateur/cohortes',
+          icon: 'cohortes',
+        },
+         {
+          label: 'incubateur.nav.programmes',
+          group: 'Pilotage',
+          path: '/incubateur/programmes',
+          icon: 'layers',
+        },
+
+        {
+          label: 'incubateur.nav.entrepreneurs',
+          group: 'Suivi',
+          path: '/incubateur/entrepreneurs',
+          icon: 'entrepreneurs',
+        },
+
+        {
+          label: 'incubateur.nav.activites',
+          group: 'Suivi',
+          path: '/incubateur/missions',
+          icon: 'missions',
+        },
+
+        {
+          label: 'incubateur.nav.projets',
+          group: 'Suivi',
+          path: '/incubateur/projets',
+          icon: 'folder',
+        },
+
+        {
+          label: 'incubateur.nav.reunions',
+          group: 'Collaboration',
+          path: '/incubateur/reunions',
+          icon: 'video',
+        },
+
+        {
+          label: 'incubateur.nav.ressources',
+          group: 'Collaboration',
+          path: '/incubateur/ressources',
+          icon: 'book-open',
+        },
+
+        {
+          label: 'incubateur.nav.assistantIa',
+          group: 'Collaboration',
+          path: '/incubateur/assistant-ia',
+          icon: 'ai',
+        },
+      ];
+
 @Component({
   selector: 'app-incubateur-layout',
 
   imports: [
     RouterOutlet,
-    Sidebar,
+    AppShell,
   ],
 
   template: `
-    <div class="flex h-dvh min-h-0 flex-col">
-
-      <div class="flex min-h-0 flex-1 overflow-hidden">
-
-        <app-sidebar
-          [navItems]="navItems()"
-        />
-
-        <main
-          class="min-h-0 min-w-0 flex-1 overflow-y-auto bg-surface-muted"
-        >
-          <router-outlet />
-        </main>
-
-      </div>
-
-    </div>
+    <app-shell [navItems]="navItems()">
+      <router-outlet />
+    </app-shell>
   `,
 })
 export class IncubateurLayout {
@@ -72,61 +122,7 @@ export class IncubateurLayout {
       const role = membership?.role;
 
 
-      const items: NavItem[] = [
-
-        {
-          label: 'incubateur.nav.dashboard',
-          path: '/incubateur/dashboard',
-          icon: 'dashboard',
-        },
-
-        {
-          label: 'incubateur.nav.cohortes',
-          path: '/incubateur/cohortes',
-          icon: 'cohortes',
-        },
-         {
-          label: 'incubateur.nav.programmes',
-          path: '/incubateur/programmes',
-          icon: 'layers',
-        },
-
-        {
-          label: 'incubateur.nav.entrepreneurs',
-          path: '/incubateur/entrepreneurs',
-          icon: 'entrepreneurs',
-        },
-
-        {
-          label: 'incubateur.nav.activites',
-          path: '/incubateur/missions',
-          icon: 'missions',
-        },
-
-        {
-          label: 'incubateur.nav.projets',
-          path: '/incubateur/projets',
-          icon: 'folder',
-        },
-
-        {
-          label: 'incubateur.nav.reunions',
-          path: '/incubateur/reunions',
-          icon: 'video',
-        },
-
-        {
-          label: 'incubateur.nav.ressources',
-          path: '/incubateur/ressources',
-          icon: 'book-open',
-        },
-
-        {
-          label: 'incubateur.nav.assistantIa',
-          path: '/incubateur/assistant-ia',
-          icon: 'ai',
-        },
-      ];
+      const items: NavItem[] = [...INCUBATEUR_NAV];
 
 
       /*

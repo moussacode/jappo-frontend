@@ -10,12 +10,12 @@ import { RessourceService } from '../../../core/services/ressource.service';
   standalone: true,
   imports: [TranslatePipe, Icon],
   template: `
-    <section class="mx-auto flex max-w-6xl flex-col gap-6 p-5 sm:p-8">
+    <section class="mx-auto flex w-full max-w-[1400px] min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
       <header class="flex flex-col gap-2">
-        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-accent">
+        <p class="text-xs font-semibold uppercase tracking-wider text-accent">
           {{ 'entrepreneur.ressources.eyebrow' | translate }}
         </p>
-        <h1 class="text-2xl font-semibold text-ink sm:text-3xl">
+        <h1 class="text-xl font-semibold tracking-tight text-ink sm:text-[22px]">
           {{ 'entrepreneur.ressources.title' | translate }}
         </h1>
         <p class="max-w-2xl text-sm leading-6 text-ink-muted">
@@ -76,7 +76,7 @@ import { RessourceService } from '../../../core/services/ressource.service';
       } @else {
         <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           @for (resource of filteredResources(); track resource.id) {
-            <article class="flex min-w-0 flex-col rounded-2xl border border-line bg-surface p-5 shadow-sm">
+            <article class="flex min-w-0 flex-col rounded-2xl border border-line bg-surface p-5">
               <div class="flex items-start gap-3">
                 <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent-strong">
                   <app-icon [name]="isFile(resource) ? 'file-text' : 'link'" class="size-5" />
@@ -102,7 +102,7 @@ import { RessourceService } from '../../../core/services/ressource.service';
                 @if (isFile(resource)) {
                   <button
                     type="button"
-                    class="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
+                    class="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-line bg-surface/70 px-4 py-2 text-sm font-semibold text-ink transition hover:border-accent hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent disabled:cursor-wait disabled:opacity-60"
                     [disabled]="openingId() === resource.id"
                     (click)="openFile(resource)"
                   >
@@ -111,7 +111,7 @@ import { RessourceService } from '../../../core/services/ressource.service';
                   </button>
                 } @else if (safeExternalUrl(resource.url); as externalUrl) {
                   <a
-                    class="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+                    class="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-line bg-surface/70 px-4 py-2 text-sm font-semibold text-ink transition hover:border-accent hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent"
                     [href]="externalUrl"
                     target="_blank"
                     rel="noopener noreferrer"

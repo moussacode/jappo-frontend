@@ -6,42 +6,43 @@ export interface BreadcrumbItem {
   path?: string;
 }
 
+/** Racines déjà affichées par la barre supérieure : inutile de les répéter dans la page. */
+const RACINES = ['incubateur', 'entrepreneur', 'accueil', 'super-admin', 'administration'];
+
+/**
+ * En-tête de page compact : fil d'Ariane discret (fiches de détail),
+ * titre, sous-titre sur une ligne et actions alignées à droite.
+ */
 @Component({
   selector: 'app-page-header',
   standalone: true,
   imports: [RouterLink],
   template: `
-    <div class="flex flex-col gap-1 mb-4 sm:mb-6 lg:mb-8">
-      @if (breadcrumb() && typeof breadcrumb() === 'string') {
-        <span class="text-xs font-medium text-ink-muted">{{ breadcrumb() }}</span>
-      } @else if (breadcrumbItems()) {
-        <nav class="flex items-center gap-1.5 text-xs font-medium text-ink-muted">
-          @for (item of breadcrumbItems(); track item.label; let isLast = $last) {
-            @if (item.path && !isLast) {
-              <a [routerLink]="item.path" class="hover:text-accent transition-colors">
-                {{ item.label }}
-              </a>
-            } @else {
-              <span [class.text-ink]="isLast">{{ item.label }}</span>
+    <header class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+      <div class="min-w-0 flex-1">
+        @if (fil().length > 1) {
+          <nav aria-label="Fil d'Ariane" class="mb-1 flex min-w-0 items-center gap-1 text-xs text-ink-muted">
+            @for (item of fil(); track $index; let isLast = $last) {
+              @if (item.path && !isLast) {
+                <a [routerLink]="item.path" class="truncate transition-colors hover:text-ink">{{ item.label }}</a>
+              } @else if (!isLast) {
+                <span class="truncate">{{ item.label }}</span>
+              }
+              @if (!isLast && $index < fil().length - 2) {
+                <span class="text-ink-faint" aria-hidden="true">/</span>
+              }
             }
-            @if (!isLast) {
-              <span class="text-ink-muted/40">/</span>
-            }
-          }
-        </nav>
-      }
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div class="min-w-0 flex-1">
-          <h1 class="text-lg font-bold tracking-tight text-ink sm:text-xl lg:text-2xl xl:text-3xl break-words">{{ title() }}</h1>
-          @if (subtitle()) {
-            <p class="mt-1 text-xs sm:text-sm text-ink-muted leading-relaxed truncate">{{ subtitle() }}</p>
-          }
-        </div>
-        <div class="flex flex-wrap items-center gap-2 shrink-0 w-full sm:w-auto">
-          <ng-content />
-        </div>
+          </nav>
+        }
+        <h1 class="truncate text-xl font-semibold tracking-tight text-ink sm:text-[22px]">{{ title() }}</h1>
+        @if (subtitle()) {
+          <p class="mt-0.5 line-clamp-2 text-[13px] leading-snug text-ink-muted sm:line-clamp-1">{{ subtitle() }}</p>
+        }
       </div>
-    </div>
+      <div class="flex shrink-0 flex-wrap items-center gap-2 empty:hidden">
+        <ng-content />
+      </div>
+    </header>
   `
 })
 export class PageHeaderComponent {
@@ -49,9 +50,18 @@ export class PageHeaderComponent {
   subtitle = input<string>();
   breadcrumb = input<string | BreadcrumbItem[]>();
 
-  protected readonly breadcrumbItems = computed(() => {
+  /**
+   * Fil d'Ariane normalisé : accepte « A > B > C » ou un tableau et retire
+   * la racine de l'espace (déjà dans la barre supérieure). Le dernier niveau
+   * (la page courante) n'est pas répété : c'est le titre.
+   */
+  protected readonly fil = computed<BreadcrumbItem[]>(() => {
     const bc = this.breadcrumb();
-    if (typeof bc === 'string') return null;
-    return bc;
+    if (!bc) return [];
+    const items: BreadcrumbItem[] =
+      typeof bc === 'string'
+        ? bc.split('>').map((label) => ({ label: label.trim() })).filter((i) => i.label)
+        : bc;
+    return items.filter((item, index) => !(index === 0 && RACINES.includes(item.label.trim().toLowerCase())));
   });
 }

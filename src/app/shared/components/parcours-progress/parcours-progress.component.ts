@@ -23,7 +23,7 @@ import { TranslatePipe } from '../../pipes/translate.pipe';
           </p>
         </div>
       } @else {
-        <div class="overflow-hidden rounded-2xl border border-line bg-surface shadow-xs">
+        <div class="overflow-hidden rounded-2xl border border-line bg-surface">
           <header class="border-b border-line bg-surface-muted/30 p-5 sm:p-6">
             <div class="flex flex-col justify-between gap-5 sm:flex-row sm:items-start">
               <div class="min-w-0">
@@ -300,7 +300,7 @@ export class ParcoursProgressComponent {
 
   protected stepCardClasses(statut: StatutFeuilleRoute): string {
     if (this.isComplete(statut)) return 'border-emerald-500/20 bg-emerald-500/[0.035]';
-    if (this.isCurrent(statut)) return 'border-accent/40 bg-accent-soft/25 shadow-xs';
+    if (this.isCurrent(statut)) return 'border-accent/40 bg-accent-soft/25';
     if (['VERROUILLEE', 'NON_DEMARREE', 'ARCHIVEE'].includes(statut)) return 'border-line/70 bg-surface-muted/25';
     return 'border-line bg-surface';
   }

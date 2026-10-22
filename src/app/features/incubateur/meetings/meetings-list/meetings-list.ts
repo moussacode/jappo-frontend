@@ -27,7 +27,7 @@ import { Icon } from '../../../../shared/components/icon/icon';
     Icon
   ],
   template: `
-    <div class="flex flex-col gap-6 p-3 sm:p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+    <div class="flex flex-col gap-6 p-3 sm:p-4 md:p-6 lg:p-8 max-w-[1400px] mx-auto w-full">
       <app-page-header
         title="Réunions"
         subtitle="Gérez et rejoignez vos réunions vidéo"
@@ -56,7 +56,7 @@ import { Icon } from '../../../../shared/components/icon/icon';
           </app-button>
         </div>
       } @else if (meetings().length === 0) {
-        <app-card padding="none" class="shadow-xs border border-line/60">
+        <app-card padding="none" class=" border border-line/60">
           <div class="p-8 sm:p-12">
             <app-empty-state
               title="Aucune réunion planifiée"

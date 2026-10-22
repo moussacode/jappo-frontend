@@ -23,6 +23,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
 
 export type FiltreStatutEntrepreneur = 'TOUTES' | 'EN_COURS' | 'A_REVOIR' | 'VALIDE';
 
+import { humaniserEnum } from '../../../../core/utils/libelle';
 @Component({
   selector: 'app-missions-list',
   standalone: true,
@@ -138,7 +139,7 @@ export class MissionsList implements OnInit {
       return { status: 'neutral', label: 'Non définie' };
     }
     const config = (STATUT_MISSION_CONFIG as Record<string, { status: BadgeStatus; label: string }>)[statut];
-    return config ?? { status: 'neutral', label: statut };
+    return config ?? (statut === 'EN_ATTENTE_VALIDATION' ? { status: 'warning', label: 'En évaluation' } : { status: 'neutral', label: humaniserEnum(statut) });
   }
 
   protected livrableStatusBadge(mission: Mission): { status: BadgeStatus; label: string } | null {

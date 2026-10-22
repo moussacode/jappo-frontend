@@ -1,346 +1,392 @@
-import { Injectable, inject, signal, DestroyRef } from '@angular/core';
-import { Room, RoomEvent, RemoteParticipant, RemoteTrack, Track, LocalParticipant, LocalTrackPublication } from 'livekit-client';
-import { Observable, Subject } from 'rxjs';
+import { Injectable, signal } from '@angular/core';
+import {
+  ConnectionQuality,
+  ConnectionState,
+  DisconnectReason,
+  LocalAudioTrack,
+  LocalVideoTrack,
+  Participant,
+  RemoteTrack,
+  Room,
+  RoomEvent,
+  Track,
+  VideoPresets,
+  createLocalAudioTrack,
+  createLocalVideoTrack,
+} from 'livekit-client';
 
 export interface MeetingParticipantView {
   identity: string;
   displayName: string;
   isLocal: boolean;
   isHost: boolean;
-  videoTrack?: MediaStream | null;
-  audioTrack?: MediaStream | null;
   isMuted: boolean;
   isCameraOff: boolean;
+  isSpeaking: boolean;
+  isScreenSharing: boolean;
+  connectionQuality: ConnectionQuality;
+  /** Pistes LiveKit à attacher dans la vue (`track.attach(el)`), jamais recréées entre deux rafraîchissements. */
+  cameraTrack: Track | null;
+  screenTrack: Track | null;
 }
+
+export interface MeetingDevices {
+  audioinput: MediaDeviceInfo[];
+  videoinput: MediaDeviceInfo[];
+  audiooutput: MediaDeviceInfo[];
+}
+
+export interface MeetingDeviceSelection {
+  audioinput?: string;
+  videoinput?: string;
+  audiooutput?: string;
+}
+
+export interface JoinRoomOptions {
+  /** Résout le nom affiché à partir de l'identité LiveKit (= userId côté backend). */
+  resolveName: (identity: string) => string | undefined;
+  hostIdentity?: string;
+  micEnabled: boolean;
+  cameraEnabled: boolean;
+}
+
+/** Pourquoi la connexion s'est arrêtée, pour afficher le bon écran. */
+export type MeetingEndReason = 'left' | 'ended-by-host' | 'removed' | 'connection-lost';
+
+const AUDIO_CAPTURE = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
 
 @Injectable({ providedIn: 'root' })
 export class MeetingRoomService {
   private room: Room | null = null;
-  private destroyRef = inject(DestroyRef);
+  private options: JoinRoomOptions | null = null;
+  /** Conteneur caché qui héberge les <audio> des participants distants. */
+  private audioSink: HTMLElement | null = null;
 
-  // État principal
-  participants = signal<Map<string, MeetingParticipantView>>(new Map());
-  isHost = signal(false);
-  meetingEnded = signal(false);
-  isConnected = signal(false);
-  isConnecting = signal(false);
-  error = signal<string | null>(null);
+  // ── État de la salle
+  readonly participants = signal<MeetingParticipantView[]>([]);
+  readonly isHost = signal(false);
+  readonly isConnected = signal(false);
+  readonly isReconnecting = signal(false);
+  readonly endReason = signal<MeetingEndReason | null>(null);
+  /** Le navigateur a bloqué la lecture audio (autoplay) : il faut un clic pour la débloquer. */
+  readonly audioBlocked = signal(false);
+  /** Erreur non bloquante (micro/caméra refusés, partage d'écran impossible…). */
+  readonly mediaError = signal<string | null>(null);
 
-  // Sujets pour les événements
-  private participantConnected$ = new Subject<MeetingParticipantView>();
-  private participantDisconnected$ = new Subject<string>();
-  private trackSubscribed$ = new Subject<{ identity: string; kind: 'video' | 'audio' }>();
-  private trackUnsubscribed$ = new Subject<{ identity: string; kind: 'video' | 'audio' }>();
-  private roomDisconnected$ = new Subject<void>();
+  // ── Appareils
+  readonly devices = signal<MeetingDevices>({ audioinput: [], videoinput: [], audiooutput: [] });
+  readonly selectedDevices = signal<MeetingDeviceSelection>({});
 
-  participantConnected = this.participantConnected$.asObservable();
-  participantDisconnected = this.participantDisconnected$.asObservable();
-  trackSubscribed = this.trackSubscribed$.asObservable();
-  trackUnsubscribed = this.trackUnsubscribed$.asObservable();
-  roomDisconnected = this.roomDisconnected$.asObservable();
+  // ── Pré-visualisation (salle d'attente)
+  readonly previewAudio = signal<LocalAudioTrack | null>(null);
+  readonly previewVideo = signal<LocalVideoTrack | null>(null);
 
-  async joinRoom(livekitUrl: string, token: string, isHostUser: boolean): Promise<void> {
-    this.isConnecting.set(true);
-    this.error.set(null);
+  // ═══════════════════════════════════════════
+  // Salle d'attente : pré-visualisation et appareils
+  // ═══════════════════════════════════════════
+
+  async startPreview(): Promise<void> {
+    this.mediaError.set(null);
+    await Promise.all([this.setPreviewMic(true), this.setPreviewCamera(true)]);
+    await this.refreshDevices();
+  }
+
+  async setPreviewMic(enabled: boolean): Promise<void> {
+    this.previewAudio()?.stop();
+    this.previewAudio.set(null);
+    if (!enabled) return;
+    try {
+      const track = await createLocalAudioTrack({ ...AUDIO_CAPTURE, deviceId: this.selectedDevices().audioinput });
+      this.previewAudio.set(track);
+      this.rememberDevice('audioinput', track.mediaStreamTrack);
+    } catch (err) {
+      this.mediaError.set(this.describeMediaError(err, 'micro'));
+    }
+  }
+
+  async setPreviewCamera(enabled: boolean): Promise<void> {
+    this.previewVideo()?.stop();
+    this.previewVideo.set(null);
+    if (!enabled) return;
+    try {
+      const track = await createLocalVideoTrack({
+        deviceId: this.selectedDevices().videoinput,
+        resolution: VideoPresets.h720.resolution,
+      });
+      this.previewVideo.set(track);
+      this.rememberDevice('videoinput', track.mediaStreamTrack);
+    } catch (err) {
+      this.mediaError.set(this.describeMediaError(err, 'caméra'));
+    }
+  }
+
+  stopPreview(): void {
+    this.previewAudio()?.stop();
+    this.previewVideo()?.stop();
+    this.previewAudio.set(null);
+    this.previewVideo.set(null);
+  }
+
+  async refreshDevices(): Promise<void> {
+    const [audioinput, videoinput, audiooutput] = await Promise.all([
+      Room.getLocalDevices('audioinput', false),
+      Room.getLocalDevices('videoinput', false),
+      Room.getLocalDevices('audiooutput', false),
+    ]);
+    this.devices.set({ audioinput, videoinput, audiooutput });
+  }
+
+  /** Change d'appareil, que l'on soit en salle d'attente ou en réunion. */
+  async selectDevice(kind: MediaDeviceKind, deviceId: string): Promise<void> {
+    this.selectedDevices.update((d) => ({ ...d, [kind]: deviceId }));
+
+    if (this.room) {
+      await this.room.switchActiveDevice(kind, deviceId);
+      return;
+    }
+    if (kind === 'audioinput' && this.previewAudio()) await this.setPreviewMic(true);
+    if (kind === 'videoinput' && this.previewVideo()) await this.setPreviewCamera(true);
+  }
+
+  // ═══════════════════════════════════════════
+  // Réunion
+  // ═══════════════════════════════════════════
+
+  async joinRoom(livekitUrl: string, token: string, isHostUser: boolean, options: JoinRoomOptions): Promise<void> {
+    // On garde la pré-visualisation : ses pistes vont être publiées.
+    await this.teardownRoom();
+
+    this.options = options;
+    this.isHost.set(isHostUser);
+    this.endReason.set(null);
+    this.mediaError.set(null);
+
+    const selected = this.selectedDevices();
+    const room = new Room({
+      adaptiveStream: true,
+      dynacast: true,
+      audioCaptureDefaults: { ...AUDIO_CAPTURE, deviceId: selected.audioinput },
+      videoCaptureDefaults: { deviceId: selected.videoinput, resolution: VideoPresets.h720.resolution },
+      audioOutput: selected.audiooutput ? { deviceId: selected.audiooutput } : undefined,
+    });
+    this.room = room;
+    this.setupRoomListeners(room);
+
+    // Le clic sur « Rejoindre » est un geste utilisateur : on en profite pour débloquer l'audio.
+    room.startAudio().catch(() => undefined);
 
     try {
-      this.room = new Room();
-      this.isHost.set(isHostUser);
-
-      // Écouter les événements de la room
-      this.setupRoomListeners();
-
-      // Connecter à la room
-      await this.room.connect(livekitUrl, token);
-
-      this.isConnected.set(true);
-      this.isConnecting.set(false);
-
-      // Ajouter le participant local avec initialisation des tracks
-      if (this.room.localParticipant) {
-        this.addParticipant(this.room.localParticipant, true);
-
-        // Activer caméra et microphone sans faire échouer la connexion
-        await this.enableLocalTracks();
-      }
-
-      // Parcourir les participants distants déjà présents et leurs publications
-      for (const [identity, remoteParticipant] of this.room.remoteParticipants) {
-        this.addParticipant(remoteParticipant, false);
-
-        // Parcourir leurs publications déjà publiées
-        for (const [trackSid, publication] of remoteParticipant.trackPublications) {
-          if (publication.track) {
-            this.updateParticipantTrack(identity, publication.track);
-          }
-        }
-      }
-
+      await room.connect(livekitUrl, token);
     } catch (err) {
-      this.isConnecting.set(false);
-      this.error.set('Impossible de rejoindre la réunion. Vérifiez votre connexion.');
-      console.error('Failed to join room:', err);
+      this.room = null;
+      room.removeAllListeners();
       throw err;
     }
+
+    this.isConnected.set(true);
+    this.audioBlocked.set(!room.canPlaybackAudio);
+
+    // Publie les pistes de la salle d'attente pour éviter de rouvrir la caméra et le micro.
+    await this.publishPreviewTracks(options);
+    this.refresh();
   }
 
-  private async enableLocalTracks(): Promise<void> {
-    if (!this.room?.localParticipant) return;
-
-    const localParticipant = this.room.localParticipant;
-
+  async toggleMicrophone(): Promise<void> {
+    const local = this.room?.localParticipant;
+    if (!local) return;
     try {
-      // Activer le microphone
-      await localParticipant.setMicrophoneEnabled(true);
+      await local.setMicrophoneEnabled(!local.isMicrophoneEnabled);
     } catch (err) {
-      console.warn('Microphone access denied or failed:', err);
-      this.error.set('Accès au microphone refusé. Vous pourrez l\'activer plus tard.');
+      this.mediaError.set(this.describeMediaError(err, 'micro'));
     }
+    this.refresh();
+  }
 
+  async toggleCamera(): Promise<void> {
+    const local = this.room?.localParticipant;
+    if (!local) return;
     try {
-      // Activer la caméra
-      await localParticipant.setCameraEnabled(true);
+      await local.setCameraEnabled(!local.isCameraEnabled);
     } catch (err) {
-      console.warn('Camera access denied or failed:', err);
-      if (!this.error()) {
-        this.error.set('Accès à la caméra refusé. Vous pourrez l\'activer plus tard.');
+      this.mediaError.set(this.describeMediaError(err, 'caméra'));
+    }
+    this.refresh();
+  }
+
+  async toggleScreenShare(): Promise<void> {
+    const local = this.room?.localParticipant;
+    if (!local) return;
+    try {
+      await local.setScreenShareEnabled(!local.isScreenShareEnabled, { audio: true });
+    } catch (err) {
+      // L'utilisateur a fermé la fenêtre de sélection : ce n'est pas une erreur.
+      if ((err as DOMException)?.name !== 'NotAllowedError') {
+        this.mediaError.set('Impossible de partager votre écran.');
       }
     }
-
-    // Mettre à jour l'état local après activation
-    this.updateLocalParticipantState();
+    this.refresh();
   }
 
-  private updateLocalParticipantState(): void {
-    if (!this.room?.localParticipant) return;
-
-    const localParticipant = this.room.localParticipant;
-    const currentParticipants = new Map(this.participants());
-    const participantView = currentParticipants.get(localParticipant.identity);
-
-    if (participantView) {
-      // Vérifier l'état réel des publications locales en itérant sur toutes les publications
-      let micEnabled = false;
-      let camEnabled = false;
-      let micTrack: MediaStreamTrack | null = null;
-      let camTrack: MediaStreamTrack | null = null;
-
-      localParticipant.trackPublications.forEach((publication: LocalTrackPublication) => {
-        if (publication.kind === 'audio') {
-          micEnabled = publication.isEnabled;
-          if (publication.track) {
-            micTrack = publication.track.mediaStreamTrack;
-          }
-        } else if (publication.kind === 'video') {
-          camEnabled = publication.isEnabled;
-          if (publication.track) {
-            camTrack = publication.track.mediaStreamTrack;
-          }
-        }
-      });
-
-      participantView.isMuted = !micEnabled;
-      participantView.isCameraOff = !camEnabled;
-      participantView.audioTrack = micTrack ? new MediaStream([micTrack]) : null;
-      participantView.videoTrack = camTrack ? new MediaStream([camTrack]) : null;
-
-      currentParticipants.set(localParticipant.identity, participantView);
-      this.participants.set(currentParticipants);
-    }
-  }
-
-  private setupRoomListeners(): void {
-    if (!this.room) return;
-
-    this.room.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
-      this.addParticipant(participant, false);
-    });
-
-    this.room.on(RoomEvent.ParticipantDisconnected, (participant: RemoteParticipant) => {
-      this.removeParticipant(participant.identity);
-    });
-
-    this.room.on(RoomEvent.TrackSubscribed, (track: RemoteTrack, publication: any, participant: RemoteParticipant) => {
-      this.updateParticipantTrack(participant.identity, track);
-    });
-
-    this.room.on(RoomEvent.TrackUnsubscribed, (track: RemoteTrack, publication: any, participant: RemoteParticipant) => {
-      this.removeParticipantTrack(participant.identity, track.kind);
-    });
-
-    this.room.on(RoomEvent.LocalTrackPublished, (publication: LocalTrackPublication, participant: LocalParticipant) => {
-      this.updateLocalParticipantTrack(publication);
-    });
-
-    this.room.on(RoomEvent.LocalTrackUnpublished, (publication: LocalTrackPublication, participant: LocalParticipant) => {
-      this.removeLocalParticipantTrack(publication);
-    });
-
-    this.room.on(RoomEvent.Disconnected, () => {
-      this.handleRoomDisconnected();
-    });
-  }
-
-  private addParticipant(participant: LocalParticipant | RemoteParticipant, isLocal: boolean): void {
-    const participantView: MeetingParticipantView = {
-      identity: participant.identity,
-      displayName: participant.name || participant.identity,
-      isLocal,
-      isHost: isLocal ? this.isHost() : false, // Pour les participants distants, isHost sera déterminé plus tard si nécessaire
-      isMuted: false,
-      isCameraOff: true,
-      videoTrack: null,
-      audioTrack: null
-    };
-
-    const currentParticipants = new Map(this.participants());
-    currentParticipants.set(participant.identity, participantView);
-    this.participants.set(currentParticipants);
-
-    if (!isLocal) {
-      this.participantConnected$.next(participantView);
-    }
-  }
-
-  private removeParticipant(identity: string): void {
-    const currentParticipants = new Map(this.participants());
-    currentParticipants.delete(identity);
-    this.participants.set(currentParticipants);
-    this.participantDisconnected$.next(identity);
-  }
-
-  private updateParticipantTrack(identity: string, track: RemoteTrack): void {
-    const currentParticipants = new Map(this.participants());
-    const participant = currentParticipants.get(identity);
-
-    if (participant) {
-      if (track.kind === 'video') {
-        participant.videoTrack = new MediaStream([track.mediaStreamTrack]);
-        participant.isCameraOff = false;
-      } else if (track.kind === 'audio') {
-        participant.audioTrack = new MediaStream([track.mediaStreamTrack]);
-        participant.isMuted = false;
-      }
-
-      currentParticipants.set(identity, participant);
-      this.participants.set(currentParticipants);
-
-      this.trackSubscribed$.next({ identity, kind: track.kind as 'video' | 'audio' });
-    }
-  }
-
-  private updateLocalParticipantTrack(publication: LocalTrackPublication): void {
-    if (!this.room?.localParticipant) return;
-
-    const localParticipant = this.room.localParticipant;
-    const currentParticipants = new Map(this.participants());
-    const participantView = currentParticipants.get(localParticipant.identity);
-
-    if (participantView && publication.track) {
-      if (publication.kind === 'video') {
-        participantView.videoTrack = new MediaStream([publication.track.mediaStreamTrack]);
-        participantView.isCameraOff = !publication.isEnabled;
-      } else if (publication.kind === 'audio') {
-        participantView.audioTrack = new MediaStream([publication.track.mediaStreamTrack]);
-        participantView.isMuted = !publication.isEnabled;
-      }
-
-      currentParticipants.set(localParticipant.identity, participantView);
-      this.participants.set(currentParticipants);
-    }
-  }
-
-  private removeLocalParticipantTrack(publication: LocalTrackPublication): void {
-    if (!this.room?.localParticipant) return;
-
-    const localParticipant = this.room.localParticipant;
-    const currentParticipants = new Map(this.participants());
-    const participantView = currentParticipants.get(localParticipant.identity);
-
-    if (participantView) {
-      if (publication.kind === 'video') {
-        participantView.videoTrack = undefined;
-        participantView.isCameraOff = true;
-      } else if (publication.kind === 'audio') {
-        participantView.audioTrack = undefined;
-        participantView.isMuted = true;
-      }
-
-      currentParticipants.set(localParticipant.identity, participantView);
-      this.participants.set(currentParticipants);
-    }
-  }
-
-  private removeParticipantTrack(identity: string, kind: string): void {
-    const currentParticipants = new Map(this.participants());
-    const participant = currentParticipants.get(identity);
-
-    if (participant) {
-      if (kind === 'video') {
-        participant.videoTrack = null;
-        participant.isCameraOff = true;
-      } else if (kind === 'audio') {
-        participant.audioTrack = null;
-        participant.isMuted = true;
-      }
-
-      currentParticipants.set(identity, participant);
-      this.participants.set(currentParticipants);
-
-      this.trackUnsubscribed$.next({ identity, kind: kind as 'video' | 'audio' });
-    }
-  }
-
-  private handleRoomDisconnected(): void {
-    this.isConnected.set(false);
-    // NE PAS mettre meetingEnded.set(true) ici
-    // La déconnexion LiveKit ne signifie pas que la réunion est terminée
-    // Le statut ENDED vient uniquement du backend via l'API
-    this.roomDisconnected$.next();
-  }
-
-  toggleMicrophone(enabled: boolean): void {
-    if (this.room?.localParticipant) {
-      try {
-        this.room.localParticipant.setMicrophoneEnabled(enabled);
-        // Mettre à jour l'état local via la publication réelle
-        this.updateLocalParticipantState();
-      } catch (err) {
-        console.error('Failed to toggle microphone:', err);
-      }
-    }
-  }
-
-  toggleCamera(enabled: boolean): void {
-    if (this.room?.localParticipant) {
-      try {
-        this.room.localParticipant.setCameraEnabled(enabled);
-        // Mettre à jour l'état local via la publication réelle
-        this.updateLocalParticipantState();
-      } catch (err) {
-        console.error('Failed to toggle camera:', err);
-      }
-    }
+  async startAudio(): Promise<void> {
+    await this.room?.startAudio();
+    this.audioBlocked.set(!(this.room?.canPlaybackAudio ?? true));
   }
 
   async leaveMeeting(): Promise<void> {
-    if (this.room) {
-      await this.room.disconnect();
-      this.room = null;
-      this.isConnected.set(false);
-      this.participants.set(new Map());
-    }
+    await this.teardownRoom();
+    this.stopPreview();
   }
 
   disconnect(): void {
-    this.leaveMeeting();
+    void this.leaveMeeting();
   }
 
-  getLocalParticipant(): LocalParticipant | null {
-    return this.room?.localParticipant || null;
+  // ═══════════════════════════════════════════
+  // Internes
+  // ═══════════════════════════════════════════
+
+  private async teardownRoom(): Promise<void> {
+    const room = this.room;
+    this.room = null;
+    if (room) {
+      room.removeAllListeners();
+      await room.disconnect();
+    }
+    this.audioSink?.remove();
+    this.audioSink = null;
+    this.participants.set([]);
+    this.isConnected.set(false);
+    this.isReconnecting.set(false);
+    this.audioBlocked.set(false);
   }
 
-  getRemoteParticipants(): RemoteParticipant[] {
-    return Array.from(this.room?.remoteParticipants.values() || []);
+  private async publishPreviewTracks(options: JoinRoomOptions): Promise<void> {
+    const local = this.room!.localParticipant;
+    const audio = this.previewAudio();
+    const video = this.previewVideo();
+    this.previewAudio.set(null);
+    this.previewVideo.set(null);
+
+    try {
+      if (options.micEnabled && audio) await local.publishTrack(audio);
+      else {
+        audio?.stop();
+        if (options.micEnabled) await local.setMicrophoneEnabled(true);
+      }
+    } catch (err) {
+      this.mediaError.set(this.describeMediaError(err, 'micro'));
+    }
+
+    try {
+      if (options.cameraEnabled && video) await local.publishTrack(video);
+      else {
+        video?.stop();
+        if (options.cameraEnabled) await local.setCameraEnabled(true);
+      }
+    } catch (err) {
+      this.mediaError.set(this.describeMediaError(err, 'caméra'));
+    }
+  }
+
+  private setupRoomListeners(room: Room): void {
+    const refresh = () => this.refresh();
+
+    room
+      .on(RoomEvent.ParticipantConnected, refresh)
+      .on(RoomEvent.ParticipantDisconnected, refresh)
+      .on(RoomEvent.ParticipantNameChanged, refresh)
+      .on(RoomEvent.TrackPublished, refresh)
+      .on(RoomEvent.TrackUnpublished, refresh)
+      .on(RoomEvent.TrackMuted, refresh)
+      .on(RoomEvent.TrackUnmuted, refresh)
+      .on(RoomEvent.LocalTrackPublished, refresh)
+      .on(RoomEvent.LocalTrackUnpublished, refresh)
+      .on(RoomEvent.ActiveSpeakersChanged, refresh)
+      .on(RoomEvent.ConnectionQualityChanged, refresh)
+      .on(RoomEvent.TrackSubscribed, (track: RemoteTrack) => {
+        // Cause de l'absence de son : les pistes audio distantes doivent être jouées dans un <audio>.
+        if (track.kind === Track.Kind.Audio) this.ensureAudioSink().appendChild(track.attach());
+        this.refresh();
+      })
+      .on(RoomEvent.TrackUnsubscribed, (track: RemoteTrack) => {
+        track.detach().forEach((el) => el.remove());
+        this.refresh();
+      })
+      .on(RoomEvent.AudioPlaybackStatusChanged, () => this.audioBlocked.set(!room.canPlaybackAudio))
+      .on(RoomEvent.MediaDevicesChanged, () => void this.refreshDevices())
+      .on(RoomEvent.ActiveDeviceChanged, (kind: MediaDeviceKind, deviceId: string) =>
+        this.selectedDevices.update((d) => ({ ...d, [kind]: deviceId })),
+      )
+      .on(RoomEvent.Reconnecting, () => this.isReconnecting.set(true))
+      .on(RoomEvent.SignalReconnecting, () => this.isReconnecting.set(true))
+      .on(RoomEvent.Reconnected, () => this.isReconnecting.set(false))
+      .on(RoomEvent.Disconnected, (reason?: DisconnectReason) => {
+        this.isConnected.set(false);
+        this.isReconnecting.set(false);
+        // Le backend supprime la room LiveKit quand le coach termine la réunion.
+        if (reason === DisconnectReason.ROOM_DELETED) this.endReason.set('ended-by-host');
+        else if (reason === DisconnectReason.PARTICIPANT_REMOVED) this.endReason.set('removed');
+        else if (reason !== DisconnectReason.CLIENT_INITIATED) this.endReason.set('connection-lost');
+      });
+  }
+
+  /** Reconstruit la liste des participants depuis l'état réel de la room LiveKit. */
+  private refresh(): void {
+    const room = this.room;
+    if (!room || room.state === ConnectionState.Disconnected) return;
+
+    const views = [room.localParticipant, ...room.remoteParticipants.values()].map((p) =>
+      this.toView(p, p === room.localParticipant),
+    );
+    this.participants.set(views);
+  }
+
+  private toView(p: Participant, isLocal: boolean): MeetingParticipantView {
+    const camera = p.getTrackPublication(Track.Source.Camera);
+    const screen = p.getTrackPublication(Track.Source.ScreenShare);
+    const isHost = isLocal ? this.isHost() : p.identity === this.options?.hostIdentity;
+
+    return {
+      identity: p.identity,
+      displayName: this.options?.resolveName(p.identity) || (p.name !== p.identity ? p.name : '') || 'Participant',
+      isLocal,
+      isHost,
+      isMuted: !p.isMicrophoneEnabled,
+      isCameraOff: !camera?.track || camera.isMuted,
+      isSpeaking: p.isSpeaking,
+      isScreenSharing: !!screen?.track && !screen.isMuted,
+      connectionQuality: p.connectionQuality,
+      cameraTrack: camera?.track ?? null,
+      screenTrack: screen?.track && !screen.isMuted ? screen.track : null,
+    };
+  }
+
+  private ensureAudioSink(): HTMLElement {
+    if (!this.audioSink) {
+      this.audioSink = document.createElement('div');
+      this.audioSink.hidden = true;
+      this.audioSink.setAttribute('data-meeting-audio', '');
+      document.body.appendChild(this.audioSink);
+    }
+    return this.audioSink;
+  }
+
+  private rememberDevice(kind: MediaDeviceKind, track: MediaStreamTrack): void {
+    const deviceId = track.getSettings().deviceId;
+    if (deviceId) this.selectedDevices.update((d) => ({ ...d, [kind]: deviceId }));
+  }
+
+  private describeMediaError(err: unknown, device: 'micro' | 'caméra'): string {
+    const name = (err as DOMException)?.name;
+    if (name === 'NotAllowedError' || name === 'SecurityError') {
+      return `Accès ${device === 'micro' ? 'au micro' : 'à la caméra'} refusé. Autorisez-le dans les paramètres du navigateur.`;
+    }
+    if (name === 'NotFoundError' || name === 'OverconstrainedError') {
+      return `Aucun${device === 'caméra' ? 'e' : ''} ${device} détecté${device === 'caméra' ? 'e' : ''}.`;
+    }
+    if (name === 'NotReadableError') {
+      return `${device === 'micro' ? 'Le micro' : 'La caméra'} est déjà utilisé${device === 'caméra' ? 'e' : ''} par une autre application.`;
+    }
+    return `Impossible d'activer ${device === 'micro' ? 'le micro' : 'la caméra'}.`;
   }
 }

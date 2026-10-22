@@ -47,7 +47,7 @@ interface StatsParcours {
   ],
   host: { '(document:keydown.escape)': 'menuOuvert.set(false)' },
   template: `
-    <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div class="mx-auto flex w-full max-w-[1400px] min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
 
       @if (programme(); as prog) {
         <app-page-header
@@ -128,6 +128,29 @@ interface StatsParcours {
           </div>
         </app-card>
 
+        <!-- Préparation du programme -->
+        <app-card padding="sm">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-ink">
+                {{ preparation().pret ? 'Programme prêt à accueillir une cohorte' : 'Programme à compléter' }}
+              </p>
+              <p class="text-[13px] text-ink-muted">{{ preparation().faits }} / {{ preparation().points.length }} points validés</p>
+            </div>
+            @if (preparation().pret) {
+              <a routerLink="/incubateur/cohortes" class="text-sm font-medium text-accent hover:underline">Lancer une cohorte →</a>
+            }
+          </div>
+          <ul class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            @for (point of preparation().points; track point.label) {
+              <li class="flex items-start gap-2 text-[13px]" [class]="point.ok ? 'text-ink' : 'text-ink-muted'">
+                <app-icon [name]="point.ok ? 'check-circle' : 'alert-circle'" class="mt-0.5 size-4 shrink-0" [class]="point.ok ? 'text-vivid-green' : 'text-warning-500'" />
+                <span>{{ point.label }}@if (point.detail) {<span class="block text-xs text-ink-faint">{{ point.detail }}</span>}</span>
+              </li>
+            }
+          </ul>
+        </app-card>
+
         @if (parcoursDuProgramme().length === 0) {
           <app-empty-state iconName="folder" title="Aucun parcours" description="Ce programme ne contient encore aucun parcours.">
             @if (isAdmin()) {
@@ -182,7 +205,7 @@ interface StatsParcours {
                               [attr.aria-expanded]="phasesOuvertes().has(parcours.id + ':' + phase.id)"
                             >
                               <app-icon name="chevron-down" class="size-3.5 shrink-0 text-ink-muted transition-transform duration-200" [class.-rotate-90]="!phasesOuvertes().has(parcours.id + ':' + phase.id)" />
-                              <span class="shrink-0 text-[11px] font-semibold uppercase tracking-wider text-accent">Phase {{ i + 1 }}</span>
+                              <span class="shrink-0 text-xs text-ink-muted">Phase {{ i + 1 }}</span>
                               <span class="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{{ phase.nom }}</span>
                               @if ((nbParcoursParPhase().get(phase.id) ?? 1) > 1) {
                                 <app-badge status="purple" size="sm" class="hidden sm:inline-flex">
@@ -218,18 +241,46 @@ interface StatsParcours {
                                             <p class="line-clamp-1 text-xs text-ink-muted">{{ etape.description }}</p>
                                           }
                                         </div>
-                                        <app-badge [status]="etape.obligatoire ? 'info' : 'neutral'" size="sm">
-                                          {{ etape.obligatoire ? 'Obligatoire' : 'Facultative' }}
-                                        </app-badge>
+                                        <span class="hidden shrink-0 text-xs sm:inline" [class]="(etape.missionIds?.length ?? 0) === 0 ? 'text-warning-500' : 'text-ink-muted'">
+                                          {{ etape.missionIds?.length ?? 0 }} mission(s)
+                                        </span>
+                                        @if (!etape.obligatoire) {
+                                          <app-badge status="neutral" size="sm">Facultative</app-badge>
+                                        }
+                                        <a
+                                          [routerLink]="['/incubateur/programmes/etapes', etape.id]"
+                                          [queryParams]="{ parcoursId: parcours.id, programmeId: programme()?.id }"
+                                          class="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-accent hover:bg-accent-soft"
+                                        >Missions</a>
                                       </li>
                                     }
                                   </ol>
                                 }
 
                                 @if (isAdmin()) {
-                                  <button type="button" (click)="ouvrirCreationEtape(parcours, phase)" class="mt-2 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-accent hover:bg-accent-soft transition-colors cursor-pointer">
-                                    <app-icon name="plus" class="size-3.5" /> Ajouter une étape
-                                  </button>
+                                  @if (cibleEtape()?.phase?.id === phase.id && cibleEtape()?.parcours?.id === parcours.id) {
+                                    <form [formGroup]="formEtape" (ngSubmit)="creerEtape()" class="mt-2 flex flex-wrap items-center gap-2">
+                                      <input
+                                        type="text"
+                                        formControlName="nom"
+                                        (keydown.escape)="fermerModals()"
+                                        placeholder="Nom de l'étape, puis Entrée"
+                                        aria-label="Nom de la nouvelle étape"
+                                        class="min-w-0 flex-1 rounded-lg border border-line bg-surface px-3 py-1.5 text-sm text-ink"
+                                        data-saisie-rapide
+                                      />
+                                      <label class="flex items-center gap-1.5 text-xs text-ink-muted">
+                                        <input type="checkbox" formControlName="obligatoire" /> Obligatoire
+                                      </label>
+                                      <app-button type="submit" size="xs" [disabled]="formEtape.invalid || enCours()">Ajouter</app-button>
+                                      <app-button type="button" size="xs" variant="ghost" (click)="fermerModals()">Fermer</app-button>
+                                    </form>
+                                    @if (erreurModal()) { <p class="mt-1 text-xs text-danger-500">{{ erreurModal() }}</p> }
+                                  } @else {
+                                    <button type="button" (click)="ouvrirCreationEtape(parcours, phase)" class="mt-2 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-accent hover:bg-accent-soft transition-colors cursor-pointer">
+                                      <app-icon name="plus" class="size-3.5" /> Ajouter une étape
+                                    </button>
+                                  }
                                 }
                               </div>
                             }
@@ -337,37 +388,6 @@ interface StatsParcours {
         </app-modal>
       }
 
-      <!-- Modal : nouvelle étape -->
-      @if (cibleEtape(); as cible) {
-        <app-modal title="Ajouter une étape" [subtitle]="cible.phase.nom" maxWidth="md" (close)="fermerModals()">
-          <form [formGroup]="formEtape" (ngSubmit)="creerEtape()" class="flex flex-col gap-4">
-            @if (erreurModal()) {
-              <div class="rounded-xl border border-danger/30 bg-danger/10 p-3 text-xs text-danger" role="alert">{{ erreurModal() }}</div>
-            }
-            <div>
-              <label class="mb-1.5 block text-sm font-medium text-ink">Nom *</label>
-              <input type="text" formControlName="nom" placeholder="Ex : Identifier le problème" class="${INPUT_CLASS}" />
-              @if (formEtape.controls.nom.invalid && formEtape.controls.nom.touched) {
-                <p class="mt-1 text-xs text-danger">Le nom est obligatoire</p>
-              }
-            </div>
-            <div>
-              <label class="mb-1.5 block text-sm font-medium text-ink">Description</label>
-              <textarea formControlName="description" rows="3" class="${INPUT_CLASS}"></textarea>
-            </div>
-            <label class="flex items-center gap-2 text-sm text-ink cursor-pointer">
-              <input type="checkbox" formControlName="obligatoire" class="size-4 accent-accent" />
-              Étape obligatoire
-            </label>
-            <p class="text-xs text-ink-muted">L'étape sera ajoutée à la fin de la phase.</p>
-            <div class="flex justify-end gap-2">
-              <app-button type="button" variant="ghost" (click)="fermerModals()">Annuler</app-button>
-              <app-button type="submit" [disabled]="formEtape.invalid || enCours()">{{ enCours() ? 'En cours...' : 'Ajouter' }}</app-button>
-            </div>
-          </form>
-        </app-modal>
-      }
-
       <!-- Modal : modifier programme -->
       @if (modalProgramme()) {
         <app-modal title="Modifier le programme" maxWidth="md" (close)="fermerModals()">
@@ -462,6 +482,7 @@ export class ProgrammeDetailComponent implements OnInit {
   });
   readonly phaseExistanteId = new FormControl('', { nonNullable: true });
 
+
   readonly isAdmin = computed(() => this.structureCtx.activeRole() === 'ADMIN_STRUCTURE');
 
   readonly parcoursDuProgramme = computed(() => {
@@ -513,6 +534,23 @@ export class ProgrammeDetailComponent implements OnInit {
     let etapes = 0;
     phaseIds.forEach(id => (etapes += this.etapesParPhase().get(id)?.length ?? 0));
     return { phases: phaseIds.size, etapes };
+  });
+
+  /** Points de contrôle avant de lancer une cohorte sur ce programme. */
+  readonly preparation = computed(() => {
+    const parcours = this.parcoursDuProgramme();
+    const phases = parcours.flatMap(p => this.phasesDe(p));
+    const etapes = [...new Set(phases.map(ph => ph.id))].flatMap(id => this.etapesParPhase().get(id) ?? []);
+    const phasesVides = phases.filter(ph => (this.etapesParPhase().get(ph.id) ?? []).length === 0).length;
+    const etapesSansMission = etapes.filter(e => (e.missionIds?.length ?? 0) === 0).length;
+    const points = [
+      { label: 'Au moins un parcours', ok: parcours.length > 0, detail: '' },
+      { label: 'Des phases dans chaque parcours', ok: parcours.length > 0 && parcours.every(p => this.phasesDe(p).length > 0), detail: '' },
+      { label: 'Des étapes dans chaque phase', ok: phases.length > 0 && phasesVides === 0, detail: phasesVides ? phasesVides + ' phase(s) vide(s)' : '' },
+      { label: 'Des missions à chaque étape', ok: etapes.length > 0 && etapesSansMission === 0, detail: etapesSansMission ? etapesSansMission + ' étape(s) sans mission' : '' },
+    ];
+    const faits = points.filter(p => p.ok).length;
+    return { points, faits, pret: faits === points.length };
   });
 
   readonly phasesDisponibles = computed(() => {
@@ -707,6 +745,12 @@ export class ProgrammeDetailComponent implements OnInit {
     this.ouvrirModal();
     this.formEtape.reset();
     this.cibleEtape.set({ parcours, phase });
+    this.focaliserSaisieRapide();
+  }
+
+  /** Place le curseur dans le champ de saisie rapide qui vient d'apparaître. */
+  private focaliserSaisieRapide(): void {
+    setTimeout(() => document.querySelector<HTMLInputElement>('app-programme-detail [data-saisie-rapide]')?.focus());
   }
 
   creerEtape(): void {
@@ -727,9 +771,12 @@ export class ProgrammeDetailComponent implements OnInit {
       phaseId: cible.phase.id,
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
-        this.fermerModals();
         this.charger(this.programme()!.id);
         this.phasesOuvertes.set(new Set([...this.phasesOuvertes(), cible.parcours.id + ':' + cible.phase.id]));
+        // La saisie reste ouverte pour enchaîner les étapes.
+        this.enCours.set(false);
+        this.formEtape.reset();
+        this.focaliserSaisieRapide();
       },
       error: (err) => {
         this.enCours.set(false);

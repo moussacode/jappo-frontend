@@ -34,7 +34,7 @@ type TypeReunion = 'INDIVIDUELLE' | 'GROUPE';
     </app-button>
   </app-page-header>
 
-  <app-card padding="lg" class="shadow-xs border border-line/60">
+  <app-card padding="lg" class=" border border-line/60">
     <div class="space-y-5">
 
       <!-- Titre -->

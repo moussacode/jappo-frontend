@@ -46,8 +46,8 @@ export class ButtonComponent {
     };
 
     const variants: Record<ButtonVariant, string> = {
-      primary: 'bg-accent text-white hover:bg-accent-strong shadow-sm',
-      secondary: 'bg-surface text-ink border border-line hover:bg-surface-muted shadow-xs',
+      primary: 'bg-accent text-white hover:bg-accent-strong',
+      secondary: 'bg-surface text-ink border border-line hover:bg-surface-muted',
       ghost: 'bg-surface-muted text-ink hover:bg-line',
     };
 

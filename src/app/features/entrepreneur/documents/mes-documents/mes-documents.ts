@@ -20,13 +20,14 @@ const FILTRES_DOCUMENTS: { value: DocumentFilter; label: string }[] = [
   { value: 'REFUSE', label: 'Refusés' },
 ];
 
+import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 @Component({
   selector: 'app-mes-documents',
   standalone: true,
-  imports: [RouterLink, BadgeComponent, TabFilterComponent],
+  imports: [RouterLink, BadgeComponent, TabFilterComponent, PageHeaderComponent],
   template: `
-    <div class="flex flex-col gap-6 p-8">
-      <h1 class="text-[24px] font-normal leading-[1.33] text-ink">Mes documents</h1>
+    <div class="mx-auto flex w-full max-w-[1400px] min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
+      <app-page-header title="Mes livrables" subtitle="Tous les fichiers que vous avez déposés et leur évaluation." />
 
       <!-- Filtre par onglets -->
       @if (!isLoading() && livrables().length > 0) {
@@ -43,7 +44,7 @@ const FILTRES_DOCUMENTS: { value: DocumentFilter; label: string }[] = [
           Chargement de vos documents...
         </div>
       } @else if (livrablesFiltres().length > 0) {
-        <div class="rounded-[var(--radius-card)] border border-line bg-surface">
+        <div class="lg-surface overflow-hidden rounded-2xl">
           @for (l of livrablesFiltres(); track l.id) {
             <div class="flex flex-col gap-1.5 border-b border-line px-5 py-4 last:border-0">
               <div class="flex items-center justify-between gap-2">

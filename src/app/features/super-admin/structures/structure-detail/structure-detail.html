@@ -4,7 +4,7 @@
   <!-- LOADING SKELETON -->
   <!-- ================================================================ -->
   @if (loading()) {
-    <div class="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8 space-y-6">
+    <div class="mx-auto max-w-[1400px] p-4 sm:p-6 lg:p-8 space-y-6">
       <div class="animate-pulse space-y-6">
         <div class="flex items-center gap-4">
           <div class="h-10 w-10 rounded-xl bg-surface"></div>
@@ -27,8 +27,8 @@
   <!-- ERROR STATE -->
   <!-- ================================================================ -->
   @else if (error()) {
-    <div class="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
-      <div class="rounded-2xl border border-line bg-surface p-8 shadow-xs text-center">
+    <div class="mx-auto max-w-[1400px] p-4 sm:p-6 lg:p-8">
+      <div class="rounded-2xl border border-line bg-surface p-8 text-center">
         <app-empty-state
           title="Impossible de charger la structure"
           [description]="error()!"
@@ -53,7 +53,7 @@
   <!-- ================================================================ -->
   @else if (structure(); as str) {
 
-    <div class="mx-auto max-w-7xl space-y-6 p-4 sm:p-6 lg:p-8">
+    <div class="mx-auto max-w-[1400px] space-y-6 p-4 sm:p-6 lg:p-8">
 
       <!-- HEADER NAVIGATION & ACTIONS -->
       <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -61,7 +61,7 @@
         <div class="flex items-start gap-3.5">
           <button
             type="button"
-            class="mt-0.5 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-line bg-surface text-ink-muted transition-all duration-150 hover:bg-surface-muted hover:text-ink shadow-xs"
+            class="mt-0.5 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-line bg-surface text-ink-muted transition-all duration-150 hover:bg-surface-muted hover:text-ink"
             (click)="retour()"
             aria-label="Retour"
           >
@@ -70,7 +70,7 @@
 
           <div>
             <div class="flex flex-wrap items-center gap-2.5">
-              <h1 class="text-xl font-bold tracking-tight text-ink sm:text-2xl">
+              <h1 class="text-xl font-semibold tracking-tight text-ink sm:text-[22px]">
                 {{ str.nom }}
               </h1>
 
@@ -141,7 +141,7 @@
       <section class="grid grid-cols-1 gap-4 sm:grid-cols-3">
 
         <!-- Membres -->
-        <div class="flex flex-col justify-between rounded-2xl border border-line bg-surface p-5 shadow-xs">
+        <div class="flex flex-col justify-between rounded-2xl border border-line bg-surface p-5">
           <p class="text-xs font-bold uppercase tracking-wider text-ink-muted">Membres rattachés</p>
           <p class="mt-3 text-3xl font-extrabold text-ink">{{ str.nombreMembres }}</p>
           <div class="mt-4 border-t border-line/60 pt-3">
@@ -150,7 +150,7 @@
         </div>
 
         <!-- Cohortes -->
-        <div class="flex flex-col justify-between rounded-2xl border border-line bg-surface p-5 shadow-xs">
+        <div class="flex flex-col justify-between rounded-2xl border border-line bg-surface p-5">
           <p class="text-xs font-bold uppercase tracking-wider text-ink-muted">Cohortes actives</p>
           <p class="mt-3 text-3xl font-extrabold text-ink">{{ str.nombreCohortesActives }}</p>
           <div class="mt-4 border-t border-line/60 pt-3">
@@ -159,7 +159,7 @@
         </div>
 
         <!-- Abonnement -->
-        <div class="flex flex-col justify-between rounded-2xl border border-line bg-surface p-5 shadow-xs">
+        <div class="flex flex-col justify-between rounded-2xl border border-line bg-surface p-5">
           <p class="text-xs font-bold uppercase tracking-wider text-ink-muted">Plan actuel</p>
           @if (str.abonnement; as abonnement) {
             <div class="mt-3 flex items-baseline gap-2">
@@ -187,7 +187,7 @@
       <section class="grid grid-cols-1 gap-6 lg:grid-cols-2">
 
         <!-- Fiche d'informations générales -->
-        <div class="rounded-2xl border border-line bg-surface p-6 shadow-xs flex flex-col justify-between">
+        <div class="rounded-2xl border border-line bg-surface p-6 flex flex-col justify-between">
           <div>
             <div class="border-b border-line/60 pb-4">
               <h2 class="text-sm font-bold text-ink">Informations générales</h2>
@@ -240,7 +240,7 @@
         </div>
 
         <!-- Fiche Propriétaire -->
-        <div class="rounded-2xl border border-line bg-surface p-6 shadow-xs flex flex-col justify-between">
+        <div class="rounded-2xl border border-line bg-surface p-6 flex flex-col justify-between">
           <div>
             <div class="border-b border-line/60 pb-4">
               <h2 class="text-sm font-bold text-ink">Propriétaire référent</h2>
@@ -248,7 +248,7 @@
             </div>
 
             <div class="mt-6 flex items-center gap-4">
-              <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-line bg-surface-muted text-sm font-extrabold text-ink shadow-xs">
+              <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-line bg-surface-muted text-sm font-extrabold text-ink">
                 {{ getInitiales(str.proprietaire.prenom, str.proprietaire.nom) }}
               </div>
 
@@ -282,7 +282,7 @@
       </section>
 
       <!-- SECTIONS SOUSCRIPTION DÉTAILLÉE -->
-      <section class="rounded-2xl border border-line bg-surface p-6 shadow-xs">
+      <section class="rounded-2xl border border-line bg-surface p-6">
         <div class="border-b border-line/60 pb-4">
           <h2 class="text-sm font-bold text-ink">Détails de l'abonnement en cours</h2>
           <p class="mt-0.5 text-xs text-ink-muted">Périodes de validité et renouvellements</p>
@@ -342,7 +342,7 @@
       </section>
 
       <!-- NAVIGATION PAR ONGLETS (STYLE CLEAN NAV - SANS TABFILTER) -->
-      <section class="rounded-2xl border border-line bg-surface shadow-xs overflow-hidden">
+      <section class="rounded-2xl border border-line bg-surface overflow-hidden">
 
         <!-- Barre d'onglets personnalisée -->
         <div class="border-b border-line bg-surface px-6 pt-2">

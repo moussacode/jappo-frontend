@@ -1,17 +1,20 @@
 import { Component, input, computed } from '@angular/core';
+import { Icon, IconName } from '../icon/icon';
 
 export type KpiNoteVariant = 'brand' | 'success' | 'neutral';
 export type TrendDirection = 'up' | 'down' | 'neutral';
 @Component({
   selector: 'app-kpi-card',
   standalone: true,
-  imports: [],
+  imports: [Icon],
   templateUrl: './kpi-card.html',
 })
 export class KpiCardComponent {
   label = input.required<string>();
   value = input.required<string | number>();
   note = input<string>();
+  /** Icône optionnelle affichée en haut à droite. */
+  icon = input<IconName>();
   noteVariant = input<KpiNoteVariant>('neutral');
 
   protected noteColorClass = computed(() => {
