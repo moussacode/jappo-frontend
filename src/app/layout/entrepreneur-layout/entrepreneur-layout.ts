@@ -1,18 +1,26 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { Sidebar, NavItem } from '../../shared/components/sidebar/sidebar';
+
+import {
+  Sidebar,
+  NavItem,
+} from '../../shared/components/sidebar/sidebar';
+
+import { TranslatePipe } from '../../shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-entrepreneur-layout',
-  imports: [RouterOutlet, Sidebar],
+  imports: [
+    RouterOutlet,
+    Sidebar,
+    TranslatePipe,
+  ],
   template: `
-    <div class="flex flex-col h-screen">
-     
-
-      <!-- Contenu principal avec sidebar -->
+    <div class="flex h-screen flex-col">
       <div class="flex flex-1 overflow-hidden">
         <app-sidebar [navItems]="navItems" />
-        <main class="flex-1 overflow-y-auto bg-neutral-25">
+
+        <main class="flex-1 overflow-y-auto bg-surface-muted">
           <router-outlet />
         </main>
       </div>
@@ -21,36 +29,35 @@ import { Sidebar, NavItem } from '../../shared/components/sidebar/sidebar';
 })
 export class EntrepreneurLayout {
   protected readonly navItems: NavItem[] = [
-  {
-    label: 'Mon parcours',
-    path: '/entrepreneur/mon-parcours',
-    icon: 'layers',
-  },
-  {
-    label: 'Tableau de bord',
-    path: '/entrepreneur/dashboard',
-    icon: 'dashboard',
-  },
-  {
-    label: 'Mes Activités',
-    path: '/entrepreneur/missions',
-    icon: 'missions',
-  },
-  {
-    label: 'Mes Projets',
-    path: '/entrepreneur/projets',
-    icon: 'projects',
-  },
-  {
-    label: 'Mes réunions',
-    path: '/entrepreneur/reunions',
-    icon: 'video',
-  },
-  {
-    label: 'Mes livrables',
-    path: '/entrepreneur/documents',
-    icon: 'documents',
-  },
-  
-];
+    {
+      label: 'entrepreneur.nav.parcours',
+      path: '/entrepreneur/mon-parcours',
+      icon: 'layers',
+    },
+    {
+      label: 'entrepreneur.nav.dashboard',
+      path: '/entrepreneur/dashboard',
+      icon: 'dashboard',
+    },
+    {
+      label: 'entrepreneur.nav.activites',
+      path: '/entrepreneur/missions',
+      icon: 'missions',
+    },
+    {
+      label: 'entrepreneur.nav.projets',
+      path: '/entrepreneur/projets',
+      icon: 'projects',
+    },
+    {
+      label: 'entrepreneur.nav.reunions',
+      path: '/entrepreneur/reunions',
+      icon: 'video',
+    },
+    {
+      label: 'entrepreneur.nav.livrables',
+      path: '/entrepreneur/documents',
+      icon: 'documents',
+    },
+  ];
 }

@@ -5,6 +5,9 @@ import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { DatePipe } from '@angular/common';
 
+import { TranslationService } from '../../../../core/services/translation.service';
+import { TranslatePipe } from '../../../../shared/pipes/translate.pipe';
+
 // Services & Modèles
 import {
   DashboardService,
@@ -41,6 +44,7 @@ import { InviterEntrepreneurModalComponent } from '../../entrepreneurs/inviter-e
     ButtonComponent,
     EmptyStateComponent,
     InviterEntrepreneurModalComponent,
+    TranslatePipe,
   ],
   templateUrl:"./dashboard.html"
 })
@@ -50,12 +54,24 @@ export class Dashboard implements OnInit {
   private readonly structureContext = inject(StructureContextService);
   private readonly authService = inject(AuthService);
 protected readonly currentUser = this.authService.currentUser;
+private readonly translationService = inject(TranslationService);
 protected readonly salutation = computed(() => {
   const user = this.currentUser();
   const prenom = user?.prenom;
   const heure = new Date().getHours();
-  const greeting = heure < 12 ? 'Bonjour' : heure < 18 ? 'Bon après-midi' : 'Bonsoir';
-  return prenom ? `${greeting}, ${prenom} ` : `${greeting} `;
+
+  const key =
+    heure < 12
+      ? 'incubateur.dashboard.salutation.matin'
+      : heure < 18
+        ? 'incubateur.dashboard.salutation.apresMidi'
+        : 'incubateur.dashboard.salutation.soir';
+
+  const greeting = this.translationService.t(key);
+
+  return prenom
+    ? `${greeting}, ${prenom}`
+    : greeting;
 });
   private readonly destroyRef = inject(DestroyRef);
 
@@ -116,15 +132,35 @@ protected readonly salutation = computed(() => {
     }
   }
 
-  protected formaterStatutLivrable(statut?: string): string {
-    switch (statut?.toUpperCase()) {
-      case 'VALIDE':      return 'Validé';
-      case 'EN_ATTENTE':  return 'En attente';
-      case 'A_CORRIGER':  return 'À corriger';
-      case 'REJETE':      return 'Rejeté';
-      default:            return statut || 'Déposé';
-    }
+protected formaterStatutLivrable(statut?: string): string {
+  switch (statut?.toUpperCase()) {
+    case 'VALIDE':
+      return this.translationService.t(
+        'incubateur.dashboard.livrableStatut.valide'
+      );
+
+    case 'EN_ATTENTE':
+      return this.translationService.t(
+        'incubateur.dashboard.livrableStatut.enAttente'
+      );
+
+    case 'A_CORRIGER':
+      return this.translationService.t(
+        'incubateur.dashboard.livrableStatut.aCorriger'
+      );
+
+    case 'REJETE':
+      return this.translationService.t(
+        'incubateur.dashboard.livrableStatut.rejete'
+      );
+
+    default:
+      return statut ||
+        this.translationService.t(
+          'incubateur.dashboard.livrableStatut.depose'
+        );
   }
+}
 
   protected projetsParPhaseWidth(nombre: number): number {
     const phases = this.stats()?.projetsParPhase ?? [];

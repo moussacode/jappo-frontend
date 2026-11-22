@@ -6,7 +6,7 @@ import { Icon } from '../icon/icon';
   standalone: true,
   imports: [Icon],
   template: `
-    <div class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-200">
+    <div class="fixed glass-modal  inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-200">
 
       <!-- Backdrop Click -->
       <div class="absolute inset-0" (click)="close.emit()"></div>

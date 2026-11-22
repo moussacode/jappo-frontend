@@ -1,32 +1,58 @@
 import { Injectable, signal, computed, effect } from '@angular/core';
 
-export type Theme = 'light' | 'dark' | 'system';
+export type Theme =
+  | 'light'
+  | 'dark'
+  | 'system'
+  | 'ocean'
+  | 'forest'
+   | 'glass';
 
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
+
   readonly theme = signal<Theme>(
-    (localStorage.getItem('jappo-theme') as Theme) ?? 'system'
+    this.getInitialTheme()
   );
 
   private readonly systemIsDark = signal(
     window.matchMedia('(prefers-color-scheme: dark)').matches
   );
 
-  /** Le thème réellement appliqué (résout 'system' en light/dark) Avoir*/
-  readonly appliedTheme = computed(() =>
-    this.theme() === 'system'
-      ? this.systemIsDark() ? 'dark' : 'light'
-      : this.theme()
-  );
+  readonly appliedTheme = computed(() => {
+    const theme = this.theme();
+
+    if (theme === 'system') {
+      return this.systemIsDark() ? 'dark' : 'light';
+    }
+
+    return theme;
+  });
 
   constructor() {
-    // Réagit si l'utilisateur change le thème de son OS pendant que l'app est ouverte
-    window
-      .matchMedia('(prefers-color-scheme: dark)')
-      .addEventListener('change', (e) => this.systemIsDark.set(e.matches));
+    const mediaQuery = window.matchMedia(
+      '(prefers-color-scheme: dark)'
+    );
+
+    mediaQuery.addEventListener('change', (event) => {
+      this.systemIsDark.set(event.matches);
+    });
 
     effect(() => {
-      document.documentElement.classList.toggle('dark', this.appliedTheme() === 'dark');
+      const theme = this.theme();
+      const appliedTheme = this.appliedTheme();
+
+      // Pour Tailwind dark:
+      document.documentElement.classList.toggle(
+        'dark',
+        appliedTheme === 'dark'
+      );
+
+      // Pour nos thèmes personnalisés:
+      document.documentElement.setAttribute(
+        'data-theme',
+        theme
+      );
     });
   }
 
@@ -36,6 +62,27 @@ export class ThemeService {
   }
 
   toggle(): void {
-    this.setTheme(this.appliedTheme() === 'light' ? 'dark' : 'light');
+    this.setTheme(
+      this.appliedTheme() === 'light'
+        ? 'dark'
+        : 'light'
+    );
+  }
+
+  private getInitialTheme(): Theme {
+    const savedTheme = localStorage.getItem('jappo-theme');
+
+    if (
+      savedTheme === 'light' ||
+      savedTheme === 'dark' ||
+      savedTheme === 'system' ||
+      savedTheme === 'ocean' ||
+      savedTheme === 'forest'||
+  savedTheme === 'glass'
+    ) {
+      return savedTheme;
+    }
+
+    return 'system';
   }
 }

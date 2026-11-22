@@ -17,7 +17,7 @@ import { CohorteService } from '../../../../core/services/cohorte.service';
 import { ProjetService } from '../../../../core/services/projet.service';
 import { StructureContextService } from '../../../../core/services/structure-context.service';
 import { Cohorte, Projet } from '../../../../core/models';
-import { CreateCohorteRequest, Parcours, Phase, libellePhase } from '../../../../core/models/cohorte.model';
+import { CreateCohorteRequest, Parcours, Phase, CoachSummary, libellePhase } from '../../../../core/models/cohorte.model';
 import { ParcoursService } from '../../../../core/services/parcours.service';
 import { MissionService } from '../../../../core/services/mission.service';
 import { Mission } from '../../../../core/models/mission.model';
@@ -82,7 +82,7 @@ const FILTRES_COHORTES: { value: CohorteFilter; label: string }[] = [
       <div
         role="tablist"
         aria-label="Cohortes Fabrique 360"
-        class="shrink-0 flex w-full items-end gap-2 overflow-x-auto border-b border-line/60 bg-surface px-3 pt-4 sm:px-4 sm:pt-4 md:px-6 lg:px-8 custom-scrollbar sticky top-0 z-10 shadow-sm"
+        class="shrink-0 flex w-full items-end gap-2 overflow-x-auto border-b border-line/60 px-3 pt-4 sm:px-4 sm:pt-4 md:px-6 lg:px-8 custom-scrollbar sticky top-0 z-10 shadow-sm"
       >
         <button
           role="tab"
@@ -131,13 +131,15 @@ const FILTRES_COHORTES: { value: CohorteFilter; label: string }[] = [
           </div>
         }
 
-        <button
-          (click)="nouvelleCohorteOuverte.set(true)"
-          aria-label="Créer une nouvelle cohorte"
-          class="flex items-center rounded-t-lg border-b-2 border-transparent px-3 py-3 cursor-pointer text-ink-muted hover:text-ink hover:bg-surface-muted/50 transition-colors"
-        >
-          <app-icon name="plus" class="size-4" />
-        </button>
+        @if (isAdmin()) {
+          <button
+            (click)="nouvelleCohorteOuverte.set(true)"
+            aria-label="Créer une nouvelle cohorte"
+            class="flex items-center rounded-t-lg border-b-2 border-transparent px-3 py-3 cursor-pointer text-ink-muted hover:text-ink hover:bg-surface-muted/50 transition-colors"
+          >
+            <app-icon name="plus" class="size-4" />
+          </button>
+        }
       </div>
 
       <div id="panel-cohortes" role="tabpanel" class="min-h-0 flex-1 overflow-y-auto">
@@ -159,10 +161,12 @@ const FILTRES_COHORTES: { value: CohorteFilter; label: string }[] = [
           <!-- ÉTAT 1 : VUE GLOBALE -->
           @else if (activeContextId() === 'GLOBAL') {
             <app-page-header title="Gestion des Cohortes" subtitle="Supervisez la performance globale de l'incubateur.">
-              <app-button size="sm" (click)="nouvelleCohorteOuverte.set(true)">
-                <app-icon name="plus" class="size-4 mr-1.5" />
-                <span>Nouvelle Cohorte</span>
-              </app-button>
+              @if (isAdmin()) {
+                <app-button size="sm" (click)="nouvelleCohorteOuverte.set(true)">
+                  <app-icon name="plus" class="size-4 mr-1.5" />
+                  <span>Nouvelle Cohorte</span>
+                </app-button>
+              }
             </app-page-header>
 
             <!-- Filtre de statut -->
@@ -180,13 +184,17 @@ const FILTRES_COHORTES: { value: CohorteFilter; label: string }[] = [
                     <app-icon name="cohortes" class="size-6" />
                   </div>
 
-                  <p class="mt-1 text-sm text-ink-muted max-w-sm mx-auto">Créez votre première cohorte Fabrique 360 pour commencer à suivre vos startups.</p>
-                  <button (click)="nouvelleCohorteOuverte.set(true)" class="mt-6 inline-block cursor-pointer">
-                    <app-button size="sm">
-                      <app-icon name="plus" class="size-4 mr-1.5" />
-                      <span>Initier une cohorte</span>
-                    </app-button>
-                  </button>
+                  @if (isAdmin()) {
+                    <p class="mt-1 text-sm text-ink-muted max-w-sm mx-auto">Créez votre première cohorte Fabrique 360 pour commencer à suivre vos startups.</p>
+                    <button (click)="nouvelleCohorteOuverte.set(true)" class="mt-6 inline-block cursor-pointer">
+                      <app-button size="sm">
+                        <app-icon name="plus" class="size-4 mr-1.5" />
+                        <span>Initier une cohorte</span>
+                      </app-button>
+                    </button>
+                  } @else {
+                    <p class="mt-1 text-sm text-ink-muted max-w-sm mx-auto">Aucune cohorte disponible pour le moment.</p>
+                  }
                 </app-empty-state>
               } @else {
                 <p class="py-12 text-center text-sm text-ink-muted">
@@ -243,25 +251,27 @@ const FILTRES_COHORTES: { value: CohorteFilter; label: string }[] = [
                         {{ formatDate(item.cohorte.dateDebut) }} → {{ formatDate(item.cohorte.dateFin) }}
                       </p>
                     </button>
-                    <div class="flex justify-end border-t border-line/60 px-4 py-2">
-                      @if (item.cohorte.statut === 'ARCHIVEE') {
-                        <button
-                          type="button"
-                          (click)="restaurerCohorte(item.cohorte, $event)"
-                          class="p-1 text-xs font-semibold text-emerald-600 hover:text-emerald-800 hover:underline transition-colors cursor-pointer"
-                        >
-                          Restaurer
-                        </button>
-                      } @else {
-                        <button
-                          type="button"
-                          (click)="archiverCohorte(item.cohorte, $event)"
-                          class="p-1 text-xs font-semibold text-rose-600 hover:text-rose-800 hover:underline transition-colors cursor-pointer"
-                        >
-                          Archiver
-                        </button>
-                      }
-                    </div>
+                    @if (isAdmin()) {
+                      <div class="flex justify-end border-t border-line/60 px-4 py-2">
+                        @if (item.cohorte.statut === 'ARCHIVEE') {
+                          <button
+                            type="button"
+                            (click)="restaurerCohorte(item.cohorte, $event)"
+                            class="p-1 text-xs font-semibold text-emerald-600 hover:text-emerald-800 hover:underline transition-colors cursor-pointer"
+                          >
+                            Restaurer
+                          </button>
+                        } @else {
+                          <button
+                            type="button"
+                            (click)="archiverCohorte(item.cohorte, $event)"
+                            class="p-1 text-xs font-semibold text-rose-600 hover:text-rose-800 hover:underline transition-colors cursor-pointer"
+                          >
+                            Archiver
+                          </button>
+                        }
+                      </div>
+                    }
                   </div>
                 } @empty {
                   <p class="py-8 text-center text-sm text-ink-muted">Aucune cohorte.</p>
@@ -285,7 +295,9 @@ const FILTRES_COHORTES: { value: CohorteFilter; label: string }[] = [
                         <th class="w-3/12 px-6 py-4">Période</th>
                         <th class="w-2/12 px-6 py-4 text-center">Startups</th>
                         <th class="w-2/12 px-6 py-4 text-center">Maturité</th>
-                        <th class="w-1/12 px-6 py-4 text-right">Actions</th>
+                        @if (isAdmin()) {
+                          <th class="w-1/12 px-6 py-4 text-right">Actions</th>
+                        }
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-line/60 bg-surface">
@@ -310,27 +322,29 @@ const FILTRES_COHORTES: { value: CohorteFilter; label: string }[] = [
                               <span class="w-9 text-right text-xs font-bold text-ink">{{ item.scoreMoyen }}%</span>
                             </div>
                           </td>
-                          <td class="px-6 py-4 text-right">
-                            @if (item.cohorte.statut === 'ARCHIVEE') {
-                              <button
-                                type="button"
-                                (click)="restaurerCohorte(item.cohorte, $event)"
-                                class="text-xs font-semibold text-emerald-600 hover:text-emerald-800 hover:underline transition-colors p-1 cursor-pointer"
-                                title="Restaurer le programme"
-                              >
-                                Restaurer
-                              </button>
-                            } @else {
-                              <button
-                                type="button"
-                                (click)="archiverCohorte(item.cohorte, $event)"
-                                class="text-xs font-semibold text-rose-600 hover:text-rose-800 hover:underline transition-colors p-1 cursor-pointer"
-                                title="Archiver le programme"
-                              >
-                                Archiver
-                              </button>
-                            }
-                          </td>
+                          @if (isAdmin()) {
+                            <td class="px-6 py-4 text-right">
+                              @if (item.cohorte.statut === 'ARCHIVEE') {
+                                <button
+                                  type="button"
+                                  (click)="restaurerCohorte(item.cohorte, $event)"
+                                  class="text-xs font-semibold text-emerald-600 hover:text-emerald-800 hover:underline transition-colors p-1 cursor-pointer"
+                                  title="Restaurer le programme"
+                                >
+                                  Restaurer
+                                </button>
+                              } @else {
+                                <button
+                                  type="button"
+                                  (click)="archiverCohorte(item.cohorte, $event)"
+                                  class="text-xs font-semibold text-rose-600 hover:text-rose-800 hover:underline transition-colors p-1 cursor-pointer"
+                                  title="Archiver le programme"
+                                >
+                                  Archiver
+                                </button>
+                              }
+                            </td>
+                          }
                         </tr>
                       }
                     </tbody>
@@ -351,19 +365,27 @@ const FILTRES_COHORTES: { value: CohorteFilter; label: string }[] = [
                   {{ libellePhase(data.cohorte.phase) }}
                 </span>
 
-                <app-button size="sm" class="border-line/60 hover:bg-surface-muted/30" (click)="ouvrirEdition()">
-                  <app-icon name="edit" class="size-4 mr-1.5" /> Modifier
-                </app-button>
+                @if (data.cohorte.coachs && data.cohorte.coachs.length > 0) {
+                  <span class="rounded-full bg-surface-muted border border-line/60 px-3 py-1 text-xs font-medium text-ink-muted hidden sm:inline-block" [title]="getCoachNames(data.cohorte.coachs)">
+                    Coach{{ data.cohorte.coachs.length > 1 ? 's' : '' }} : {{ getCoachNames(data.cohorte.coachs) }}
+                  </span>
+                }
 
-                <app-button size="sm" class="border-line/60 hover:bg-surface-muted/30" (click)="showInviteEntrepreneurModal.set(true)">
-                  <app-icon name="plus" class="size-4 mr-1.5" /> Ajouter entrepreneur
-                </app-button>
+                @if (isAdmin()) {
+                  <app-button size="sm" class="border-line/60 hover:bg-surface-muted/30" (click)="ouvrirEdition()">
+                    <app-icon name="edit" class="size-4 mr-1.5" /> Modifier
+                  </app-button>
 
-                <a [routerLink]="['/incubateur/missions/attribuer']" [queryParams]="{ cohorteId: data.cohorte.id }">
+                  <app-button size="sm" class="border-line/60 hover:bg-surface-muted/30" (click)="showInviteEntrepreneurModal.set(true)">
+                    <app-icon name="plus" class="size-4 mr-1.5" /> Ajouter entrepreneur
+                  </app-button>
+                }
+
+                <!-- <a [routerLink]="['/incubateur/missions/attribuer']" [queryParams]="{ cohorteId: data.cohorte.id }">
                   <app-button size="sm" class="border-line/60 hover:bg-surface-muted/30">
                     <app-icon name="missions" class="size-4 mr-1.5" /> Attribuer mission
                   </app-button>
-                </a>
+                </a> -->
               </div>
             </app-page-header>
 
@@ -647,6 +669,41 @@ const FILTRES_COHORTES: { value: CohorteFilter; label: string }[] = [
             </app-form-field>
           }
 
+          <!-- Équipe d'accompagnement -->
+          <div class="flex flex-col gap-2">
+            <label class="text-xs font-semibold text-ink">
+              Équipe d'accompagnement
+            </label>
+            <p class="text-xs text-ink-muted">
+              Sélectionnez les coachs affectés au suivi de cette cohorte.
+            </p>
+
+            @if (coachsDisponibles().length === 0) {
+              <div class="rounded-xl border border-line bg-surface-muted/30 p-2.5 text-xs text-ink-muted">
+                Aucun coach disponible dans la structure.
+              </div>
+            } @else {
+              <div class="flex flex-col gap-2 max-h-36 overflow-y-auto rounded-xl border border-line p-2.5 bg-surface">
+                @for (coach of coachsDisponibles(); track coach.id) {
+                  <label class="flex items-center gap-2.5 text-xs text-ink cursor-pointer hover:bg-surface-muted/50 p-1 rounded-lg transition-colors">
+                    <input
+                      type="checkbox"
+                      [checked]="isCoachSelectedForCreation(coach.id)"
+                      (change)="toggleCoachForCreation(coach.id)"
+                      class="rounded border-line text-accent focus:ring-accent size-4 cursor-pointer"
+                    />
+                    <div class="flex flex-col">
+                      <span class="font-medium text-ink">
+                        {{ coach.prenom || '' }} {{ coach.nom || '' }}
+                      </span>
+                      <span class="text-[11px] text-ink-muted">{{ coach.email }}</span>
+                    </div>
+                  </label>
+                }
+              </div>
+            }
+          </div>
+
           <!-- Dates -->
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <app-form-field
@@ -729,6 +786,11 @@ export class CohortesList {
 
   protected readonly libellePhase = libellePhase;
   protected readonly filtres = FILTRES_COHORTES;
+  protected readonly isAdmin = computed(() => this.structureContext.activeRole() === 'ADMIN_STRUCTURE');
+
+  // -- Coachs --
+  protected readonly coachsDisponibles = signal<CoachSummary[]>([]);
+  protected readonly coachsSelectionnesCreation = signal<Set<string>>(new Set());
 
   // -- État général --
   protected readonly nouvelleCohorteOuverte = signal(false);
@@ -1049,6 +1111,13 @@ export class CohortesList {
   protected loadData(): void {
     this.isLoading.set(true);
 
+    if (this.isAdmin()) {
+      this.cohorteService.getCoachsDisponibles().subscribe({
+        next: (list) => this.coachsDisponibles.set(list),
+        error: () => this.coachsDisponibles.set([]),
+      });
+    }
+
     // Charger les cohortes selon le filtre actif
     const obs$ =
       this.filtreStatut() === 'ARCHIVEES'
@@ -1226,6 +1295,7 @@ export class CohortesList {
     });
 
     this.phasesDisponibles.set([]);
+    this.coachsSelectionnesCreation.set(new Set());
     this.erreurCreation.set(null);
   }
 
@@ -1254,6 +1324,7 @@ export class CohortesList {
       phaseId: form.phaseId,
       dateDebut: form.dateDebut || undefined,
       dateFin: form.dateFin || undefined,
+      coachIds: Array.from(this.coachsSelectionnesCreation()),
     };
 
     this.cohorteService
@@ -1326,5 +1397,28 @@ export class CohortesList {
           }));
         },
       });
+  }
+
+  protected isCoachSelectedForCreation(coachId: string): boolean {
+    return this.coachsSelectionnesCreation().has(coachId);
+  }
+
+  protected toggleCoachForCreation(coachId: string): void {
+    this.coachsSelectionnesCreation.update((set) => {
+      const next = new Set(set);
+      if (next.has(coachId)) {
+        next.delete(coachId);
+      } else {
+        next.add(coachId);
+      }
+      return next;
+    });
+  }
+
+  protected getCoachNames(coachs?: CoachSummary[]): string {
+    if (!coachs || coachs.length === 0) return '';
+    return coachs
+      .map((c) => `${c.prenom || ''} ${c.nom || ''}`.trim() || c.email)
+      .join(', ');
   }
 }

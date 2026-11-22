@@ -20,6 +20,7 @@ import { environment } from './../../environments/environment';
 import { TokenStorageService } from './token-storage.service';
 import { StructureContextService } from './structure-context.service';
 
+export type RoleGlobal = 'USER' | 'SUPER_ADMIN';
 // --- INTERFACES & DTOs ---
 
 export interface LoginCredentials {
@@ -41,6 +42,7 @@ export interface AuthResponse {
   nom: string;
   email: string;
   emailVerified: boolean;
+  roleGlobal: RoleGlobal;
   token: string;
 }
 
@@ -94,6 +96,7 @@ export interface AuthUser {
   nom: string;
   email: string;
   emailVerified: boolean;
+  roleGlobal: RoleGlobal;
 }
 
 export interface InvitationInfoResponse {
@@ -101,7 +104,8 @@ export interface InvitationInfoResponse {
   email: string;
   nomStructure: string;
   logoStructure?: string;
-  compteExiste: boolean; // 
+  compteExiste: boolean;
+  role?: string;
 }
 
 @Injectable({
@@ -341,6 +345,7 @@ private initializeWebSocket(): void {
       nom: response.nom,
       email: response.email,
       emailVerified: response.emailVerified,
+      roleGlobal: response.roleGlobal,
     };
     this._currentUser.set(user);
   }
@@ -360,11 +365,20 @@ private initializeWebSocket(): void {
    * Valide l'invitation et connecte l'utilisateur
    * POST /api/auth/accepter-invitation
    */
-  accepterInvitation(token: string, nouveauMotDePasse?: string): Observable<AuthResponse> {
+  accepterInvitation(
+    token: string,
+    nouveauMotDePasse?: string,
+    prenom?: string,
+    nom?: string,
+    email?: string
+  ): Observable<AuthResponse> {
     return this.http
       .post<AuthResponse>(`${this.apiUrl}/accepter-invitation`, {
         token,
         nouveauMotDePasse: nouveauMotDePasse || null,
+        prenom: prenom || null,
+        nom: nom || null,
+        email: email || null,
       })
       .pipe(
         tap((response) => this.handleAuthSuccess(response)),

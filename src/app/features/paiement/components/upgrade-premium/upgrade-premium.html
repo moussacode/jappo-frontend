@@ -1,0 +1,26 @@
+<div class="">
+
+  @if (erreur()) {
+    <div class="mt-4 rounded-[var(--radius-card)] border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs font-medium text-red-600">
+      {{ erreur() }}
+    </div>
+  }
+
+  <app-button
+  type="button"
+  variant="primary"
+  size="lg"
+  [fullWidth]="true"
+  [disabled]="chargement()"
+  (click)="passerPremium()"
+  class="mt-6">
+  
+  @if (chargement()) {
+    Redirection vers PayDunya...
+  } @else {
+    Passer à Premium
+  }
+
+</app-button>
+
+</div>

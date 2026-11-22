@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit, DestroyRef } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { StructureContextService } from '../../../core/services/structure-context.service';
@@ -66,6 +66,11 @@ interface NavItem {
               <div>
                 <h2 class="text-base font-semibold text-ink">Informations de la structure</h2>
                 <p class="mt-0.5 text-xs text-ink-muted">Mettez à jour les coordonnées et identifiants publics de votre organisation.</p>
+                @if (!isAdmin()) {
+                  <p class="mt-2 text-xs text-amber-600 bg-amber-500/10 rounded-lg px-2.5 py-1.5 inline-block">
+                    Mode consultation : Seul l'administrateur de la structure peut modifier ces informations.
+                  </p>
+                }
               </div>
 
               @if (structure(); as s) {
@@ -74,8 +79,9 @@ interface NavItem {
                     <label class="text-xs font-semibold text-ink">Nom de la structure</label>
                     <input
                       [(ngModel)]="s.nom"
+                      [disabled]="!isAdmin()"
                       type="text"
-                      class="rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs sm:text-sm text-ink focus:border-accent focus:outline-none transition-colors"
+                      class="rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs sm:text-sm text-ink focus:border-accent focus:outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                     />
                   </div>
 
@@ -83,8 +89,9 @@ interface NavItem {
                     <label class="text-xs font-semibold text-ink">Email de contact</label>
                     <input
                       [(ngModel)]="s.email"
+                      [disabled]="!isAdmin()"
                       type="email"
-                      class="rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs sm:text-sm text-ink focus:border-accent focus:outline-none transition-colors"
+                      class="rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs sm:text-sm text-ink focus:border-accent focus:outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                     />
                   </div>
 
@@ -92,16 +99,19 @@ interface NavItem {
                     <label class="text-xs font-semibold text-ink">Téléphone</label>
                     <input
                       [(ngModel)]="s.telephone"
+                      [disabled]="!isAdmin()"
                       type="text"
-                      class="rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs sm:text-sm text-ink focus:border-accent focus:outline-none transition-colors"
+                      class="rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs sm:text-sm text-ink focus:border-accent focus:outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                     />
                   </div>
 
-                  <div class="pt-4 border-t border-line flex justify-end">
-                    <app-button size="sm" (click)="sauvegarderStructure()">
-                      Enregistrer les modifications
-                    </app-button>
-                  </div>
+                  @if (isAdmin()) {
+                    <div class="pt-4 border-t border-line flex justify-end">
+                      <app-button size="sm" (click)="sauvegarderStructure()">
+                        Enregistrer les modifications
+                      </app-button>
+                    </div>
+                  }
                 </div>
               } @else {
                 <div class="py-8 text-center text-xs text-ink-muted animate-pulse">Chargement des données de la structure...</div>
@@ -116,7 +126,9 @@ interface NavItem {
                   <h2 class="text-base font-semibold text-ink">Membres de l'équipe</h2>
                   <p class="mt-0.5 text-xs text-ink-muted">Gérez les accès et les rôles au sein de votre structure.</p>
                 </div>
-                <app-button size="xs">Inviter un membre</app-button>
+                @if (isAdmin()) {
+                  <app-button size="xs">Inviter un membre</app-button>
+                }
               </div>
             </div>
           }
@@ -136,6 +148,7 @@ export class Parametres implements OnInit {
   
   // Utilisation directe du signal réactif de la structure active
   protected readonly structure = this.structureContext.activeStructure;
+  protected readonly isAdmin = computed(() => this.structureContext.activeRole() === 'ADMIN_STRUCTURE');
 
   protected readonly navItems: NavItem[] = [
     { id: 'compte', label: 'Compte & Structure', icon: 'settings', section: 'Organisation' },

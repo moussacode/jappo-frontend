@@ -9,6 +9,8 @@
   "parametres.apparence.systeme": "System",
   "parametres.apparence.clair": "Light",
   "parametres.apparence.sombre": "Dark",
+  "parametres.apparence.ocean": "Ocean",
+"parametres.apparence.forest": "Forest",
   "parametres.langue.titre": "Interface language",
   "parametres.langue.description": "Choose the language used in JAPPO.",
 
@@ -137,4 +139,136 @@
   "ressources.verrou.titre": "Locked mission",
   "ressources.verrou.message": "This mission is locked because an entrepreneur in the cohort has already submitted their work.",
   "ressources.verrou.bouton": "View"
+
+
+
+,
+
+  "auth.login.titre": "Welcome back",
+  "auth.login.sousTitre": "Enter your credentials to access your account.",
+  "auth.login.droits": "© 2026 JAPPO Inc. | All rights reserved",
+  "auth.login.emailLabel": "Email address",
+  "auth.login.emailPlaceholder": "awa.ndiaye@email.com",
+  "auth.login.erreurEmailRequis": "Email is required",
+  "auth.login.erreurEmailInvalide": "Invalid email address",
+  "auth.login.motDePasseLabel": "Password",
+  "auth.login.erreurMotDePasseRequis": "Password is required",
+  "auth.login.afficherMotDePasse": "Toggle password visibility",
+  "auth.login.motDePasseOublie": "Forgot password?",
+  "auth.login.seConnecter": "Sign in",
+  "auth.login.connexionEnCours": "Signing in…",
+  "auth.login.ouContinuerAvec": "Or continue with",
+  "auth.login.questionIncubateur": "Are you an incubator?",
+  "auth.login.creerEspaceIncubateur": "Create an incubator account",
+
+
+
+
+  "commun.champObligatoire": "Required",
+  "commun.continuer": "Continue",
+
+  "auth.inscription.droits": "© 2026 JAPPO Inc. | All rights reserved",
+  "auth.inscription.etapeCompte": "01 ACCOUNT",
+  "auth.inscription.etapeVerification": "02 VERIFICATION",
+  "auth.inscription.titre": "Create an Incubator Space",
+  "auth.inscription.sousTitre": "Centralize the management of your cohorts and project leaders.",
+  "auth.inscription.prenomLabel": "First name",
+  "auth.inscription.prenomPlaceholder": "Moussa",
+  "auth.inscription.nomLabel": "Last name",
+  "auth.inscription.nomPlaceholder": "Mchangama",
+  "auth.inscription.emailLabel": "Email address",
+  "auth.inscription.emailPlaceholder": "contact@incubateur.com",
+  "auth.inscription.telephoneLabel": "Phone number",
+  "auth.inscription.telephonePlaceholder": "+221 77 000 00 00",
+  "auth.inscription.erreurTelephone": "Phone number is required",
+  "auth.inscription.motDePasseLabel": "Password",
+  "auth.inscription.confirmationLabel": "Confirm password",
+  "auth.inscription.erreurMinCaracteres": "At least 8 characters required",
+  "auth.inscription.erreurMotsDePasseDifferents": "Passwords do not match",
+  "auth.inscription.envoiCode": "Sending code…",
+  "auth.inscription.verifierEmailTitre": "Verify your email address",
+  "auth.inscription.codeEnvoyeA": "A verification code has been sent to",
+  "auth.inscription.chiffreOtp": "Verification code digit",
+  "auth.inscription.verificationEnCours": "Verifying…",
+  "auth.inscription.verifierEtContinuer": "Verify and continue",
+  "auth.inscription.renvoyerCode": "Resend code",
+  "auth.inscription.renvoyerCodeDecompte": "Resend code ({{secondes}}s)",
+  "auth.inscription.dejaUnCompte": "Already have an account?",
+  "auth.inscription.seConnecter": "Sign in",
+  "commun.parametres": "Settings",
+  "commun.seDeconnecter": "Sign out",
+
+  "roles.adminStructure": "Administrator",
+  "roles.coach": "Coach",
+  "roles.entrepreneur": "Entrepreneur",
+  "roles.membre": "Member",
+
+  "sidebar.ouvrir": "Expand sidebar",
+  "sidebar.reduire": "Collapse sidebar",
+  "sidebar.espacesDeTravail": "Workspaces ({{count}})",
+  "sidebar.menu": "Menu",
+  "sidebar.aide": "Help",
+  "sidebar.planPremium": "Premium Plan",
+  "sidebar.passerPremium": "Upgrade to Premium",
+
+"entrepreneur.nav.parcours": "My journey",
+  "entrepreneur.nav.dashboard": "Dashboard",
+  "entrepreneur.nav.activites": "My activities",
+  "entrepreneur.nav.projets": "My projects",
+  "entrepreneur.nav.reunions": "My meetings",
+  "entrepreneur.nav.livrables": "My deliverables",
+   "incubateur.nav.dashboard": "Overview",
+  "incubateur.nav.cohortes": "Cohorts",
+  "incubateur.nav.parcours": "Programs",
+  "incubateur.nav.entrepreneurs": "Entrepreneurs",
+  "incubateur.nav.activites": "Activities",
+  "incubateur.nav.projets": "Projects",
+  "incubateur.nav.reunions": "Meetings",
+  "incubateur.nav.ressources": "Resources",
+  "incubateur.nav.assistantIa": "AI Assistant",
+
+
+  "incubateur.dashboard.salutation.matin": "Good morning",
+"incubateur.dashboard.salutation.apresMidi": "Good afternoon",
+"incubateur.dashboard.salutation.soir": "Good evening",
+
+"incubateur.dashboard.sousTitre": "Here's what's happening in your programs · {{ structure }}",
+"incubateur.dashboard.inviterEntrepreneurs": "Invite entrepreneurs",
+
+"incubateur.dashboard.kpi.entrepreneursSuivis": "Entrepreneurs followed",
+"incubateur.dashboard.kpi.membresTotal": "member(s) in total",
+"incubateur.dashboard.kpi.cohortesActives": "Active cohorts",
+"incubateur.dashboard.kpi.programmesEnCours": "Ongoing programs",
+"incubateur.dashboard.kpi.scoreMaturite": "Average maturity score",
+"incubateur.dashboard.kpi.moyenneProjets": "Average across all projects",
+"incubateur.dashboard.kpi.livrablesRevoir": "Deliverables to review",
+"incubateur.dashboard.kpi.enAttenteEvaluation": "Awaiting evaluation",
+
+"incubateur.dashboard.alertes.titre": "Projects requiring attention ({{ count }})",
+
+"incubateur.dashboard.cohortes.titre": "Active cohorts ({{ count }})",
+"incubateur.dashboard.cohortes.sansDescription": "No description",
+
+"incubateur.dashboard.activite.titre": "Recent activity (latest submitted deliverables)",
+"incubateur.dashboard.activite.aucunLivrable": "No recently submitted deliverables",
+"incubateur.dashboard.activite.aucunLivrableDescription": "Deliverables submitted by entrepreneurs in your cohorts will appear here.",
+
+"incubateur.dashboard.livrableStatut.valide": "Validated",
+"incubateur.dashboard.livrableStatut.enAttente": "Pending",
+"incubateur.dashboard.livrableStatut.aCorriger": "Needs correction",
+"incubateur.dashboard.livrableStatut.rejete": "Rejected",
+"incubateur.dashboard.livrableStatut.depose": "Submitted",
+
+"commun.par": "By"
+
+, "assistantIa.nouvelleDiscussion": "New conversation",
+  "assistantIa.historique.hier": "Yesterday",
+  "assistantIa.historique.plusAncien": "Older",
+  "assistantIa.historique.aujourdhui": "Today",
+  "assistantIa.titre": "AI Assistant",
+  "assistantIa.nouveau": "New",
+  "assistantIa.suggestions.entrepreneurs": "How many entrepreneurs do we have?",
+  "assistantIa.suggestions.retards": "Which projects are delayed?",
+  "assistantIa.suggestions.progression": "Summarize the cohort's progress",
+  "parametres.theme.glass": "Glass"
 }

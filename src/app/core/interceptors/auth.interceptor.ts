@@ -37,9 +37,15 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   const headersToSet: Record<string, string> = {};
   if (token) headersToSet['Authorization'] = `Bearer ${token}`;
-  if (activeStructureId && !req.url.includes('/api/auth/')) {
-    headersToSet['X-Structure-Id'] = activeStructureId;
-  }
+  const isSuperAdminEndpoint = req.url.includes('/api/super-admin/');
+
+if (
+  activeStructureId &&
+  !req.url.includes('/api/auth/') &&
+  !isSuperAdminEndpoint
+) {
+  headersToSet['X-Structure-Id'] = activeStructureId;
+}
 
   const cloned = Object.keys(headersToSet).length > 0
     ? req.clone({ setHeaders: headersToSet })

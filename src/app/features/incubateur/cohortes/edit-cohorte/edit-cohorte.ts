@@ -7,7 +7,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { CohorteService } from '../../../../core/services/cohorte.service';
-import { Cohorte, Phase, UpdateCohorteRequest } from '../../../../core/models/cohorte.model';
+import { Cohorte, Phase, UpdateCohorteRequest, CoachSummary } from '../../../../core/models/cohorte.model';
 import { ParcoursService } from '../../../../core/services/parcours.service';
 
 import { Icon } from '../../../../shared/components/icon/icon';
@@ -108,6 +108,43 @@ import { ModalComponent } from '../../../../shared/components/modal/modal.compon
           </select>
         </app-form-field>
 
+        <!-- Équipe d'accompagnement -->
+        <div class="flex flex-col gap-2">
+          <label class="text-xs font-semibold text-ink">
+            Équipe d'accompagnement
+          </label>
+          <p class="text-xs text-ink-muted">
+            Sélectionnez les coachs affectés au suivi de cette cohorte.
+          </p>
+
+          @if (chargementCoachs()) {
+            <p class="text-xs text-ink-muted animate-pulse py-2">Chargement des coachs…</p>
+          } @else if (coachsDisponibles().length === 0) {
+            <div class="rounded-xl border border-line bg-surface-muted/30 p-3 text-xs text-ink-muted">
+              Aucun coach n'est encore enregistré dans la structure.
+            </div>
+          } @else {
+            <div class="flex flex-col gap-2 max-h-48 overflow-y-auto rounded-xl border border-line p-3 bg-surface">
+              @for (coach of coachsDisponibles(); track coach.id) {
+                <label class="flex items-center gap-2.5 text-xs text-ink cursor-pointer hover:bg-surface-muted/50 p-1.5 rounded-lg transition-colors">
+                  <input
+                    type="checkbox"
+                    [checked]="isCoachSelected(coach.id)"
+                    (change)="toggleCoach(coach.id)"
+                    class="rounded border-line text-accent focus:ring-accent size-4 cursor-pointer"
+                  />
+                  <div class="flex flex-col">
+                    <span class="font-medium text-ink">
+                      {{ coach.prenom || '' }} {{ coach.nom || '' }}
+                    </span>
+                    <span class="text-[11px] text-ink-muted">{{ coach.email }}</span>
+                  </div>
+                </label>
+              }
+            </div>
+          }
+        </div>
+
         <!-- Message d'erreur API si existant -->
         @if (errorMessage()) {
           <div class="rounded-xl bg-rose-500/10 p-3 text-xs text-rose-600 border border-rose-500/20">
@@ -156,6 +193,9 @@ export class EditCohorteComponent implements OnInit {
   protected readonly enregistrementEnCours = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly phases = signal<Phase[]>([]);
+  protected readonly coachsDisponibles = signal<CoachSummary[]>([]);
+  protected readonly selectedCoachIds = signal<Set<string>>(new Set());
+  protected readonly chargementCoachs = signal(true);
 
   protected readonly form = this.fb.nonNullable.group({
     nom: ['', [Validators.required, Validators.minLength(3)]],
@@ -183,7 +223,41 @@ export class EditCohorteComponent implements OnInit {
       } else if (c.phase) {
         this.phases.set([c.phase]);
       }
+
+      if (c.coachs && c.coachs.length > 0) {
+        this.selectedCoachIds.set(new Set(c.coachs.map((k) => k.id)));
+      } else {
+        this.cohorteService.getCoachsDeCohorte(c.id).subscribe({
+          next: (assigned) => {
+            this.selectedCoachIds.set(new Set(assigned.map((k) => k.id)));
+          },
+        });
+      }
     }
+
+    this.cohorteService.getCoachsDisponibles().subscribe({
+      next: (list) => {
+        this.coachsDisponibles.set(list);
+        this.chargementCoachs.set(false);
+      },
+      error: () => this.chargementCoachs.set(false),
+    });
+  }
+
+  protected isCoachSelected(coachId: string): boolean {
+    return this.selectedCoachIds().has(coachId);
+  }
+
+  protected toggleCoach(coachId: string): void {
+    this.selectedCoachIds.update((set) => {
+      const next = new Set(set);
+      if (next.has(coachId)) {
+        next.delete(coachId);
+      } else {
+        next.add(coachId);
+      }
+      return next;
+    });
   }
 
   protected isFieldInvalid(fieldName: string): boolean {
@@ -226,6 +300,7 @@ export class EditCohorteComponent implements OnInit {
       dateDebut: val.dateDebut || undefined,
       dateFin: val.dateFin || undefined,
       phaseId: val.phaseId,
+      coachIds: Array.from(this.selectedCoachIds()),
     };
 
     this.cohorteService

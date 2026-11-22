@@ -85,11 +85,8 @@ export class ChoisirStructure implements OnInit {
 
     switch (membership.role) {
       case 'ADMIN_STRUCTURE':
-        this.router.navigate(['/incubateur']);
-        break;
-
       case 'COACH':
-        this.router.navigate(['/coach']);
+        this.router.navigate(['/incubateur']);
         break;
 
       case 'ENTREPRENEUR':

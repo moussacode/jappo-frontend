@@ -5,13 +5,14 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { switchMap } from 'rxjs';
 import { AfterViewInit, ElementRef, ViewChild } from '@angular/core';
 import { GoogleAuthService } from '../../../../core/services/google-auth.service';
-import { AuthService } from '../../../../core/services/auth.service';
+import { AuthService, StructureMembership } from '../../../../core/services/auth.service';
 import { StructureContextService } from '../../../../core/services/structure-context.service';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 import { Icon, IconName } from '../../../../shared/components/icon/icon';
 import { CardComponent } from '../../../../shared/components/card/card.component';
 import { FormFieldComponent } from '../../../../shared/components/input/form-field.component';
 import { InputComponent } from '../../../../shared/components/input/input.component';
+import { TranslatePipe } from '../../../../shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-connexion',
@@ -23,7 +24,9 @@ import { InputComponent } from '../../../../shared/components/input/input.compon
     Icon,
     CardComponent,
     FormFieldComponent,
-    InputComponent, // <-- Ajouté ici pour résoudre l'erreur ngtsc
+    InputComponent,
+    TranslatePipe,
+     // <-- Ajouté ici pour résoudre l'erreur ngtsc
   ],
   templateUrl: './connexion.html',
   styleUrl: './connexion.css',
@@ -76,36 +79,71 @@ private onGoogleCredential(idToken: string): void {
     email: ['', [Validators.required, Validators.email]],
     motDePasse: ['', [Validators.required]],
   });
-private routerApresConnexion(memberships: any[]): void {
+private routerApresConnexion(
+  memberships: StructureMembership[]
+): void {
+  const user = this.authService.currentUser();
+
+  // 1. Super Admin : aucune structure nécessaire
+  if (user?.roleGlobal === 'SUPER_ADMIN') {
+    this.router.navigate(['/super-admin/dashboard']);
+    return;
+  }
+
+  // 2. Utilisateur sans structure
   if (!memberships || memberships.length === 0) {
     this.router.navigate(['/choisir-structure']);
     return;
   }
 
+  // 3. Une seule structure
   if (memberships.length === 1) {
     const membership = memberships[0];
+
     this.structureContext.setActiveStructure(membership);
 
     switch (membership.role) {
       case 'ADMIN_STRUCTURE':
-        this.router.navigate(['/incubateur/dashboard']);
-        break;
       case 'COACH':
         this.router.navigate(['/incubateur/dashboard']);
         break;
+
       case 'ENTREPRENEUR':
         this.router.navigate(['/entrepreneur/dashboard']);
         break;
+
       default:
         this.errorMessage.set('Rôle utilisateur non reconnu.');
     }
+
     return;
   }
 
+  // 4. Plusieurs structures
   this.router.navigate(['/choisir-structure']);
 }
   protected onSubmit(): void {
     if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+
+      if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }  if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }  if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }  if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }  if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }  if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }

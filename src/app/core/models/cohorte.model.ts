@@ -4,6 +4,13 @@ export type StatutCohorte =
   | 'TERMINEE'
   | 'ARCHIVEE';
 
+export interface CoachSummary {
+  id: string;
+  prenom?: string;
+  nom?: string;
+  email: string;
+}
+
 export interface Cohorte {
   id: string;
   nom: string;
@@ -15,6 +22,7 @@ export interface Cohorte {
   phaseId?: string;
   phase?: PhaseSummary;
   structureId?: string;
+  coachs?: CoachSummary[];
 }
 
 export interface PhaseSummary {
@@ -30,6 +38,7 @@ export interface CreateCohorteRequest {
   dateFin?: string;
   parcoursId: string;
   phaseId: string;
+  coachIds?: string[];
 }
 
 export interface UpdateCohorteRequest {
@@ -40,6 +49,11 @@ export interface UpdateCohorteRequest {
   statut?: StatutCohorte;
   parcoursId?: string;
   phaseId?: string;
+  coachIds?: string[];
+}
+
+export interface AffecterCoachsRequest {
+  coachIds: string[];
 }
 
 export interface InviterEntrepreneursRequest {

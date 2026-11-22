@@ -4,7 +4,7 @@ import { Component, input } from '@angular/core';
   selector: 'app-loading-state',
   template: `
     <div class="flex flex-col items-center justify-center gap-3 rounded-[var(--radius-token-md)] border border-neutral-200 bg-white px-6 py-10 text-center">
-      <span class="animate-pulse text-3xl">⏳</span>
+  
       <p class="text-base font-semibold text-neutral-900">{{ title() }}</p>
       <p class="max-w-sm text-sm text-neutral-700">{{ description() }}</p>
       <div class="mt-2 flex w-full max-w-xs flex-col gap-2">

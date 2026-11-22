@@ -1,0 +1,145 @@
+<div class="min-h-full bg-surface-muted/30 p-4 font-sans sm:p-6 lg:p-8">
+  <div class="mx-auto max-w-3xl space-y-6">
+
+    <!-- HEADER DE PAGE -->
+    <header class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <div class="mb-1 flex items-center gap-1.5 text-xs font-medium text-ink-muted">
+          <span>Support</span>
+          <app-icon name="chevron-right" class="size-3.5 opacity-60" />
+          <span class="text-ink">Assistance JAPPO</span>
+        </div>
+
+        <h1 class="text-xl font-bold tracking-tight text-ink sm:text-2xl">
+          Centre d'assistance
+        </h1>
+
+        <p class="mt-1 text-xs text-ink-muted sm:text-sm">
+          Une question ou un problème ? Notre équipe et notre assistant intelligent sont là pour vous aider.
+        </p>
+      </div>
+
+     
+    </header>
+
+    <!-- FORM CARD -->
+    <app-card padding="none" variant="default" class="overflow-hidden shadow-xs">
+      
+      <!-- Card Header -->
+      <div class="border-b border-line/60 bg-surface px-6 py-4">
+        <h2 class="text-sm font-bold text-ink">Envoyer un message au support</h2>
+        <p class="text-xs text-ink-muted">Remplissez le formulaire ci-dessous pour ouvrir un ticket d'assistance.</p>
+      </div>
+
+      <form (ngSubmit)="submit()" class="space-y-5 p-6 sm:p-8">
+
+    
+        <!-- Email -->
+        <div>
+          <label for="email" class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-ink-muted">
+            Adresse email de contact
+          </label>
+          <div class="relative">
+           
+            <input
+              id="email"
+              name="email"
+              type="email"
+              [(ngModel)]="email"
+              placeholder="votre.email@domaine.com"
+              autocomplete="email"
+              required
+              class="h-10 w-full rounded-xl border border-line bg-surface pl-10 pr-4 text-xs text-ink placeholder:text-ink-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/15 transition-all"
+            />
+          </div>
+        </div>
+
+        <!-- Message -->
+        <div>
+          <div class="mb-1.5 flex items-center justify-between">
+            <label for="message" class="block text-xs font-bold uppercase tracking-wider text-ink-muted">
+              Description de votre demande
+            </label>
+            
+          </div>
+
+          <div class="relative">
+            <textarea
+              id="message"
+              name="message"
+              [(ngModel)]="message"
+              rows="5"
+              maxlength="1000"
+              required
+              placeholder="Décrivez en détail le problème rencontré ou votre question..."
+              class="w-full resize-none rounded-xl border border-line bg-surface p-3.5 text-xs text-ink placeholder:text-ink-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/15 transition-all"
+            ></textarea>
+          </div>
+        </div>
+
+        <!-- BANNIÈRE D'ERREUR -->
+        @if (error(); as errorMessage) {
+          <div class="flex items-start gap-3 rounded-xl border border-red-500/20 bg-red-500/[0.04] p-4 text-xs text-red-700 animate-in fade-in">
+            <app-icon name="alert-circle" class="size-4 shrink-0 mt-0.5 text-red-500" />
+            <div class="flex-1">
+              <p class="font-bold">Une erreur est survenue</p>
+              <p class="mt-0.5 text-red-600/90">{{ errorMessage }}</p>
+            </div>
+          </div>
+        }
+
+        <!-- BANNIÈRE DE SUCCÈS -->
+        @if (response(); as result) {
+          <div class="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] p-4 animate-in fade-in">
+            <div class="flex items-start gap-3">
+              <div class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600">
+                <app-icon name="check-circle" class="size-4" />
+              </div>
+
+              <div class="space-y-1">
+                <p class="text-xs font-bold text-emerald-900">
+                  Demande transmise avec succès !
+                </p>
+
+                <p class="text-xs text-emerald-700">
+                  {{ result.message }}
+                </p>
+
+                <div class="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-surface px-2.5 py-1 text-[11px] font-mono font-medium text-emerald-800">
+                  <span>Numéro de ticket :</span>
+                  <strong class="font-bold">{{ result.ticketId }}</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- BOUTON D'ENVOI -->
+        <div class="flex items-center justify-between border-t border-line/60 pt-4">
+          <p class="text-[11px] text-ink-muted">
+            <span class="text-red-500">*</span> Tous les champs sont obligatoires
+          </p>
+
+          <app-button
+            type="submit"
+            variant="primary"
+            size="md"
+            [disabled]="loading() || !email || !message"
+          >
+            @if (loading()) {
+              <span class="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
+              <span>Traitement en cours...</span>
+            } @else {
+              
+              <span>Envoyer ma demande</span>
+            }
+          </app-button>
+        </div>
+
+      </form>
+    </app-card>
+
+    
+
+  </div>
+</div>

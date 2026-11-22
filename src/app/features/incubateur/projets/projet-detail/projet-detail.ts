@@ -40,8 +40,10 @@ interface Promotion409 {
   ],
   template: `
 <div class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
-  <app-breadcrumb [items]="breadcrumbItems()" />
-  <app-loading-state *ngIf="loading()" message="Chargement du projet..." />
+  <!-- <app-breadcrumb [items]="breadcrumbItems()" /> -->
+  @if (loading()) {
+    <app-loading-state message="Chargement du projet..." />
+  }
 
   @if (!loading() && projet(); as p) {
     <app-page-header [title]="p.nom" [subtitle]="soustitre(p)">
